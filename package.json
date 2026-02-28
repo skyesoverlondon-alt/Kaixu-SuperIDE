@@ -1,0 +1,16 @@
+{
+  "name": "kaixu-super-ide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "kAIxU Super IDE — browser IDE with Neon-backed accounts, kAIxU Gate AI editing, chat timeline, and Git-deployable Netlify Functions.",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.12.0"
+  }
+}

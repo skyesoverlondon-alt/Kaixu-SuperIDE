@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>kAIxU Super IDE</title>
+    <!--
+      This HTML layout defines the shell for a browser‑based IDE.  It loads the
+      Monaco editor, IndexedDB helper library, diff utilities and zip helpers
+      from public CDNs.  The rest of the functionality lives in app.js.
+
+      The page is split into a toolbar at the top, a side panel for the file
+      tree and commit history, a main panel for the editor and search
+      interface, and a preview pane which can be detached or maximised.
+    -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+    <!-- External libraries were removed for offline support.  All functionality is implemented directly in app.js. -->
+    <!-- The Monaco editor is not bundled to ensure offline functionality.  A simple
+         textarea editor is used instead. -->
+  </head>
+  <body>
+    <div id="app">
+      <header id="toolbar">
+        <!-- Brand/logo -->
+        <div id="logo">
+          <span class="logoText">kAIxU</span>
+          <span class="logoSub">Super IDE</span>
+        </div>
+        <!-- File actions -->
+        <button id="new-file">New File</button>
+        <button id="save-file">Save File</button>
+        <button id="delete-file">Delete</button>
+        <button id="upload-files">Upload</button>
+        <button id="upload-folder">Folder</button>
+        <input type="file" id="file-upload" multiple style="display:none" />
+        <input type="file" id="folder-upload" webkitdirectory directory multiple style="display:none" />
+        <button id="export-zip">Export ZIP</button>
+        <button id="sync-cloud" title="Sync workspace to Neon">Sync</button>
+        <!-- Search/replace -->
+        <input id="search-input" placeholder="Search…" />
+        <input id="replace-input" placeholder="Replace…" />
+        <button id="search-button">Find</button>
+        <button id="replace-button">Replace All</button>
+        <!-- Commits -->
+        <input id="commit-message" placeholder="Commit message…" />
+        <button id="commit-button">Commit</button>
+        <button id="history-button">History</button>
+        <button id="revert-button">Revert</button>
+        <button id="export-patch-button">Export Patch</button>
+        <!-- AI / safety -->
+        <button id="ai-settings" title="AI + Agent settings">AI Settings</button>
+        <label><input type="checkbox" id="diff-safety" checked />Diff Safety</label>
+        <!-- Template selection -->
+        <select id="template-select">
+          <option value="">Template…</option>
+        </select>
+        <button id="apply-template">Apply</button>
+        <button id="tutorial" title="Tutorial">Tutorial</button>
+        <div class="userChip" id="userChip">Not signed in</div>
+        <button id="authBtn">Sign in</button>
+        <!-- Preview controls -->
+        <button id="preview-toggle">Toggle Preview</button>
+        <button id="preview-detach">Detach</button>
+      </header>
+      <main>
+        <aside id="side">
+          <div class="sideTabs">
+            <button class="tabBtn active" data-tab="files">Files</button>
+            <button class="tabBtn" data-tab="chat">Chat</button>
+            <button class="tabBtn" data-tab="scm">Source</button>
+          </div>
+
+          <div id="files-pane" class="pane">
+            <div id="file-tree"></div>
+          </div>
+
+          <div id="chat-pane" class="pane hidden">
+            <div class="chatTop">
+              <select id="chatScope" title="Agent scope">
+                <option value="active">Active file</option>
+                <option value="selected">Selected files</option>
+                <option value="all" selected>Entire workspace</option>
+              </select>
+              <label title="Apply edits immediately"><input type="checkbox" id="autoApplyEdits" checked />Auto-apply</label>
+              <label title="Commit after apply"><input type="checkbox" id="commitAfterApply" checked />Commit</label>
+              <label title="Autosave while typing"><input type="checkbox" id="autoSave" checked />Autosave</label>
+            </div>
+            <div id="chatTimeline" class="chatTimeline"></div>
+            <div class="chatComposer">
+              <textarea id="chatInput" placeholder="Tell kAIxU what to change…" spellcheck="false"></textarea>
+              <button id="chatSend">Send</button>
+            </div>
+          </div>
+
+          <div id="history-pane" class="pane hidden"></div>
+        </aside>
+        <section id="editor-section">
+          <!-- Text editor area.  This textarea replaces Monaco for offline support. -->
+          <textarea id="editor" class="pane" spellcheck="false"></textarea>
+        </section>
+        <section id="preview-section" class="pane hidden">
+          <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+        </section>
+      </main>
+    </div>
+
+    <!-- Netlify Forms: hidden signup form so Netlify detects it -->
+    <form name="signup" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="signup" />
+      <input name="email" />
+    </form>
+
+    <!-- New File Dialog -->
+    <div id="new-file-dialog" class="dialog hidden">
+      <div class="dialog-content">
+        <h3>Create New File</h3>
+        <input id="new-file-path-input" placeholder="e.g. src/index.js" />
+        <div class="dialog-buttons">
+          <button id="new-file-confirm">Create</button>
+          <button id="new-file-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:520px;">
+        <h3>kAIxU Super IDE — Sign in</h3>
+        <div class="authTabs">
+          <button class="authTabBtn active" data-auth="login">Login</button>
+          <button class="authTabBtn" data-auth="signup">Sign Up</button>
+        </div>
+
+        <div id="authLogin" class="authPanel">
+          <input id="loginEmail" placeholder="Email" />
+          <input id="loginPassword" placeholder="Password" type="password" />
+          <div class="dialog-buttons">
+            <button id="loginSubmit">Login</button>
+            <button id="authClose">Close</button>
+          </div>
+        </div>
+
+        <div id="authSignup" class="authPanel hidden">
+          <input id="signupEmail" placeholder="Email" />
+          <input id="signupPassword" placeholder="Password (8+ chars)" type="password" />
+          <div class="muted" style="margin:8px 0;">Signup is captured as a Netlify Form + stored in Neon for authentication.</div>
+          <div class="dialog-buttons">
+            <button id="signupSubmit">Create account</button>
+            <button id="authClose2">Close</button>
+          </div>
+        </div>
+
+        <div class="muted" id="authStatus" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Tutorial Modal -->
+    <div id="tutorialModal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:820px;">
+        <h3>kAIxU Super IDE — Tutorial</h3>
+        <div class="tutorialBody">
+          <ol>
+            <li><b>Sign in</b> (top right). Your workspace can sync to Neon.</li>
+            <li><b>Upload</b> files or a ZIP. The IDE imports everything into the workspace.</li>
+            <li><b>Toggle Preview</b> to run your project. The preview updates live as you type (autosave).</li>
+            <li><b>Commit</b> often. You can revert any time.</li>
+            <li>Go to the <b>Chat</b> tab. Tell kAIxU what to change. It will propose edits and can auto-apply them.</li>
+            <li><b>Undo</b> any AI message using the built-in checkpoint commit.</li>
+          </ol>
+          <div class="muted">Pro tip: Use Chat scope “Selected files” to keep edits precise.</div>
+        </div>
+        <div class="dialog-buttons">
+          <button id="tutorialClose">Close</button>
+        </div>
+      </div>
+    </div>
+    <script src="jszip.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
