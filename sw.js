@@ -11,6 +11,7 @@
 const APP_SHELL = [
   '.',
   'index.html',
+  'ide.html',
   'styles.css',
   'app.js',
   'jszip.min.js',

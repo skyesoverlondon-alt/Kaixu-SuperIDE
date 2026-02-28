@@ -2,7 +2,7 @@
   "name": "kAIxU IDE",
   "short_name": "kAIxU IDE",
   "description": "A browser‑based AI coding environment with search/replace, versioning, preview and agent integration.",
-  "start_url": ".",
+  "start_url": "ide.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4a90e2",
