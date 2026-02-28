@@ -23,7 +23,7 @@
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body { background: var(--bg0); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    body { background: var(--bg0); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
 
     /* ── INTRO ── */
     .intro-layer {
@@ -33,9 +33,9 @@
     }
     .intro-layer.hidden { opacity: 0; pointer-events: none; transition: opacity .6s ease; }
     @keyframes crtTurnOn {
-      0%   { transform: scale(1,.001); filter: brightness(10); opacity: 0; }
-      50%  { transform: scale(1,.001); filter: brightness(5);  opacity: 1; }
-      100% { transform: scale(1,1);    filter: brightness(1);  opacity: 1; }
+      0%   { transform: scale(1,.003); filter: brightness(8); opacity: 1; }
+      60%  { transform: scale(1,.003); filter: brightness(4); opacity: 1; }
+      100% { transform: scale(1,1);    filter: brightness(1); opacity: 1; }
     }
     .intro-layer.shake { animation: intenseShake .4s cubic-bezier(.36,.07,.19,.97) both; }
     @keyframes intenseShake {
@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const p = document.createElement('div');
     p.className = 'warp-particle';
     const angle = Math.random() * 360;
-    const speed = Math.random() * 0.8 + 0.2;
+    const speed = Math.random() * 2 + 1.5;
     const color = colors[Math.floor(Math.random() * colors.length)];
     p.style.setProperty('--angle', `${angle}deg`);
     p.style.setProperty('--speed', `${speed}s`);
