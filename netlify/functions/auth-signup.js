@@ -37,7 +37,7 @@ await query(
 // Create default workspace within org
 const wsRes = await query(
   'insert into workspaces(user_id, org_id, created_by, name, files) values($1,$2,$3,$4,$5) returning id, name, files, updated_at',
-  [user.id, org.id, user.id, 'Default Workspace', {}]
+  [user.id, org.id, user.id, 'Default Workspace', JSON.stringify({})]
 );
 const workspace = wsRes.rows[0];
 
@@ -46,9 +46,16 @@ const workspace = wsRes.rows[0];
     return json(200, { ok: true, token, user, org, workspace });
   } catch (err) {
     const msg = String(err?.message || err);
+    console.error('[auth-signup] error:', msg);
     if (msg.toLowerCase().includes('unique')) {
       return json(409, { ok: false, error: 'Email already exists' });
     }
-    return json(500, { ok: false, error: 'Signup failed' });
+    if (msg.toLowerCase().includes('jwt_secret') || msg.toLowerCase().includes('missing/weak')) {
+      return json(500, { ok: false, error: 'Server misconfiguration: JWT_SECRET not set' });
+    }
+    if (msg.toLowerCase().includes('neon_database_url') || msg.toLowerCase().includes('connect')) {
+      return json(500, { ok: false, error: 'Server misconfiguration: database not reachable' });
+    }
+    return json(500, { ok: false, error: 'Signup failed: ' + msg });
   }
 };
