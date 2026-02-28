@@ -380,3 +380,6 @@ input[type="checkbox"] {
 .dialog-buttons button {
   flex: 0 0 auto;
 }
+
+.orgBar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.orgBar select{min-width:160px}

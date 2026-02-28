@@ -20,8 +20,17 @@ exports.handler = async (event) => {
   try {
     const claims = verifyToken(token);
     const userId = claims.sub;
-    const ws = await query('select id from workspaces where id=$1 and user_id=$2', [wsId, userId]);
-    if (!ws.rows[0]) return json(404, { ok: false, error: 'Workspace not found' });
+
+    // Verify access (org-aware)
+    const wsRes = await query('select org_id, user_id from workspaces where id=$1', [wsId]);
+    const ws = wsRes.rows[0];
+    if (!ws) return json(404, { ok: false, error: 'Workspace not found' });
+    if (ws.org_id) {
+      const mem = await query('select role from org_memberships where org_id=$1 and user_id=$2', [ws.org_id, userId]);
+      if (!mem.rows[0]) return json(403, { ok: false, error: 'Not allowed' });
+    } else {
+      if (ws.user_id !== userId) return json(403, { ok: false, error: 'Not allowed' });
+    }
 
     const res = await query(
       'insert into chats(workspace_id, role, text, operations, checkpoint_commit_id) values($1,$2,$3,$4,$5) returning id, created_at',

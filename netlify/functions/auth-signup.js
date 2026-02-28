@@ -23,15 +23,27 @@ exports.handler = async (event) => {
     );
     const user = userRes.rows[0];
 
-    // Create default workspace
-    const wsRes = await query(
-      'insert into workspaces(user_id, name, files) values($1,$2,$3) returning id, name, files, updated_at',
-      [user.id, 'Default Workspace', {}]
-    );
-    const workspace = wsRes.rows[0];
+    // Create default org + membership
+const orgRes = await query(
+  'insert into orgs(name, created_by) values($1,$2) returning id, name, created_at',
+  ['Personal Org', user.id]
+);
+const org = orgRes.rows[0];
+await query(
+  'insert into org_memberships(org_id, user_id, role) values($1,$2,$3) on conflict do nothing',
+  [org.id, user.id, 'owner']
+);
+
+// Create default workspace within org
+const wsRes = await query(
+  'insert into workspaces(user_id, org_id, created_by, name, files) values($1,$2,$3,$4,$5) returning id, name, files, updated_at',
+  [user.id, org.id, user.id, 'Default Workspace', {}]
+);
+const workspace = wsRes.rows[0];
+
 
     const token = issueToken({ sub: user.id, email: user.email });
-    return json(200, { ok: true, token, user, workspace });
+    return json(200, { ok: true, token, user, org, workspace });
   } catch (err) {
     const msg = String(err?.message || err);
     if (msg.toLowerCase().includes('unique')) {

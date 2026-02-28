@@ -19,7 +19,7 @@ const APP_SHELL = [
 ];
 
 // Bump the cache name to force service worker to fetch the latest app shell
-const CACHE_NAME = 'kaixu-ide-shell-v3';
+const CACHE_NAME = 'kaixu-ide-shell-v4';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

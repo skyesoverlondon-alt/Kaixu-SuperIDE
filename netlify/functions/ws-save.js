@@ -19,10 +19,23 @@ exports.handler = async (event) => {
     const claims = verifyToken(token);
     const userId = claims.sub;
 
-    const res = await query(
-      'update workspaces set files=$1, name=coalesce($2,name), updated_at=now() where id=$3 and user_id=$4 returning id, name, updated_at',
-      [fileObj, name || null, wsId, userId]
-    );
+    // Verify membership before update
+const wsCheck = await query('select id, org_id from workspaces where id=$1', [wsId]);
+const ws0 = wsCheck.rows[0];
+if (!ws0) return json(404, { ok:false, error:'Workspace not found' });
+
+if (ws0.org_id) {
+  const mem = await query('select role from org_memberships where org_id=$1 and user_id=$2', [ws0.org_id, userId]);
+  if (!mem.rows[0]) return json(403, { ok:false, error:'Not allowed' });
+} else {
+  const legacy = await query('select 1 from workspaces where id=$1 and user_id=$2', [wsId, userId]);
+  if (!legacy.rows[0]) return json(403, { ok:false, error:'Not allowed' });
+}
+
+const res = await query(
+  'update workspaces set files=$1, name=coalesce($2,name), updated_at=now() where id=$3 returning id, name, updated_at',
+  [fileObj, name || null, wsId]
+);        
     const ws = res.rows[0];
     if (!ws) return json(404, { ok: false, error: 'Workspace not found' });
     return json(200, { ok: true, workspace: ws });

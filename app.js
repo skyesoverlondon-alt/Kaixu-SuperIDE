@@ -149,6 +149,14 @@ function initEditor() {
       if (autoSaveOn && currentFile) {
         await writeFile(currentFile, editor.getValue());
         await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
       }
       if (previewOn) await updatePreview();
     }, 400);
@@ -299,6 +307,14 @@ async function importFiles(fileList) {
     }
   }
   await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
 }
 
 async function exportWorkspaceZip() {
@@ -413,6 +429,14 @@ async function revertToCommit(id) {
   for (const f of files) await deleteFile(f.path);
   for (const f of commit.snapshot || []) await writeFile(f.path, f.content || '');
   await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
   await commitWorkspace(`Revert to #${id}`);
 }
 
@@ -446,6 +470,12 @@ async function registerServiceWorker() {
   if (location.protocol === 'file:') return; // SW not allowed
   try {
     await navigator.serviceWorker.register('sw.js');
+    // If the page isn't controlled yet, reload once so /virtual works immediately.
+    if (!navigator.serviceWorker.controller && !sessionStorage.getItem('kaixu_sw_reloaded')) {
+      sessionStorage.setItem('kaixu_sw_reloaded', '1');
+      await navigator.serviceWorker.ready;
+      location.reload();
+    }
   } catch (e) {
     console.warn('SW register failed', e);
   }
@@ -456,8 +486,12 @@ async function updatePreview() {
   if (!frame) return;
 
   // If running on http(s) with SW, prefer virtual server preview
-  const swReady = (location.protocol.startsWith('http') && navigator.serviceWorker && (navigator.serviceWorker.controller || (await navigator.serviceWorker.ready).active));
+  const swReady = (location.protocol.startsWith('http') && navigator.serviceWorker && !!navigator.serviceWorker.controller);
   if (swReady) {
+    // Ensure the latest buffer is persisted for the virtual server
+    try {
+      if (currentFile) await writeFile(currentFile, editor.getValue());
+    } catch {}
     frame.src = `/virtual/index.html?ts=${Date.now()}`;
     return;
   }
@@ -523,6 +557,57 @@ async function updatePreview() {
 }
 
 // -----------------------------
+// Orgs + workspaces (Neon)
+// -----------------------------
+
+let currentOrgId = null;
+
+function renderOrgSelect(orgs) {
+  const sel = $('#orgSelect');
+  if (!sel) return;
+  sel.innerHTML = '';
+  (orgs || []).forEach((o) => {
+    const opt = document.createElement('option');
+    opt.value = o.id;
+    opt.textContent = `${o.name} (${o.role})`;
+    sel.appendChild(opt);
+  });
+  if (currentOrgId) sel.value = currentOrgId;
+}
+
+function renderWsSelect(workspaces) {
+  const sel = $('#wsSelect');
+  if (!sel) return;
+  sel.innerHTML = '';
+  (workspaces || []).forEach((w) => {
+    const opt = document.createElement('option');
+    opt.value = w.id;
+    opt.textContent = w.name;
+    sel.appendChild(opt);
+  });
+  if (currentWorkspaceId) sel.value = currentWorkspaceId;
+}
+
+async function refreshOrgsAndWorkspaces() {
+  if (!authToken) return;
+  const me = await api('/api/auth-me');
+  currentUser = me.user;
+  setUserChip();
+  const orgs = me.orgs || [];
+  currentOrgId = me.defaultOrgId || orgs[0]?.id || null;
+  renderOrgSelect(orgs);
+
+  if (currentOrgId) {
+    const ws = await api(`/api/ws-list?org_id=${encodeURIComponent(currentOrgId)}`);
+    renderWsSelect(ws.workspaces || []);
+    if (!currentWorkspaceId && ws.workspaces?.[0]?.id) currentWorkspaceId = ws.workspaces[0].id;
+  }
+
+  if (currentWorkspaceId) await loadWorkspaceFromCloud(currentWorkspaceId);
+  await loadChatFromCloud();
+}
+
+// -----------------------------
 // Cloud sync (Neon)
 // -----------------------------
 
@@ -561,6 +646,14 @@ async function loadWorkspaceFromCloud(workspaceId) {
     await writeFile(p, filesObj[p]);
   }
   await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
 }
 
 // -----------------------------
@@ -628,8 +721,8 @@ async function doSignup() {
   currentUser = res.user;
   setUserChip();
   currentWorkspaceId = res.workspace?.id || null;
-  if (currentWorkspaceId) await loadWorkspaceFromCloud(currentWorkspaceId);
-  await loadChatFromCloud();
+  currentOrgId = res.org?.id || res.defaultOrgId || null;
+  await refreshOrgsAndWorkspaces();
   $('#authStatus').textContent = 'Signed up.';
   await sleep(250);
   closeAuthModal();
@@ -776,6 +869,14 @@ async function applyChatEdits(idx) {
 
   await applyOperations(ops);
   await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
 
   if ($('#commitAfterApply').checked) {
     await commitWorkspace(`AI: ${msg.text.slice(0, 80)}`);
@@ -927,6 +1028,14 @@ function bindEvents() {
     if (!p) return;
     await writeFile(p, '');
     await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
     await selectFile(p);
     $('#new-file-dialog').classList.add('hidden');
   });
@@ -942,6 +1051,14 @@ function bindEvents() {
     if (!currentFile) return alert('Open a file first.');
     await writeFile(currentFile, editor.getValue());
     await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
     if (!$('#preview-section').classList.contains('hidden')) await updatePreview();
   });
 
@@ -953,6 +1070,14 @@ function bindEvents() {
     currentFile = null;
     editor.setValue('');
     await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
   });
 
   // Upload
@@ -995,6 +1120,14 @@ function bindEvents() {
       }
     }
     await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
     alert(`Replaced in ${count} file(s).`);
   });
 
@@ -1026,9 +1159,20 @@ function bindEvents() {
   });
   $('#preview-detach').addEventListener('click', async () => {
     // Prefer /virtual if SW is active; else write HTML directly.
-    const swReady = (location.protocol.startsWith('http') && navigator.serviceWorker && (navigator.serviceWorker.controller || (await navigator.serviceWorker.ready).active));
+    const swReady = (location.protocol.startsWith('http') && navigator.serviceWorker && !!navigator.serviceWorker.controller);
     if (swReady) {
-      window.open(`/virtual/index.html?ts=${Date.now()}`, '_blank');
+      await updatePreview();
+      const html = lastPreviewHTML || '<p style="padding:1rem;color:#ccc">No preview</p>';
+      const w = window.open('', '_blank');
+      if (w) {
+        // Show the same preview instantly, plus a runner link.
+        const runner = `/virtual/index.html?ts=${Date.now()}`;
+        w.document.write(html + `
+<!-- Runner link -->
+<div style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui">`+
+          `<a href="${runner}" target="_self" style="padding:8px 10px;border-radius:12px;background:#1a0c2b;color:#ffd65a;border:1px solid rgba(255,214,90,0.35);text-decoration:none">Open Runner</a></div>`);
+        w.document.close();
+      }
     } else {
       await updatePreview();
       const html = lastPreviewHTML || '<p style="padding:1rem;color:#ccc">No preview</p>';
@@ -1039,6 +1183,42 @@ function bindEvents() {
       }
     }
   });
+
+// Org/workspace controls
+$('#orgSelect')?.addEventListener('change', async (e) => {
+  currentOrgId = e.target.value;
+  currentWorkspaceId = null;
+  const ws = await api(`/api/ws-list?org_id=${encodeURIComponent(currentOrgId)}`);
+  renderWsSelect(ws.workspaces || []);
+  if (ws.workspaces?.[0]?.id) {
+    currentWorkspaceId = ws.workspaces[0].id;
+    await loadWorkspaceFromCloud(currentWorkspaceId);
+    await loadChatFromCloud();
+  }
+});
+
+$('#wsSelect')?.addEventListener('change', async (e) => {
+  currentWorkspaceId = e.target.value;
+  if (currentWorkspaceId) {
+    await loadWorkspaceFromCloud(currentWorkspaceId);
+    await loadChatFromCloud();
+  }
+});
+
+$('#newOrgBtn')?.addEventListener('click', async () => {
+  const name = prompt('Org name?') || 'New Org';
+  const res = await api('/api/org-create', { method:'POST', body:{ name }});
+  await refreshOrgsAndWorkspaces();
+  toast('Org created');
+});
+
+$('#newWsBtn')?.addEventListener('click', async () => {
+  if (!currentOrgId) return alert('Select an org first.');
+  const name = prompt('Workspace name?') || 'New Workspace';
+  const res = await api('/api/ws-create', { method:'POST', body:{ org_id: currentOrgId, name }});
+  await refreshOrgsAndWorkspaces();
+  toast('Workspace created');
+});
 
   // Cloud sync
   $('#sync-cloud').addEventListener('click', syncToCloud);
@@ -1124,6 +1304,14 @@ async function init() {
   await registerServiceWorker();
 
   await refreshFileTree();
+  // If index.html exists and nothing selected, open it after import
+  try {
+    const idx = await readFile('index.html');
+    if (idx && !currentFile) await selectFile('index.html');
+  } catch {}
+  if (!$('#preview-section').classList.contains('hidden')) {
+    await updatePreview();
+  }
   await refreshHistory();
 
   const ok = await tryRestoreSession();

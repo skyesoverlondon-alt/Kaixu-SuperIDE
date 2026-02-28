@@ -33,3 +33,45 @@ create table if not exists chats (
 );
 
 create index if not exists idx_chats_workspace_id on chats(workspace_id);
+
+
+-- Orgs + membership (Fortune-500 multi-tenant)
+
+create table if not exists orgs (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_by uuid references users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists org_memberships (
+  org_id uuid not null references orgs(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  role text not null check (role in ('owner','admin','member','viewer')),
+  created_at timestamptz not null default now(),
+  primary key (org_id, user_id)
+);
+
+create table if not exists org_invites (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid not null references orgs(id) on delete cascade,
+  email text not null,
+  role text not null check (role in ('admin','member','viewer')),
+  token text unique not null,
+  created_by uuid references users(id) on delete set null,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references orgs(id) on delete cascade,
+  user_id uuid references users(id) on delete set null,
+  action text not null,
+  details jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+-- Extend workspaces for org scoping
+alter table workspaces add column if not exists org_id uuid references orgs(id) on delete cascade;
+alter table workspaces add column if not exists created_by uuid references users(id) on delete set null;
