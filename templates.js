@@ -395,9 +395,136 @@ async function _applyTemplate(tpl) {
   toast(`Applied template: ${tpl.name}`, 'success');
 }
 
+// ─── User templates (saved to IndexedDB) ──────────────────────────────────
+var _userTemplates = [];
+
+async function _loadUserTemplates() {
+  _userTemplates = (await getMeta('userTemplates', [])) || [];
+}
+
+async function _saveUserTemplates() {
+  await setMeta('userTemplates', _userTemplates);
+}
+
+async function saveWorkspaceAsTemplate() {
+  const name = prompt('Template name:');
+  if (!name) return;
+  const desc = prompt('Description (optional):') || '';
+  const tagsRaw = prompt('Tags (comma-separated, optional):') || '';
+  const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+
+  const fileList = await listFiles();
+  const files = {};
+  for (const f of fileList) {
+    // Only include text files (skip large binaries)
+    if (f.content && !f.content.startsWith('__b64__:')) {
+      files[f.path] = f.content;
+    }
+  }
+
+  const tpl = {
+    id: 'u-' + Date.now(),
+    name: name.trim(),
+    description: desc.trim(),
+    tags,
+    emoji: '⭐',
+    files,
+    isUser: true,
+  };
+  _userTemplates.push(tpl);
+  await _saveUserTemplates();
+  toast(`Saved template: "${name}"`, 'success');
+  // Refresh grid if modal is open
+  const modal = document.getElementById('templates-modal');
+  if (modal && !modal.classList.contains('hidden')) {
+    _renderTemplateGrid(document.getElementById('templates-search')?.value || '');
+  }
+}
+
+// ─── Modal UI ─────────────────────────────────────────────────────────────
+
+function openTemplatesModal() {
+  const modal = document.getElementById('templates-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  _renderTemplateGrid('');
+}
+
+function closeTemplatesModal() {
+  const modal = document.getElementById('templates-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function _renderTemplateGrid(q) {
+  const grid = document.getElementById('templates-grid');
+  if (!grid) return;
+  const query = (q || '').toLowerCase();
+  const allTpls = [...BUILT_IN_TEMPLATES, ..._userTemplates];
+  const filtered = query
+    ? allTpls.filter(t =>
+        t.name.toLowerCase().includes(query) ||
+        t.description.toLowerCase().includes(query) ||
+        t.tags.some(tag => tag.includes(query)))
+    : allTpls;
+
+  grid.innerHTML = '';
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="template-empty">No templates match your search.</div>';
+    return;
+  }
+
+  filtered.forEach(tpl => {
+    const card = document.createElement('div');
+    card.className = 'template-card' + (tpl.isUser ? ' user-template' : '');
+    card.innerHTML =
+      `<div class="template-emoji">${tpl.emoji}</div>` +
+      `<div class="template-name">${tpl.name}${tpl.isUser ? ' <span class="tpl-user-badge">yours</span>' : ''}</div>` +
+      `<div class="template-desc">${tpl.description || ''}</div>` +
+      `<div class="template-tags">${(tpl.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}</div>` +
+      `<div class="template-file-count">${Object.keys(tpl.files).length} files</div>` +
+      (tpl.isUser ? `<button class="tpl-delete-btn" data-id="${tpl.id}">🗑 Delete</button>` : '');
+    card.querySelector('.tpl-delete-btn')?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      _userTemplates = _userTemplates.filter(t => t.id !== tpl.id);
+      await _saveUserTemplates();
+      _renderTemplateGrid(document.getElementById('templates-search')?.value || '');
+    });
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tpl-delete-btn')) return;
+      _applyTemplate(tpl);
+    });
+    grid.appendChild(card);
+  });
+}
+
+async function _applyTemplate(tpl) {
+  const existing = await listFiles();
+  if (existing.length > 0) {
+    const ok = confirm(`Apply template "${tpl.name}"?\n\nThis will REPLACE all current workspace files (${existing.length} files).`);
+    if (!ok) return;
+    for (const f of existing) await deleteFile(f.path);
+  }
+
+  for (const [path, content] of Object.entries(tpl.files)) {
+    await writeFile(path, content);
+  }
+  await refreshFileTree();
+  closeTemplatesModal();
+
+  // Open index.html if present
+  if (tpl.files['index.html'] && typeof openFileInEditor === 'function') {
+    await openFileInEditor('index.html', typeof activePane !== 'undefined' ? activePane : 0);
+  }
+  toast(`Applied template: ${tpl.name}`, 'success');
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────
 
 function initTemplates() {
+  // Load user templates from IndexedDB
+  _loadUserTemplates();
+
   // Search input
   const searchEl = document.getElementById('templates-search');
   if (searchEl) {
@@ -416,14 +543,26 @@ function initTemplates() {
   document.getElementById('apply-template')?.addEventListener('click', openTemplatesModal);
   document.getElementById('templates-btn')?.addEventListener('click', openTemplatesModal);
 
+  // Save as template button (if exists in toolbar)
+  document.getElementById('save-as-template-btn')?.addEventListener('click', saveWorkspaceAsTemplate);
+
   // Register commands
   if (typeof COMMANDS !== 'undefined') {
-    COMMANDS.push({
-      id: 'new-from-template',
-      label: 'New from Template…',
-      category: 'File',
-      keybinding: '',
-      action: openTemplatesModal,
-    });
+    COMMANDS.push(
+      {
+        id: 'new-from-template',
+        label: 'New from Template…',
+        category: 'File',
+        keybinding: '',
+        action: openTemplatesModal,
+      },
+      {
+        id: 'save-as-template',
+        label: 'Save Workspace as Template',
+        category: 'File',
+        keybinding: '',
+        action: saveWorkspaceAsTemplate,
+      }
+    );
   }
 }

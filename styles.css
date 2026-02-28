@@ -536,6 +536,11 @@ body.drag-over::after{content:'Drop files here';position:fixed;inset:0;display:f
 .template-tags .tag{background:rgba(162,89,255,.2);color:#c8a8ff;font-size:10px;padding:1px 6px;border-radius:8px}
 .template-file-count{font-size:10px;color:#6050a0;margin-top:4px}
 .template-empty{padding:32px 0;color:#6050a0;font-size:13px;text-align:center}
+.user-template{border-color:rgba(255,190,80,.3) !important}
+.user-template:hover{border-color:#ffbe50 !important;background:rgba(255,190,80,.08) !important}
+.tpl-user-badge{font-size:9px;background:rgba(255,190,80,.2);color:#ffbe50;border-radius:6px;padding:1px 5px;vertical-align:middle;margin-left:4px}
+.tpl-delete-btn{margin-top:6px;background:rgba(255,80,80,.15);border:none;color:#ff9090;border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;width:100%}
+.tpl-delete-btn:hover{background:rgba(255,80,80,.35)}
 #templates-search{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#e8deff;padding:7px 12px;font-size:13px;outline:none;box-sizing:border-box}
 #templates-search:focus{border-color:#a259ff}
 

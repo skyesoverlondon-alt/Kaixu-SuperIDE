@@ -125,6 +125,8 @@ async function _activateTab(id, preloadedContent) {
     _showCsvViewer(tab, content, viewer, ta);
   } else if (['md','markdown'].includes(ext)) {
     _showMarkdownViewer(tab, content, viewer, ta);
+  } else if (content.startsWith('__b64__:')) {
+    _showBinaryFallback(tab, content, viewer, ta);
   } else {
     viewer.classList.add('hidden');
     ta.classList.remove('hidden');
@@ -268,6 +270,23 @@ function _simpleMarkdown(md) {
     .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br/>');
+}
+
+// ─── Binary / unknown file fallback viewer ─────────────────────────────────
+function _showBinaryFallback(tab, content, viewer, ta) {
+  ta.classList.add('hidden');
+  viewer.classList.remove('hidden');
+  const sizeKB = content ? Math.round((content.length * 3) / 4 / 1024) : 0;
+  const filename = tab.path.split('/').pop();
+  viewer.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#8070b0;font-size:13px;">
+      <div style="font-size:40px">📦</div>
+      <div style="color:#d0c0f0;font-weight:600">${filename}</div>
+      <div style="font-size:11px;opacity:.6">${sizeKB} KB · binary file</div>
+      <div style="font-size:11px;opacity:.5">Cannot display binary content in the editor.</div>
+      <button onclick="(async()=>{const c=await readFile('${tab.path.replace(/'/g,"\\'")}');if(!c)return;const bin=Uint8Array.from(atob(c.slice(8)),x=>x.charCodeAt(0));const b=new Blob([bin]);const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='${filename.replace(/'/g,"\\'")}';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);})()"
+        style="background:#7c3aed;color:#fff;border:none;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px">⬇ Download</button>
+    </div>`;
 }
 
 // ─── Close tab ─────────────────────────────────────────────────────────────
