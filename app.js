@@ -1015,6 +1015,7 @@ async function init() {
   initOutline();             // outline.js — symbol outline panel
   initProblems();            // problems.js — lint / problems panel
   initTemplates();           // templates.js — template browser
+  initSnippets();            // snippets.js — snippet manager + Tab expansion
   bindSettingsModal();       // ui.js — settings modal bindings
   bindEvents();              // app.js — auth, chat, uploads, preview, commits
 

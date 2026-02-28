@@ -234,8 +234,11 @@
           <tr><td>Ctrl+N</td><td>New File</td></tr>
           <tr><td>Ctrl+P</td><td>Toggle Preview</td></tr>
           <tr><td>Shift+Alt+F</td><td>Format Document</td></tr>
+          <tr><td>Tab (in editor)</td><td>Expand snippet / insert indent</td></tr>
+          <tr><td>Tab (after snippet)</td><td>Next tab stop</td></tr>
         </table>
         <div class="dialog-buttons" style="margin-top:16px;">
+          <button id="settings-open-snippets">Manage Snippets…</button>
           <button id="settings-save">Save</button>
           <button id="settings-cancel">Close</button>
         </div>
@@ -331,6 +334,56 @@
       </div>
     </div>
 
+    <!-- Snippet Manager Modal -->
+    <div id="snippets-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:820px;width:95vw;">
+        <h3>Snippet Manager</h3>
+        <div class="snippets-layout">
+          <!-- Left: list -->
+          <div class="snippets-list-col">
+            <input id="snippets-search" placeholder="Filter snippets…" />
+            <div id="snippets-list" class="snippets-list"></div>
+          </div>
+          <!-- Right: editor form -->
+          <div class="snippets-form-col">
+            <h4 style="margin:0 0 10px">Add / Edit Snippet</h4>
+            <label class="snip-label">Name
+              <input id="snip-name" placeholder="My Snippet" />
+            </label>
+            <label class="snip-label">Prefix
+              <input id="snip-prefix" placeholder="mysnip" />
+            </label>
+            <label class="snip-label">Language
+              <select id="snip-lang">
+                <option value="js">JavaScript / TypeScript</option>
+                <option value="html">HTML</option>
+                <option value="css">CSS</option>
+                <option value="python">Python</option>
+                <option value="md">Markdown</option>
+                <option value="*">Any</option>
+              </select>
+            </label>
+            <label class="snip-label">Description
+              <input id="snip-desc" placeholder="What does this snippet do?" />
+            </label>
+            <label class="snip-label">Body <span class="muted" style="font-size:10px">($1 $2… tab stops, ${1:placeholder}, $0 final cursor)</span>
+              <textarea id="snip-body" class="snip-body-area" placeholder="console.log($1);$0"></textarea>
+            </label>
+            <div class="dialog-buttons" style="flex-wrap:wrap;gap:6px;">
+              <button id="snip-save-btn">Save Snippet</button>
+              <button id="snip-clear-btn">Clear</button>
+              <button id="snip-export-btn">Export JSON</button>
+              <button id="snip-import-btn">Import JSON</button>
+              <input type="file" id="snip-import-file" accept=".json" style="display:none" />
+            </div>
+          </div>
+        </div>
+        <div class="dialog-buttons" style="margin-top:14px;">
+          <button id="snippets-close">Close</button>
+        </div>
+      </div>
+    </div>
+
     <script src="jszip.min.js"></script>
     <script src="db.js"></script>
     <script src="ui.js"></script>
@@ -341,6 +394,7 @@
     <script src="outline.js"></script>
     <script src="problems.js"></script>
     <script src="templates.js"></script>
+    <script src="snippets.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

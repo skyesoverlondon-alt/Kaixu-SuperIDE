@@ -48,8 +48,8 @@ function openSettings() {
   // Populate inputs from IDE state
   document.getElementById('set-font-size').value = IDE.fontSize;
   document.getElementById('set-tab-size').value = IDE.tabSize;
-  document.getElementById('set-autosave').value = IDE.autoSave;
-  document.getElementById('set-wordwrap').checked = IDE.wordWrap;
+  document.getElementById('set-auto-save').value = IDE.autoSave;
+  document.getElementById('set-word-wrap').checked = IDE.wordWrap;
   document.getElementById('set-format-save').checked = IDE.formatOnSave;
   m.classList.remove('hidden');
   document.getElementById('set-font-size').focus();
@@ -62,8 +62,8 @@ function closeSettingsModal() {
 async function applyAndSaveSettings() {
   IDE.fontSize    = parseInt(document.getElementById('set-font-size').value) || 14;
   IDE.tabSize     = parseInt(document.getElementById('set-tab-size').value) || 2;
-  IDE.autoSave    = document.getElementById('set-autosave').value;
-  IDE.wordWrap    = document.getElementById('set-wordwrap').checked;
+  IDE.autoSave    = document.getElementById('set-auto-save').value;
+  IDE.wordWrap    = document.getElementById('set-word-wrap').checked;
   IDE.formatOnSave= document.getElementById('set-format-save').checked;
   applySettings();
   await saveSettings({ ...IDE });
@@ -73,8 +73,12 @@ async function applyAndSaveSettings() {
 
 function bindSettingsModal() {
   document.getElementById('settings-btn')?.addEventListener('click', openSettings);
-  document.getElementById('settings-apply')?.addEventListener('click', applyAndSaveSettings);
-  document.getElementById('settings-close')?.addEventListener('click', closeSettingsModal);
+  document.getElementById('settings-save')?.addEventListener('click', applyAndSaveSettings);
+  document.getElementById('settings-cancel')?.addEventListener('click', closeSettingsModal);
+  document.getElementById('settings-open-snippets')?.addEventListener('click', () => {
+    closeSettingsModal();
+    if (typeof openSnippetsModal === 'function') openSnippetsModal();
+  });
   document.getElementById('settings-modal')?.addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeSettingsModal();
   });

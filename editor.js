@@ -119,6 +119,8 @@ async function _activateTab(id, preloadedContent) {
   // Decide: native viewer vs text editor
   if (['png','jpg','jpeg','gif','webp','svg','ico','bmp'].includes(ext)) {
     _showImageViewer(tab, content, viewer, ta);
+  } else if (ext === 'pdf') {
+    _showPdfViewer(tab, content, viewer, ta);
   } else if (['csv','tsv'].includes(ext)) {
     _showCsvViewer(tab, content, viewer, ta);
   } else if (['md','markdown'].includes(ext)) {
@@ -157,6 +159,33 @@ function _showImageViewer(tab, content, viewer, ta) {
     </div>`;
   } else {
     viewer.innerHTML = `<pre style="opacity:.5;font-size:12px">${tab.path} — binary not previewable</pre>`;
+  }
+}
+
+function _showPdfViewer(tab, content, viewer, ta) {
+  ta.classList.add('hidden');
+  viewer.classList.remove('hidden');
+  let src = '';
+  if (content.startsWith('__b64__:')) {
+    const b64 = content.slice('__b64__:'.length);
+    const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const blob = new Blob([bin], { type: 'application/pdf' });
+    src = URL.createObjectURL(blob);
+  }
+  if (src) {
+    viewer.innerHTML = `
+      <div style="display:flex;flex-direction:column;height:100%">
+        <div style="display:flex;gap:8px;padding:8px;align-items:center;flex-shrink:0">
+          <span style="font-size:12px;opacity:.6">${tab.path}</span>
+          <a href="${src}" download="${tab.path.split('/').pop()}" style="font-size:11px;color:#a259ff;margin-left:auto">⬇ Download</a>
+        </div>
+        <iframe src="${src}" style="flex:1;border:none;background:#fff" loading="lazy"></iframe>
+      </div>`;
+  } else {
+    viewer.innerHTML = `<div style="padding:20px;text-align:center;opacity:.5">
+      <p>PDF viewer — cannot display without binary data.</p>
+      <p style="font-size:11px">${tab.path}</p>
+    </div>`;
   }
 }
 
@@ -435,6 +464,10 @@ async function _doAutoSave(pane) {
   if (!tab || !tab.path) return;
   const ta = _getTextarea(pane);
   if (!ta || ta.classList.contains('hidden')) return;
+  // Format on save (before writing)
+  if (IDE.formatOnSave && typeof formatDocument === 'function') {
+    formatDocument(true); // silent=true, reformats ta.value in place
+  }
   await writeFile(tab.path, ta.value);
   tab.dirty = false;
   _renderTabBar(pane);
