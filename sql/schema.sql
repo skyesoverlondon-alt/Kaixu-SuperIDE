@@ -75,3 +75,20 @@ create table if not exists audit_logs (
 -- Extend workspaces for org scoping
 alter table workspaces add column if not exists org_id uuid references orgs(id) on delete cascade;
 alter table workspaces add column if not exists created_by uuid references users(id) on delete set null;
+
+-- ─── Workspace Templates (Phase 12.5) ─────────────────────────────────────
+create table if not exists templates (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references orgs(id) on delete cascade,
+  created_by uuid references users(id) on delete set null,
+  name text not null,
+  description text not null default '',
+  tags text[] not null default '{}',
+  emoji text not null default '📄',
+  files jsonb not null default '{}'::jsonb,
+  is_public boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_templates_org_id on templates(org_id);
+create index if not exists idx_templates_is_public on templates(is_public);

@@ -330,73 +330,10 @@ render();
   },
 ];
 
-// ─── Modal UI ─────────────────────────────────────────────────────────────
-
-function openTemplatesModal() {
-  const modal = document.getElementById('templates-modal');
-  if (!modal) return;
-  modal.classList.remove('hidden');
-  _renderTemplateGrid('');
-}
-
-function closeTemplatesModal() {
-  const modal = document.getElementById('templates-modal');
-  if (modal) modal.classList.add('hidden');
-}
-
-function _renderTemplateGrid(q) {
-  const grid = document.getElementById('templates-grid');
-  if (!grid) return;
-  const query = (q || '').toLowerCase();
-  const filtered = query
-    ? BUILT_IN_TEMPLATES.filter(t =>
-        t.name.toLowerCase().includes(query) ||
-        t.description.toLowerCase().includes(query) ||
-        t.tags.some(tag => tag.includes(query)))
-    : BUILT_IN_TEMPLATES;
-
-  grid.innerHTML = '';
-  filtered.forEach(tpl => {
-    const card = document.createElement('div');
-    card.className = 'template-card';
-    card.innerHTML =
-      `<div class="template-emoji">${tpl.emoji}</div>` +
-      `<div class="template-name">${tpl.name}</div>` +
-      `<div class="template-desc">${tpl.description}</div>` +
-      `<div class="template-tags">${tpl.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>` +
-      `<div class="template-file-count">${Object.keys(tpl.files).length} files</div>`;
-    card.addEventListener('click', () => _applyTemplate(tpl));
-    grid.appendChild(card);
-  });
-
-  if (!filtered.length) {
-    grid.innerHTML = '<div class="template-empty">No templates match your search.</div>';
-  }
-}
-
-async function _applyTemplate(tpl) {
-  const existing = await listFiles();
-  if (existing.length > 0) {
-    const ok = confirm(`Apply template "${tpl.name}"?\n\nThis will REPLACE all current workspace files (${existing.length} files).`);
-    if (!ok) return;
-    for (const f of existing) await deleteFile(f.path);
-  }
-
-  for (const [path, content] of Object.entries(tpl.files)) {
-    await writeFile(path, content);
-  }
-  await refreshFileTree();
-  closeTemplatesModal();
-
-  // Open index.html if present
-  if (tpl.files['index.html'] && typeof openFileInEditor === 'function') {
-    await openFileInEditor('index.html', typeof activePane !== 'undefined' ? activePane : 0);
-  }
-  toast(`Applied template: ${tpl.name}`, 'success');
-}
-
 // ─── User templates (saved to IndexedDB) ──────────────────────────────────
 var _userTemplates = [];
+var _orgTemplates = [];
+var _activeTemplateTab = 'builtin'; // 'builtin' | 'yours' | 'org'
 
 async function _loadUserTemplates() {
   _userTemplates = (await getMeta('userTemplates', [])) || [];
@@ -404,6 +341,73 @@ async function _loadUserTemplates() {
 
 async function _saveUserTemplates() {
   await setMeta('userTemplates', _userTemplates);
+}
+
+// ─── Cloud / org templates (Phase 12.5) ───────────────────────────────────
+function _getApiToken() {
+  return localStorage.getItem('KAIXU_AUTH_TOKEN') || null;
+}
+
+function _getOrgId() {
+  return (typeof currentOrgId !== 'undefined' && currentOrgId) ? currentOrgId : null;
+}
+
+async function _loadOrgTemplates() {
+  const token = _getApiToken();
+  const orgId = _getOrgId();
+  if (!token && !orgId) { _orgTemplates = []; return; }
+
+  try {
+    const params = new URLSearchParams({ public: 'true' });
+    if (orgId) params.set('org_id', orgId);
+    const headers = {};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(`/.netlify/functions/templates-list?${params}`, { headers });
+    const data = await res.json();
+    _orgTemplates = data.ok ? (data.templates || []) : [];
+  } catch (_) {
+    _orgTemplates = [];
+  }
+}
+
+async function _cloudSaveTemplate(tpl) {
+  const token = _getApiToken();
+  if (!token) { toast('Sign in to save to the cloud', 'error'); return; }
+  const orgId = _getOrgId();
+  const isPublic = confirm('Make this template public (visible to everyone)?');
+
+  try {
+    const res = await fetch('/.netlify/functions/templates-create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({
+        org_id: orgId || null,
+        name: tpl.name,
+        description: tpl.description,
+        tags: tpl.tags,
+        emoji: tpl.emoji,
+        files: tpl.files,
+        is_public: isPublic,
+      }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      toast(`Template "${tpl.name}" saved to cloud`, 'success');
+      await _loadOrgTemplates();
+    } else {
+      toast('Cloud save failed: ' + (data.error || 'unknown'), 'error');
+    }
+  } catch (err) {
+    toast('Cloud save failed: ' + err.message, 'error');
+  }
+}
+
+function _switchTemplateTab(tab) {
+  _activeTemplateTab = tab;
+  document.querySelectorAll('.tpl-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  _renderTemplateGrid(document.getElementById('templates-search')?.value || '');
 }
 
 async function saveWorkspaceAsTemplate() {
@@ -416,7 +420,6 @@ async function saveWorkspaceAsTemplate() {
   const fileList = await listFiles();
   const files = {};
   for (const f of fileList) {
-    // Only include text files (skip large binaries)
     if (f.content && !f.content.startsWith('__b64__:')) {
       files[f.path] = f.content;
     }
@@ -431,6 +434,21 @@ async function saveWorkspaceAsTemplate() {
     files,
     isUser: true,
   };
+
+  // If signed in, offer cloud save
+  if (_getApiToken()) {
+    const choice = confirm(
+      `Save "${tpl.name}" as template?\n\nOK = Save to org cloud (shareable with team)\nCancel = Save locally only`
+    );
+    if (choice) {
+      // Also save locally so it shows under "Yours"
+      _userTemplates.push(tpl);
+      await _saveUserTemplates();
+      await _cloudSaveTemplate(tpl);
+      return;
+    }
+  }
+
   _userTemplates.push(tpl);
   await _saveUserTemplates();
   toast(`Saved template: "${name}"`, 'success');
@@ -447,7 +465,16 @@ function openTemplatesModal() {
   const modal = document.getElementById('templates-modal');
   if (!modal) return;
   modal.classList.remove('hidden');
+  // Show/hide Org tab depending on sign-in state
+  const orgTabBtn = document.getElementById('tpl-tab-org');
+  if (orgTabBtn) orgTabBtn.style.display = _getApiToken() ? '' : 'none';
   _renderTemplateGrid('');
+  // Load org / community templates in background
+  _loadOrgTemplates().then(() => {
+    if (!modal.classList.contains('hidden')) {
+      _renderTemplateGrid(document.getElementById('templates-search')?.value || '');
+    }
+  });
 }
 
 function closeTemplatesModal() {
@@ -459,13 +486,29 @@ function _renderTemplateGrid(q) {
   const grid = document.getElementById('templates-grid');
   if (!grid) return;
   const query = (q || '').toLowerCase();
-  const allTpls = [...BUILT_IN_TEMPLATES, ..._userTemplates];
+
+  // Decide which set to show based on active tab
+  let pool;
+  if (_activeTemplateTab === 'yours') {
+    pool = _userTemplates;
+  } else if (_activeTemplateTab === 'org') {
+    // Cloud templates — map to card-compatible shape
+    pool = _orgTemplates.map(t => ({
+      ...t,
+      files: t.files || {},
+      isOrg: true,
+      _fileCount: t.file_count || 0,
+    }));
+  } else {
+    pool = BUILT_IN_TEMPLATES;
+  }
+
   const filtered = query
-    ? allTpls.filter(t =>
+    ? pool.filter(t =>
         t.name.toLowerCase().includes(query) ||
-        t.description.toLowerCase().includes(query) ||
-        t.tags.some(tag => tag.includes(query)))
-    : allTpls;
+        (t.description || '').toLowerCase().includes(query) ||
+        (t.tags || []).some(tag => tag.includes(query)))
+    : pool;
 
   grid.innerHTML = '';
 
@@ -475,14 +518,16 @@ function _renderTemplateGrid(q) {
   }
 
   filtered.forEach(tpl => {
+    const orgBadge = tpl.isOrg ? (tpl.is_public ? '<span class="tpl-org-badge">public</span>' : '<span class="tpl-org-badge">org</span>') : '';
+    const fileCount = tpl.isOrg ? (tpl._fileCount || 0) : Object.keys(tpl.files || {}).length;
     const card = document.createElement('div');
-    card.className = 'template-card' + (tpl.isUser ? ' user-template' : '');
+    card.className = 'template-card' + (tpl.isUser ? ' user-template' : '') + (tpl.isOrg ? ' cloud-template' : '');
     card.innerHTML =
-      `<div class="template-emoji">${tpl.emoji}</div>` +
-      `<div class="template-name">${tpl.name}${tpl.isUser ? ' <span class="tpl-user-badge">yours</span>' : ''}</div>` +
+      `<div class="template-emoji">${tpl.emoji || '📄'}</div>` +
+      `<div class="template-name">${tpl.name}${tpl.isUser ? ' <span class="tpl-user-badge">yours</span>' : ''}${orgBadge}</div>` +
       `<div class="template-desc">${tpl.description || ''}</div>` +
       `<div class="template-tags">${(tpl.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}</div>` +
-      `<div class="template-file-count">${Object.keys(tpl.files).length} files</div>` +
+      `<div class="template-file-count">${fileCount} files</div>` +
       (tpl.isUser ? `<button class="tpl-delete-btn" data-id="${tpl.id}">🗑 Delete</button>` : '');
     card.querySelector('.tpl-delete-btn')?.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -499,24 +544,43 @@ function _renderTemplateGrid(q) {
 }
 
 async function _applyTemplate(tpl) {
+  let resolvedTpl = tpl;
+
+  // Cloud templates from list API only have file_count — fetch full template
+  if (tpl.isOrg && (!tpl.files || Object.keys(tpl.files).length === 0)) {
+    toast('Loading template…', 'info');
+    try {
+      const headers = {};
+      const token = _getApiToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch(`/.netlify/functions/templates-get?id=${encodeURIComponent(tpl.id)}`, { headers });
+      const data = await res.json();
+      if (!data.ok || !data.template) { toast('Failed to load template', 'error'); return; }
+      resolvedTpl = { ...tpl, files: data.template.files || {} };
+    } catch (err) {
+      toast('Failed to load template: ' + err.message, 'error');
+      return;
+    }
+  }
+
   const existing = await listFiles();
   if (existing.length > 0) {
-    const ok = confirm(`Apply template "${tpl.name}"?\n\nThis will REPLACE all current workspace files (${existing.length} files).`);
+    const ok = confirm(`Apply template "${resolvedTpl.name}"?\n\nThis will REPLACE all current workspace files (${existing.length} files).`);
     if (!ok) return;
     for (const f of existing) await deleteFile(f.path);
   }
 
-  for (const [path, content] of Object.entries(tpl.files)) {
+  for (const [path, content] of Object.entries(resolvedTpl.files || {})) {
     await writeFile(path, content);
   }
   await refreshFileTree();
   closeTemplatesModal();
 
   // Open index.html if present
-  if (tpl.files['index.html'] && typeof openFileInEditor === 'function') {
+  if ((resolvedTpl.files || {})['index.html'] && typeof openFileInEditor === 'function') {
     await openFileInEditor('index.html', typeof activePane !== 'undefined' ? activePane : 0);
   }
-  toast(`Applied template: ${tpl.name}`, 'success');
+  toast(`Applied template: ${resolvedTpl.name}`, 'success');
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────
@@ -524,6 +588,11 @@ async function _applyTemplate(tpl) {
 function initTemplates() {
   // Load user templates from IndexedDB
   _loadUserTemplates();
+
+  // Tab buttons
+  document.querySelectorAll('.tpl-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => _switchTemplateTab(btn.dataset.tab));
+  });
 
   // Search input
   const searchEl = document.getElementById('templates-search');
@@ -543,8 +612,9 @@ function initTemplates() {
   document.getElementById('apply-template')?.addEventListener('click', openTemplatesModal);
   document.getElementById('templates-btn')?.addEventListener('click', openTemplatesModal);
 
-  // Save as template button (if exists in toolbar)
+  // Save as template button (if exists in toolbar or modal)
   document.getElementById('save-as-template-btn')?.addEventListener('click', saveWorkspaceAsTemplate);
+  document.getElementById('save-as-template-btn-modal')?.addEventListener('click', saveWorkspaceAsTemplate);
 
   // Register commands
   if (typeof COMMANDS !== 'undefined') {

@@ -593,7 +593,15 @@ body.drag-over::after{content:'Drop files here';position:fixed;inset:0;display:f
 
 /* ── User template cards ─────────────────────────────────────────────────── */
 .user-template{border:1.5px solid #a259ff!important;position:relative}
+.cloud-template{border:1.5px solid #20a0e6!important;position:relative}
 .tpl-user-badge{position:absolute;top:6px;right:6px;font-size:9px;background:rgba(162,89,255,.25);color:#c8a8ff;border-radius:4px;padding:1px 6px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.tpl-org-badge{font-size:9px;background:rgba(32,160,230,.2);color:#80d0ff;border-radius:4px;padding:1px 6px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-left:5px;vertical-align:middle}
 .tpl-delete-btn{position:absolute;bottom:6px;right:6px;font-size:10px;background:rgba(255,80,80,.15);border:none;color:#ff9090;border-radius:4px;padding:2px 7px;cursor:pointer;z-index:2}
 .tpl-delete-btn:hover{background:rgba(255,80,80,.35)}
+
+/* ── Template modal tabs ─────────────────────────────────────────────────── */
+.tpl-tab-bar{display:flex;gap:4px;margin-bottom:2px}
+.tpl-tab-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#9080c0;font-size:12px;padding:5px 14px;cursor:pointer;transition:background .15s,color .15s}
+.tpl-tab-btn:hover{background:rgba(162,89,255,.15);color:#c8a8ff}
+.tpl-tab-btn.active{background:rgba(162,89,255,.25);color:#fff;border-color:#a259ff}
 

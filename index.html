@@ -321,11 +321,17 @@
     </div>
     <!-- Templates Modal -->
     <div id="templates-modal" class="dialog hidden">
-      <div class="dialog-content" style="max-width:760px;width:90vw;">
+      <div class="dialog-content" style="max-width:820px;width:95vw;">
         <h3>New from Template</h3>
-        <input id="templates-search" placeholder="Search templates…" style="width:100%;margin-bottom:12px;" />
+        <div class="tpl-tab-bar">
+          <button class="tpl-tab-btn active" data-tab="builtin">Built-in</button>
+          <button class="tpl-tab-btn" data-tab="yours">Yours</button>
+          <button class="tpl-tab-btn" data-tab="org" id="tpl-tab-org" style="display:none">Org / Community</button>
+        </div>
+        <input id="templates-search" placeholder="Search templates…" style="width:100%;margin:10px 0 12px;" />
         <div id="templates-grid" class="template-grid"></div>
         <div class="dialog-buttons" style="margin-top:16px;">
+          <button id="save-as-template-btn-modal">Save Workspace as Template</button>
           <button id="templates-close">Close</button>
         </div>
       </div>
