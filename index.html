@@ -51,6 +51,7 @@
         <button id="history-button">History</button>
         <button id="revert-button">Revert</button>
         <button id="export-patch-button">Export Patch</button>
+        <button id="apply-patch-button" title="Apply a .patch file">Apply Patch</button>
         <!-- AI / safety -->
         <button id="ai-settings" title="AI + Agent settings">AI Settings</button>
         <label><input type="checkbox" id="diff-safety" checked />Diff Safety</label>
@@ -164,6 +165,14 @@
               <div class="file-viewer hidden" id="viewer-1"></div>
               <textarea class="editor-area" id="editor-1" spellcheck="false" placeholder="Open a file in split pane…"></textarea>
             </div>
+          </div>
+          <!-- Status bar -->
+          <div id="status-bar">
+            <span id="status-pos">Ln 1, Col 1</span>
+            <span class="status-sep">|</span>
+            <span id="status-lang">plaintext</span>
+            <span id="status-dirty" class="status-dirty"></span>
+            <span class="status-right" id="status-autosave"></span>
           </div>
         </section>
         <section id="preview-section" class="pane hidden">
@@ -331,6 +340,21 @@
         <div class="dialog-buttons" style="margin-top:12px;">
           <button id="paste-confirm">Import Files</button>
           <button id="paste-close">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apply Patch Modal -->
+    <div id="apply-patch-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:700px;width:95vw;">
+        <h3>Apply Patch</h3>
+        <p class="muted" style="margin:0 0 8px">Paste a <code>.patch</code> file exported by &ldquo;Export Patch&rdquo;.</p>
+        <textarea id="apply-patch-input" class="paste-modal-textarea" placeholder="diff --git a/index.html b/index.html&#10;--- a/index.html&#10;+++ b/index.html&#10;@@&#10;-old line&#10;+new line"></textarea>
+        <div id="apply-patch-preview" class="apply-patch-preview"></div>
+        <div class="dialog-buttons" style="margin-top:12px;">
+          <button id="apply-patch-preview-btn">Preview Changes</button>
+          <button id="apply-patch-confirm">Apply Patch</button>
+          <button id="apply-patch-close">Cancel</button>
         </div>
       </div>
     </div>

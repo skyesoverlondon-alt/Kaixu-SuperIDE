@@ -146,6 +146,7 @@ async function _activateTab(id, preloadedContent) {
   if (typeof updatePreview === 'function' && !document.getElementById('preview-section').classList.contains('hidden')) {
     updatePreview();
   }
+  _updateStatusBar();
 }
 
 // ─── File type viewers ─────────────────────────────────────────────────────
@@ -455,6 +456,7 @@ function _setupAutoSave(pane) {
     if (!tab) return;
     tab.dirty = true;
     _renderTabBar(pane);
+    _updateStatusBar();
 
     clearTimeout(_autoSaveTimers[pane]);
 
@@ -473,6 +475,10 @@ function _setupAutoSave(pane) {
   ta.addEventListener('blur', async () => {
     if (IDE.autoSave === 'blur') await _doAutoSave(pane);
   });
+
+  // Update cursor position in status bar on click/keyboard navigation
+  ta.addEventListener('click', _updateStatusBar);
+  ta.addEventListener('keyup', _updateStatusBar);
 }
 
 var _previewDebounce = null;
@@ -490,6 +496,7 @@ async function _doAutoSave(pane) {
   await writeFile(tab.path, ta.value);
   tab.dirty = false;
   _renderTabBar(pane);
+  _updateStatusBar();
   if (typeof refreshFileTree === 'function') refreshFileTree();
   // Lint on save
   if (typeof lintFile === 'function') lintFile(tab.path, ta.value);
@@ -512,6 +519,42 @@ function getRecentFiles() { return _recentFiles; }
 // ─── selectFile compat shim (used by app.js) ──────────────────────────────
 async function selectFile(path) {
   await openFileInEditor(path, activePane);
+}
+
+// ─── Status bar ───────────────────────────────────────────────────────────
+const _LANG_DISPLAY = {
+  js:'JavaScript', ts:'TypeScript', jsx:'JSX', tsx:'TSX',
+  html:'HTML', css:'CSS', scss:'SCSS', less:'LESS',
+  json:'JSON', jsonc:'JSON', md:'Markdown', markdown:'Markdown',
+  py:'Python', rb:'Ruby', php:'PHP', java:'Java',
+  c:'C', cpp:'C++', cs:'C#', go:'Go', rs:'Rust',
+  sh:'Shell', bash:'Shell', yml:'YAML', yaml:'YAML',
+  toml:'TOML', xml:'XML', sql:'SQL', txt:'Plain text'
+};
+
+function _updateStatusBar() {
+  const tab = tabs.find(t => t.id === activeTabId);
+  const posEl = document.getElementById('status-pos');
+  const langEl = document.getElementById('status-lang');
+  const dirtyEl = document.getElementById('status-dirty');
+  if (!tab) {
+    if (posEl) posEl.textContent = '';
+    if (langEl) langEl.textContent = '';
+    if (dirtyEl) dirtyEl.textContent = '';
+    return;
+  }
+  const ta = _getTextarea(tab.pane);
+  if (ta && !ta.classList.contains('hidden')) {
+    const pos = ta.selectionStart || 0;
+    const before = ta.value.slice(0, pos);
+    const lineArr = before.split('\n');
+    if (posEl) posEl.textContent = `Ln ${lineArr.length}, Col ${lineArr[lineArr.length - 1].length + 1}`;
+  } else {
+    if (posEl) posEl.textContent = 'Ln 1, Col 1';
+  }
+  const ext = (tab.path.split('.').pop() || '').toLowerCase();
+  if (langEl) langEl.textContent = _LANG_DISPLAY[ext] || ext || 'plaintext';
+  if (dirtyEl) dirtyEl.textContent = tab.dirty ? '● Modified' : '';
 }
 
 // ─── Init ──────────────────────────────────────────────────────────────────

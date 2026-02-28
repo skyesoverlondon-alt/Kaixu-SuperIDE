@@ -574,3 +574,26 @@ body.drag-over::after{content:'Drop files here';position:fixed;inset:0;display:f
 /* ── Format-on-save indicator ────────────────────────────────────────────── */
 .status-fmt{font-size:10px;color:#a259ff;margin-left:4px;opacity:.7}
 
+/* ── Status bar ─────────────────────────────────────────────────────────── */
+#status-bar{display:flex;align-items:center;gap:8px;padding:2px 12px;background:rgba(0,0,0,.45);border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:#9080c0;min-height:22px;flex-shrink:0;user-select:none}
+#status-bar .status-sep{opacity:.35}
+#status-bar .status-right{margin-left:auto}
+#status-dirty{color:#e6a020;font-size:11px}
+#status-pos,#status-lang{cursor:default}
+
+/* ── Apply-patch modal ───────────────────────────────────────────────────── */
+.apply-patch-preview{margin-top:8px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.patch-file-block{border:1px solid rgba(255,255,255,.1);border-radius:8px;overflow:hidden;background:rgba(0,0,0,.25)}
+.patch-file-header{padding:5px 10px;font-size:12px;background:rgba(162,89,255,.12);color:#c8a8ff;display:flex;align-items:center;gap:8px}
+.patch-meta{font-size:10px;opacity:.6;margin-left:auto}
+.patch-diff-preview{margin:0;padding:8px 10px;font-size:11px;line-height:1.6;overflow-x:auto;max-height:180px;overflow-y:auto;color:#d0c8f0;font-family:monospace;white-space:pre}
+.pdiff-del{color:#ff8080;display:block}
+.pdiff-add{color:#80e080;display:block}
+.patch-parse-empty{padding:12px;font-size:12px;color:#9080c0;text-align:center;opacity:.7}
+
+/* ── User template cards ─────────────────────────────────────────────────── */
+.user-template{border:1.5px solid #a259ff!important;position:relative}
+.tpl-user-badge{position:absolute;top:6px;right:6px;font-size:9px;background:rgba(162,89,255,.25);color:#c8a8ff;border-radius:4px;padding:1px 6px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.tpl-delete-btn{position:absolute;bottom:6px;right:6px;font-size:10px;background:rgba(255,80,80,.15);border:none;color:#ff9090;border-radius:4px;padding:2px 7px;cursor:pointer;z-index:2}
+.tpl-delete-btn:hover{background:rgba(255,80,80,.35)}
+

@@ -299,6 +299,99 @@ async function exportPatch(id) {
   URL.revokeObjectURL(url);
 }
 
+// ─── Apply patch ───────────────────────────────────────────────────────────
+function _parsePatch(patchText) {
+  // Supports the kAIxU simple diff format (--- a/file, +++ b/file, @@, -/+ lines)
+  const changes = [];
+  const blocks = patchText.split(/^diff --git /m).filter(Boolean);
+  for (const block of blocks) {
+    const headerMatch = block.match(/^a\/(.+?) b\/(.+?)[\n\r]/);
+    if (!headerMatch) continue;
+    const filePath = headerMatch[2].trim();
+    const lines = block.split('\n');
+    const newContent = [];
+    let inHunk = false;
+    for (const line of lines) {
+      if (line.startsWith('@@')) { inHunk = true; continue; }
+      if (!inHunk) continue;
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        newContent.push(line.slice(1));
+      } else if (line === '') {
+        // end of hunk
+      }
+    }
+    if (filePath) changes.push({ path: filePath, newContent: newContent.join('\n') });
+  }
+  return changes;
+}
+
+function openApplyPatchModal() {
+  const modal = document.getElementById('apply-patch-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.getElementById('apply-patch-preview').innerHTML = '';
+    document.getElementById('apply-patch-input').value = '';
+  }
+}
+
+function closeApplyPatchModal() {
+  document.getElementById('apply-patch-modal')?.classList.add('hidden');
+}
+
+async function previewPatch() {
+  const text = document.getElementById('apply-patch-input')?.value || '';
+  const changes = _parsePatch(text);
+  const preview = document.getElementById('apply-patch-preview');
+  if (!preview) return;
+  if (!changes.length) {
+    preview.innerHTML = '<div class="patch-parse-empty">No valid hunks found. Make sure you paste a kAIxU patch file.</div>';
+    return;
+  }
+  preview.innerHTML = '';
+  for (const c of changes) {
+    const current = await readFile(c.path).catch(() => '');
+    const div = document.createElement('div');
+    div.className = 'patch-file-block';
+    const linesOld = (current || '').split('\n').length;
+    const linesNew = c.newContent.split('\n').length;
+    div.innerHTML =
+      `<div class="patch-file-header">📄 ${c.path} <span class="patch-meta">${linesOld} → ${linesNew} lines</span></div>` +
+      `<pre class="patch-diff-preview">${_shortDiff(current, c.newContent)}</pre>`;
+    preview.appendChild(div);
+  }
+}
+
+function _shortDiff(oldText, newText) {
+  const old_ = oldText.split('\n'), new_ = newText.split('\n');
+  const out = [];
+  const max = Math.max(old_.length, new_.length);
+  for (let i = 0; i < Math.min(max, 40); i++) {
+    const o = old_[i] !== undefined ? old_[i] : null;
+    const n = new_[i] !== undefined ? new_[i] : null;
+    if (o === n) { out.push('  ' + (o || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')); }
+    else {
+      if (o !== null) out.push('<span class="pdiff-del">- ' + o.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>');
+      if (n !== null) out.push('<span class="pdiff-add">+ ' + n.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>');
+    }
+  }
+  if (max > 40) out.push('<span style="opacity:.4">… ' + (max - 40) + ' more lines</span>');
+  return out.join('\n');
+}
+
+async function commitApplyPatch() {
+  const text = document.getElementById('apply-patch-input')?.value || '';
+  const changes = _parsePatch(text);
+  if (!changes.length) { toast('No valid hunks to apply', 'error'); return; }
+  for (const c of changes) {
+    await writeFile(c.path, c.newContent);
+  }
+  await refreshFileTree();
+  closeApplyPatchModal();
+  await commitWorkspace(`Applied patch (${changes.length} file${changes.length !== 1 ? 's' : ''})`);
+  toast(`Patch applied to ${changes.length} file${changes.length !== 1 ? 's' : ''}`, 'success');
+}
+
+
 // -----------------------------
 // Preview (service worker virtual server when possible)
 // -----------------------------
@@ -910,6 +1003,10 @@ function bindEvents() {
     if (!selectedCommitId) return alert('Select a commit in Source tab first.');
     await exportPatch(selectedCommitId);
   });
+  $('#apply-patch-button')?.addEventListener('click', openApplyPatchModal);
+  $('#apply-patch-confirm')?.addEventListener('click', commitApplyPatch);
+  $('#apply-patch-preview-btn')?.addEventListener('click', previewPatch);
+  $('#apply-patch-close')?.addEventListener('click', closeApplyPatchModal);
 
   // Preview
   $('#preview-toggle')?.addEventListener('click', async () => {
@@ -1000,6 +1097,7 @@ function bindEvents() {
       { id: 'export-zip', label: 'Export Workspace ZIP', category: 'File', keybinding: '', action: exportWorkspaceZip },
       { id: 'export-selected-zip', label: 'Export Selected Files ZIP', category: 'File', keybinding: '', action: exportSelectedZip },
       { id: 'paste-import', label: 'Import from Pasted Text…', category: 'File', keybinding: '', action: openPasteModal },
+      { id: 'apply-patch', label: 'Apply Patch…', category: 'File', keybinding: '', action: openApplyPatchModal },
     );
   }
 }
