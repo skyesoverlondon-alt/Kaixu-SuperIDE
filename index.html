@@ -37,11 +37,12 @@
         <input type="file" id="folder-upload" webkitdirectory directory multiple style="display:none" />
         <button id="export-zip">Export ZIP</button>
         <button id="sync-cloud" title="Sync workspace to Neon">Sync</button>
-        <!-- Search/replace -->
-        <input id="search-input" placeholder="Search…" />
-        <input id="replace-input" placeholder="Replace…" />
-        <button id="search-button">Find</button>
-        <button id="replace-button">Replace All</button>
+        <!-- Search / palette / split / format / settings -->
+        <button id="search-panel-btn" title="Search workspace (Ctrl+Shift+F)">🔍</button>
+        <button id="split-btn" title="Toggle split pane (Ctrl+\)">⬜⬜</button>
+        <button id="cmd-palette-btn" title="Command palette (Ctrl+Shift+P)">⌘</button>
+        <button id="format-btn" title="Format document (Shift+Alt+F)">{ }</button>
+        <button id="settings-btn" title="Settings">⚙</button>
         <!-- Commits -->
         <input id="commit-message" placeholder="Commit message…" />
         <button id="commit-button">Commit</button>
@@ -103,8 +104,40 @@
           <div id="history-pane" class="pane hidden"></div>
         </aside>
         <section id="editor-section">
-          <!-- Text editor area.  This textarea replaces Monaco for offline support. -->
-          <textarea id="editor" class="pane" spellcheck="false"></textarea>
+          <!-- Search panel (hidden initially, toggled by Ctrl+Shift+F) -->
+          <div id="search-panel" class="hidden">
+            <div class="search-panel-header">
+              <input id="sp-query" placeholder="Search…" />
+              <input id="sp-replace" placeholder="Replace…" />
+              <label><input type="checkbox" id="sp-regex" /> Regex</label>
+              <label><input type="checkbox" id="sp-case" /> Case</label>
+              <label><input type="checkbox" id="sp-word" /> Word</label>
+              <button id="sp-search">Find</button>
+              <button id="sp-replace-all">Replace All</button>
+              <button id="sp-close">✕</button>
+            </div>
+            <div id="search-results"></div>
+          </div>
+
+          <!-- Dual editor panes -->
+          <div id="editor-container">
+            <!-- Pane 0 -->
+            <div class="editor-pane" id="pane-0">
+              <div class="tab-bar" id="tab-bar-0"></div>
+              <div class="breadcrumb" id="breadcrumb-0"></div>
+              <div class="file-viewer hidden" id="viewer-0"></div>
+              <textarea class="editor-area" id="editor-0" spellcheck="false" placeholder="Open a file to start editing…"></textarea>
+            </div>
+            <!-- Split drag handle (hidden until split active) -->
+            <div id="split-handle" class="hidden"></div>
+            <!-- Pane 1 -->
+            <div class="editor-pane hidden" id="pane-1">
+              <div class="tab-bar" id="tab-bar-1"></div>
+              <div class="breadcrumb" id="breadcrumb-1"></div>
+              <div class="file-viewer hidden" id="viewer-1"></div>
+              <textarea class="editor-area" id="editor-1" spellcheck="false" placeholder="Open a file in split pane…"></textarea>
+            </div>
+          </div>
         </section>
         <section id="preview-section" class="pane hidden">
           <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
@@ -117,6 +150,71 @@
       <input type="hidden" name="form-name" value="signup" />
       <input name="email" />
     </form>
+
+    <!-- Toast notifications -->
+    <div id="toast-container"></div>
+
+    <!-- Right-click context menu -->
+    <div id="ctx-menu" class="hidden"></div>
+
+    <!-- Command Palette -->
+    <div id="cmd-palette" class="dialog hidden">
+      <div class="cmd-palette-box">
+        <input id="cmd-input" placeholder="Type a command or file name…" autocomplete="off" spellcheck="false" />
+        <div class="cmd-list" id="cmd-list"></div>
+      </div>
+    </div>
+
+    <!-- Go-To-Line Modal -->
+    <div id="goto-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:360px;">
+        <h3>Go to Line</h3>
+        <input id="goto-input" placeholder="Line number…" type="number" min="1" />
+        <div class="dialog-buttons">
+          <button id="goto-confirm">Go</button>
+          <button id="goto-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:520px;">
+        <h3>Settings</h3>
+        <div class="settings-section">
+          <label>Font Size <input type="number" id="set-font-size" min="8" max="32" /> px</label>
+          <label>Tab Size &nbsp;<input type="number" id="set-tab-size" min="1" max="8" /></label>
+          <label><input type="checkbox" id="set-word-wrap" /> Word Wrap</label>
+          <label>Auto Save
+            <select id="set-auto-save">
+              <option value="off">Off</option>
+              <option value="idle">After Idle (1s)</option>
+              <option value="keystroke">After Keystroke</option>
+              <option value="blur">On Focus Loss</option>
+            </select>
+          </label>
+          <label><input type="checkbox" id="set-format-save" /> Format on Save</label>
+        </div>
+        <h4>Keyboard Shortcuts</h4>
+        <table class="shortcuts-table">
+          <tr><td>Ctrl+S</td><td>Save</td></tr>
+          <tr><td>Ctrl+Shift+S</td><td>Save All</td></tr>
+          <tr><td>Ctrl+W</td><td>Close Tab</td></tr>
+          <tr><td>Ctrl+\</td><td>Toggle Split</td></tr>
+          <tr><td>Ctrl+1 / Ctrl+2</td><td>Focus Pane</td></tr>
+          <tr><td>Ctrl+G</td><td>Go to Line</td></tr>
+          <tr><td>Ctrl+Shift+P</td><td>Command Palette</td></tr>
+          <tr><td>Ctrl+Shift+F</td><td>Search</td></tr>
+          <tr><td>Ctrl+N</td><td>New File</td></tr>
+          <tr><td>Ctrl+P</td><td>Toggle Preview</td></tr>
+          <tr><td>Shift+Alt+F</td><td>Format Document</td></tr>
+        </table>
+        <div class="dialog-buttons" style="margin-top:16px;">
+          <button id="settings-save">Save</button>
+          <button id="settings-cancel">Close</button>
+        </div>
+      </div>
+    </div>
 
     <!-- New File Dialog -->
     <div id="new-file-dialog" class="dialog hidden">
@@ -183,6 +281,12 @@
       </div>
     </div>
     <script src="jszip.min.js"></script>
+    <script src="db.js"></script>
+    <script src="ui.js"></script>
+    <script src="editor.js"></script>
+    <script src="explorer.js"></script>
+    <script src="search.js"></script>
+    <script src="commands.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

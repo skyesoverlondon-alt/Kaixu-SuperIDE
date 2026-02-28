@@ -1,277 +1,41 @@
 /*
-  kAIxU Super IDE
+  app.js — kAIxU Super IDE bootstrap, auth, AI chat, preview, commits, sync
+  Load order: db.js → ui.js → editor.js → explorer.js → search.js → commands.js → app.js
 
-  Fortune-500 build principles for this repo:
+  Fortune-500 build principles:
   - No provider keys in client code
   - All AI edits route through kAIxU Gate via Netlify Functions
-  - Auth + sync uses Neon (Postgres)
-  - Local-first via IndexedDB for speed
-
-  UI: Files + Chat Timeline + Local Source Control + Live Preview
+  - Auth + sync uses Neon (Postgres) via Netlify Functions
+  - Local-first via IndexedDB
 */
 
-// -----------------------------
-// Tiny helpers
-// -----------------------------
+// ─── Tiny helpers ──────────────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function toast(msg) {
-  // Minimal toast using alert fallback. Keep it simple and reliable.
-  console.log('[toast]', msg);
+// ─── Global state ──────────────────────────────────────────────────────────
+var authToken = null;
+var currentUser = null;
+var currentWorkspaceId = null;
+var currentOrgId = null;
+var chatMessages = [];
+var selectedPaths = new Set();
+var selectedCommitId = null;
+
+// ─── Import / Export ───────────────────────────────────────────────────────
+
+function uint8ToBase64(u8) {
+  let s = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < u8.length; i += chunk)
+    s += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+  return btoa(s);
 }
-
-// -----------------------------
-// Global state
-// -----------------------------
-
-let db;
-let editor;
-let currentFile = null;
-let selectedCommitId = null;
-let selectedPaths = new Set();
-
-let authToken = null;
-let currentUser = null;
-let currentWorkspaceId = null;
-let chatMessages = []; // {role,text,operations?,checkpointCommitId?,applied?,id?,createdAt?}
-
-const DB_NAME = 'kaixu-workspace';
-const DB_VERSION = 2;
-
-// -----------------------------
-// IndexedDB (local-first)
-// -----------------------------
-
-async function openDatabase() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e) => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('files')) d.createObjectStore('files', { keyPath: 'path' });
-      if (!d.objectStoreNames.contains('commits')) d.createObjectStore('commits', { keyPath: 'id', autoIncrement: true });
-      if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'key' });
-    };
-    req.onsuccess = (e) => {
-      db = e.target.result;
-      resolve(db);
-    };
-    req.onerror = (e) => reject(e.target.error);
-  });
-}
-
-function idbGet(storeName, key) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly');
-    const store = tx.objectStore(storeName);
-    const req = store.get(key);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function idbPut(storeName, value) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite');
-    const store = tx.objectStore(storeName);
-    const req = store.put(value);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function idbDel(storeName, key) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite');
-    const store = tx.objectStore(storeName);
-    const req = store.delete(key);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function idbAll(storeName) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly');
-    const store = tx.objectStore(storeName);
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-// Files
-async function listFiles() {
-  return await idbAll('files');
-}
-
-async function readFile(path) {
-  const rec = await idbGet('files', path);
-  return rec ? (rec.content || '') : '';
-}
-
-async function writeFile(path, content) {
-  await idbPut('files', { path, content: String(content ?? '') });
-}
-
-async function deleteFile(path) {
-  await idbDel('files', path);
-}
-
-// Meta
-async function getMeta(key, fallback = null) {
-  const rec = await idbGet('meta', key);
-  return rec ? rec.value : fallback;
-}
-
-async function setMeta(key, value) {
-  await idbPut('meta', { key, value });
-}
-
-// -----------------------------
-// Editor
-// -----------------------------
-
-function initEditor() {
-  const textarea = $('#editor');
-  editor = {
-    getValue: () => textarea.value,
-    setValue: (v) => { textarea.value = v || ''; },
-  };
-
-  let t = null;
-  textarea.addEventListener('input', () => {
-    const previewOn = !$('#preview-section').classList.contains('hidden');
-    const autoSaveOn = $('#autoSave')?.checked;
-    clearTimeout(t);
-    t = setTimeout(async () => {
-      if (autoSaveOn && currentFile) {
-        await writeFile(currentFile, editor.getValue());
-        await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
-  try {
-    const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
-  } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
-      }
-      if (previewOn) await updatePreview();
-    }, 400);
-  });
-}
-
-// -----------------------------
-// File tree + selection
-// -----------------------------
-
-function buildFileTree(files) {
-  const root = {};
-  files.forEach(({ path }) => {
-    const parts = path.split('/');
-    let node = root;
-    parts.forEach((part, idx) => {
-      if (!node[part]) node[part] = { __children: {} };
-      if (idx === parts.length - 1) node[part].__file = path;
-      node = node[part].__children;
-    });
-  });
-  return root;
-}
-
-function renderFileTree(tree, container) {
-  container.innerHTML = '';
-  const ulRoot = document.createElement('ul');
-
-  function renderNode(node, parentUl, depth = 0) {
-    Object.keys(node).sort().forEach((key) => {
-      const entry = node[key];
-      const li = document.createElement('li');
-      li.style.paddingLeft = `${depth * 10}px`;
-
-      if (entry.__file) {
-        const wrap = document.createElement('div');
-        wrap.style.display = 'flex';
-        wrap.style.alignItems = 'center';
-        wrap.style.gap = '8px';
-
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = selectedPaths.has(entry.__file);
-        cb.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          if (cb.checked) selectedPaths.add(entry.__file);
-          else selectedPaths.delete(entry.__file);
-        });
-
-        const name = document.createElement('span');
-        name.textContent = key;
-        wrap.appendChild(cb);
-        wrap.appendChild(name);
-        li.appendChild(wrap);
-        li.dataset.path = entry.__file;
-
-        li.addEventListener('click', () => selectFile(entry.__file));
-      } else {
-        li.textContent = key;
-      }
-
-      if (entry.__children && Object.keys(entry.__children).length) {
-        const ul = document.createElement('ul');
-        renderNode(entry.__children, ul, depth + 1);
-        li.appendChild(ul);
-      }
-
-      parentUl.appendChild(li);
-    });
-  }
-
-  renderNode(tree, ulRoot, 0);
-  container.appendChild(ulRoot);
-  highlightCurrentFile();
-}
-
-async function refreshFileTree() {
-  const files = await listFiles();
-  const tree = buildFileTree(files);
-  renderFileTree(tree, $('#file-tree'));
-}
-
-function highlightCurrentFile() {
-  $$('#file-tree li').forEach((li) => {
-    li.classList.remove('selected');
-    if (currentFile && li.dataset.path === currentFile) li.classList.add('selected');
-  });
-}
-
-async function selectFile(path) {
-  currentFile = path;
-  const content = await readFile(path);
-  editor.setValue(content);
-  highlightCurrentFile();
-
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
-}
-
-// -----------------------------
-// Import/export
-// -----------------------------
 
 async function importFiles(fileList) {
-  function uint8ToBase64(u8) {
-    // Chunked conversion to avoid call stack limits
-    let s = '';
-    const chunk = 0x8000;
-    for (let i = 0; i < u8.length; i += chunk) {
-      s += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
-    }
-    return btoa(s);
-  }
-
+  const total = fileList.length;
+  let done = 0;
   for (const f of fileList) {
     const name = (f.webkitRelativePath || f.name || '').trim();
     if (!name) continue;
@@ -282,39 +46,34 @@ async function importFiles(fileList) {
       for (const filename of Object.keys(zip.files)) {
         const entry = zip.files[filename];
         if (entry.dir) continue;
-        // Assume text for common web files; otherwise store as base64
-        const isText = /\.(html|htm|css|js|ts|json|md|txt|xml|svg)$/i.test(filename);
+        const isText = /\.(html|htm|css|js|ts|json|md|txt|xml|svg|sh|py)$/i.test(filename);
         if (isText) {
-          const text = await entry.async('string');
-          await writeFile(filename, text);
+          await writeFile(filename, await entry.async('string'));
         } else {
           const bytes = await entry.async('uint8array');
-          const b64 = uint8ToBase64(bytes);
-          // store as data url-ish marker
-          await writeFile(filename, `__b64__:${b64}`);
+          await writeFile(filename, `__b64__:${uint8ToBase64(bytes)}`);
         }
       }
     } else {
-      // Text default
-      const isText = /^(text\/|application\/json)/i.test(f.type) || /\.(html|htm|css|js|ts|json|md|txt|xml|svg)$/i.test(name);
+      const isText = /^(text\/|application\/json)/i.test(f.type) ||
+        /\.(html|htm|css|js|ts|json|md|txt|xml|svg|sh|py)$/i.test(name);
       if (isText) {
         await writeFile(name, await f.text());
       } else {
         const bytes = new Uint8Array(await f.arrayBuffer());
-        const b64 = uint8ToBase64(bytes);
-        await writeFile(name, `__b64__:${b64}`);
+        await writeFile(name, `__b64__:${uint8ToBase64(bytes)}`);
       }
     }
+    done++;
+    if (total > 10) toast(`Importing… ${done}/${total}`);
   }
   await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
   try {
     const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
+    if (idx && !activeTabId) await openFileInEditor('index.html', activePane);
   } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
+  if (!$('#preview-section').classList.contains('hidden')) updatePreview();
+  toast(`Imported ${done} file${done !== 1 ? 's' : ''}`, 'success');
 }
 
 async function exportWorkspaceZip() {
@@ -339,11 +98,10 @@ async function exportWorkspaceZip() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  toast('ZIP exported', 'success');
 }
 
-// -----------------------------
-// Local commits
-// -----------------------------
+// ─── Local commits (Source Control) ───────────────────────────────────────
 
 async function loadCommits() {
   const commits = await idbAll('commits');
@@ -429,15 +187,13 @@ async function revertToCommit(id) {
   for (const f of files) await deleteFile(f.path);
   for (const f of commit.snapshot || []) await writeFile(f.path, f.content || '');
   await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
   try {
     const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
+    if (idx && !activeTabId) await openFileInEditor('index.html', activePane);
   } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
+  if (!$('#preview-section').classList.contains('hidden')) updatePreview();
   await commitWorkspace(`Revert to #${id}`);
+  toast(`Reverted to commit #${id}`);
 }
 
 async function exportPatch(id) {
@@ -485,82 +241,53 @@ async function updatePreview() {
   const frame = $('#preview-frame');
   if (!frame) return;
 
-  // If running on http(s) with SW, prefer virtual server preview
-  const swReady = (location.protocol.startsWith('http') && navigator.serviceWorker && !!navigator.serviceWorker.controller);
+  // Persist active editor content first
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (tab) {
+    const ta = document.getElementById('editor-' + tab.pane);
+    if (ta && !ta.classList.contains('hidden')) await writeFile(tab.path, ta.value);
+  }
+
+  const swReady = location.protocol.startsWith('http') && navigator.serviceWorker?.controller;
   if (swReady) {
-    // Ensure the latest buffer is persisted for the virtual server
-    try {
-      if (currentFile) await writeFile(currentFile, editor.getValue());
-    } catch {}
     frame.src = `/virtual/index.html?ts=${Date.now()}`;
     return;
   }
 
-  // Fallback: srcdoc with inline JS/CSS (works on file://)
-  let indexContent = '';
-  if (currentFile === 'index.html') indexContent = editor.getValue();
-  else indexContent = await readFile('index.html');
+  let html = tab?.path === 'index.html'
+    ? (document.getElementById('editor-' + (tab?.pane || 0))?.value || '')
+    : await readFile('index.html');
 
-  if (!indexContent) {
-    frame.srcdoc = '<p style="padding:1rem;color:#ccc">No index.html found.</p>';
-    return;
-  }
+  if (!html) { frame.srcdoc = '<p style="padding:1rem;color:#ccc">No index.html found.</p>'; return; }
 
-  let html = indexContent;
-
-  async function inlineScripts(inputHtml) {
-    const scriptRegex = /<script\s+[^>]*src="([^"]+)"[^>]*><\/script>/gi;
-    let match;
-    let resultHtml = inputHtml;
+  async function inlineAssets(inputHtml, tagRx, wrapFn) {
+    let result = inputHtml;
     const tasks = [];
-    while ((match = scriptRegex.exec(inputHtml)) !== null) {
-      const fullTag = match[0];
-      const src = match[1];
+    const rx = new RegExp(tagRx, 'gi');
+    let m;
+    while ((m = rx.exec(inputHtml)) !== null) {
+      const fullTag = m[0], src = m[1];
       if (/^https?:\/\//i.test(src)) continue;
-      const filePath = src.replace(/^\.\//, '');
+      const p = src.replace(/^\.\//, '');
       tasks.push((async () => {
-        let content = (currentFile === filePath) ? editor.getValue() : await readFile(filePath);
-        if (String(content).startsWith('__b64__:')) content = '';
-        return { fullTag, replacement: `<script>${content || ''}<\/script>` };
+        let c = tab?.path === p
+          ? (document.getElementById('editor-' + (tab?.pane || 0))?.value || '')
+          : await readFile(p);
+        if (String(c).startsWith('__b64__:')) c = '';
+        return { fullTag, replacement: wrapFn(c || '') };
       })());
     }
-    const reps = await Promise.all(tasks);
-    reps.forEach(({ fullTag, replacement }) => { resultHtml = resultHtml.replace(fullTag, replacement); });
-    return resultHtml;
+    (await Promise.all(tasks)).forEach(({ fullTag, replacement }) => { result = result.replace(fullTag, replacement); });
+    return result;
   }
 
-  async function inlineStyles(inputHtml) {
-    const linkRegex = /<link\s+[^>]*rel=["']stylesheet["'][^>]*href="([^"]+)"[^>]*>/gi;
-    let match;
-    let resultHtml = inputHtml;
-    const tasks = [];
-    while ((match = linkRegex.exec(inputHtml)) !== null) {
-      const fullTag = match[0];
-      const href = match[1];
-      if (/^https?:\/\//i.test(href)) continue;
-      const filePath = href.replace(/^\.\//, '');
-      tasks.push((async () => {
-        let content = (currentFile === filePath) ? editor.getValue() : await readFile(filePath);
-        if (String(content).startsWith('__b64__:')) content = '';
-        return { fullTag, replacement: `<style>${content || ''}<\/style>` };
-      })());
-    }
-    const reps = await Promise.all(tasks);
-    reps.forEach(({ fullTag, replacement }) => { resultHtml = resultHtml.replace(fullTag, replacement); });
-    return resultHtml;
-  }
-
-  html = await inlineScripts(html);
-  html = await inlineStyles(html);
+  html = await inlineAssets(html, '<script\\s+[^>]*src="([^"]+)"[^>]*><\\/script>', c => `<script>${c}<\/script>`);
+  html = await inlineAssets(html, '<link\\s+[^>]*rel=["\']stylesheet["\'][^>]*href="([^"]+)"[^>]*>', c => `<style>${c}<\/style>`);
   frame.srcdoc = html;
   lastPreviewHTML = html;
 }
 
-// -----------------------------
-// Orgs + workspaces (Neon)
-// -----------------------------
-
-let currentOrgId = null;
+// ─── Orgs + workspaces ─────────────────────────────────────────────────────
 
 function renderOrgSelect(orgs) {
   const sel = $('#orgSelect');
@@ -646,19 +373,14 @@ async function loadWorkspaceFromCloud(workspaceId) {
     await writeFile(p, filesObj[p]);
   }
   await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
   try {
     const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
+    if (idx && !activeTabId) await openFileInEditor('index.html', activePane);
   } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
+  if (!$('#preview-section').classList.contains('hidden')) updatePreview();
 }
 
-// -----------------------------
-// Auth
-// -----------------------------
+// ─── Auth ──────────────────────────────────────────────────────────────────
 
 function setUserChip() {
   const chip = $('#userChip');
@@ -869,14 +591,11 @@ async function applyChatEdits(idx) {
 
   await applyOperations(ops);
   await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
   try {
     const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
+    if (idx && !activeTabId) await openFileInEditor('index.html', activePane);
   } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
+  if (!$('#preview-section').classList.contains('hidden')) updatePreview();
 
   if ($('#commitAfterApply').checked) {
     await commitWorkspace(`AI: ${msg.text.slice(0, 80)}`);
@@ -897,42 +616,41 @@ async function undoChatEdits(idx) {
   if (!$('#preview-section').classList.contains('hidden')) await updatePreview();
 }
 
-function buildAgentContext(scope) {
-  // Construct a compact workspace payload for the server AI.
-  // We include manifest + selected files (or active file).
-  return (async () => {
-    const files = await listFiles();
-    const map = new Map(files.map(f => [f.path, f.content || '']));
-    if (currentFile) map.set(currentFile, editor.getValue() || '');
+async function buildAgentContext(scope) {
+  const files = await listFiles();
+  const map = new Map(files.map(f => [f.path, f.content || '']));
 
-    let includePaths = [];
-    if (scope === 'active') {
-      includePaths = currentFile ? [currentFile] : ['index.html'];
-    } else if (scope === 'selected') {
-      includePaths = Array.from(selectedPaths);
-      if (includePaths.length === 0 && currentFile) includePaths = [currentFile];
-    } else {
-      includePaths = Array.from(map.keys());
-    }
+  // Include the active editor's latest content
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (tab) {
+    const ta = document.getElementById('editor-' + tab.pane);
+    if (ta) map.set(tab.path, ta.value || '');
+  }
 
-    includePaths = includePaths.filter(p => map.has(p));
+  let includePaths = [];
+  if (scope === 'active') {
+    includePaths = tab ? [tab.path] : ['index.html'];
+  } else if (scope === 'selected') {
+    includePaths = Array.from(selectedPaths);
+    if (!includePaths.length && tab) includePaths = [tab.path];
+  } else {
+    includePaths = Array.from(map.keys());
+  }
+  includePaths = includePaths.filter(p => map.has(p));
 
-    const manifest = Array.from(map.keys()).sort().map(p => ({ path: p, bytes: String(map.get(p) || '').length }));
-    let blob = `ACTIVE_FILE: ${currentFile || ''}\nSCOPE: ${scope}\n\nMANIFEST:\n${JSON.stringify(manifest, null, 2)}\n\n`;
-    let used = blob.length;
-    const maxChars = 140000;
-
-    for (const p of includePaths.sort()) {
-      let content = map.get(p) || '';
-      if (content.startsWith('__b64__:')) content = '[BINARY_FILE_BASE64]';
-      const chunk = `FILE: ${p}\n\n${content}\n\n---\n\n`;
-      if (used + chunk.length > maxChars) break;
-      blob += chunk;
-      used += chunk.length;
-    }
-
-    return blob;
-  })();
+  const manifest = Array.from(map.keys()).sort().map(p => ({ path: p, bytes: String(map.get(p) || '').length }));
+  let blob = `ACTIVE_FILE: ${tab?.path || ''}\nSCOPE: ${scope}\n\nMANIFEST:\n${JSON.stringify(manifest, null, 2)}\n\n`;
+  let used = blob.length;
+  const maxChars = 140000;
+  for (const p of includePaths.sort()) {
+    let content = map.get(p) || '';
+    if (content.startsWith('__b64__:')) content = '[BINARY_FILE]';
+    const chunk = `FILE: ${p}\n\n${content}\n\n---\n\n`;
+    if (used + chunk.length > maxChars) break;
+    blob += chunk;
+    used += chunk.length;
+  }
+  return blob;
 }
 
 async function sendChat() {
@@ -994,335 +712,221 @@ async function sendChat() {
 // Tabs / modals
 // -----------------------------
 
+// ─── Side tab switcher ─────────────────────────────────────────────────────
 function setActiveTab(name) {
   $$('.tabBtn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
-  $('#files-pane').classList.toggle('hidden', name !== 'files');
-  $('#chat-pane').classList.toggle('hidden', name !== 'chat');
-  $('#history-pane').classList.toggle('hidden', name !== 'scm');
+  $('#files-pane')?.classList.toggle('hidden', name !== 'files');
+  $('#chat-pane')?.classList.toggle('hidden', name !== 'chat');
+  $('#history-pane')?.classList.toggle('hidden', name !== 'scm');
 }
 
-function openTutorial() {
-  $('#tutorialModal').classList.remove('hidden');
-}
-function closeTutorial() {
-  $('#tutorialModal').classList.add('hidden');
-}
+function openTutorial() { $('#tutorialModal')?.classList.remove('hidden'); }
+function closeTutorial() { $('#tutorialModal')?.classList.add('hidden'); }
 
-// -----------------------------
-// UI bindings
-// -----------------------------
-
+// ─── Events ─────────────────────────────────────────────────────────────────
 function bindEvents() {
   // Side tabs
   $$('.tabBtn').forEach((b) => b.addEventListener('click', () => setActiveTab(b.dataset.tab)));
 
-  // New file modal
-  $('#new-file').addEventListener('click', () => {
+  // New file dialog
+  $('#new-file')?.addEventListener('click', () => {
     $('#new-file-dialog').classList.remove('hidden');
     $('#new-file-path-input').value = '';
     $('#new-file-path-input').focus();
   });
-  $('#new-file-cancel').addEventListener('click', () => $('#new-file-dialog').classList.add('hidden'));
-  $('#new-file-confirm').addEventListener('click', async () => {
+  $('#new-file-cancel')?.addEventListener('click', () => $('#new-file-dialog').classList.add('hidden'));
+  $('#new-file-confirm')?.addEventListener('click', async () => {
     const p = String($('#new-file-path-input').value || '').trim();
     if (!p) return;
     await writeFile(p, '');
     await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
-  try {
-    const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
-  } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
-    await selectFile(p);
+    await openFileInEditor(p, activePane);
     $('#new-file-dialog').classList.add('hidden');
   });
-  $('#new-file-path-input').addEventListener('keypress', async (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      $('#new-file-confirm').click();
+  $('#new-file-path-input')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') $('#new-file-confirm').click();
+  });
+
+  // Save (toolbar button — commands.js also handles Ctrl+S)
+  $('#save-file')?.addEventListener('click', async () => {
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab) return;
+    const ta = document.getElementById('editor-' + tab.pane);
+    if (ta && !ta.classList.contains('hidden')) {
+      await writeFile(tab.path, ta.value);
+      tab.dirty = false;
+      _renderTabBar(tab.pane);
+      await refreshFileTree();
+      if (!$('#preview-section').classList.contains('hidden')) updatePreview();
     }
   });
 
-  // Save
-  $('#save-file').addEventListener('click', async () => {
-    if (!currentFile) return alert('Open a file first.');
-    await writeFile(currentFile, editor.getValue());
+  // Delete (toolbar button)
+  $('#delete-file')?.addEventListener('click', async () => {
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab) return;
+    if (!confirm(`Delete ${tab.path}?`)) return;
+    await closeTab(tab.id, true);
+    await deleteFile(tab.path);
     await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
-  try {
-    const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
-  } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
-    if (!$('#preview-section').classList.contains('hidden')) await updatePreview();
-  });
-
-  // Delete
-  $('#delete-file').addEventListener('click', async () => {
-    if (!currentFile) return;
-    if (!confirm(`Delete ${currentFile}?`)) return;
-    await deleteFile(currentFile);
-    currentFile = null;
-    editor.setValue('');
-    await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
-  try {
-    const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
-  } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
   });
 
   // Upload
-  $('#upload-files').addEventListener('click', () => $('#file-upload').click());
-  $('#file-upload').addEventListener('change', async (e) => {
+  $('#upload-files')?.addEventListener('click', () => $('#file-upload').click());
+  $('#file-upload')?.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) await importFiles(files);
+    e.target.value = '';
+  });
+  $('#upload-folder')?.addEventListener('click', () => $('#folder-upload').click());
+  $('#folder-upload')?.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length) await importFiles(files);
     e.target.value = '';
   });
 
-  $('#upload-folder').addEventListener('click', () => $('#folder-upload').click());
-  $('#folder-upload').addEventListener('change', async (e) => {
-    const files = Array.from(e.target.files || []);
+  // Drag & drop anywhere
+  document.body.addEventListener('dragover', (e) => { e.preventDefault(); document.body.classList.add('drag-over'); });
+  document.body.addEventListener('dragleave', (e) => { if (!e.relatedTarget) document.body.classList.remove('drag-over'); });
+  document.body.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    document.body.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files || []);
     if (files.length) await importFiles(files);
-    e.target.value = '';
   });
 
   // Export
-  $('#export-zip').addEventListener('click', exportWorkspaceZip);
+  $('#export-zip')?.addEventListener('click', exportWorkspaceZip);
 
-  // Search
-  $('#search-button').addEventListener('click', async () => {
-    const q = String($('#search-input').value || '').trim();
-    if (!q) return;
-    const files = await listFiles();
-    const hits = files.filter(f => String(f.content || '').toLowerCase().includes(q.toLowerCase())).map(f => f.path);
-    alert(hits.length ? `Found in:\n${hits.join('\n')}` : 'No matches.');
-  });
-  $('#replace-button').addEventListener('click', async () => {
-    const s = String($('#search-input').value || '');
-    const r = String($('#replace-input').value || '');
-    if (!s) return;
-    const files = await listFiles();
-    let count = 0;
-    for (const f of files) {
-      const c = String(f.content || '');
-      if (c.includes(s)) {
-        await writeFile(f.path, c.split(s).join(r));
-        count++;
-      }
-    }
-    await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
-  try {
-    const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
-  } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
-    alert(`Replaced in ${count} file(s).`);
-  });
-
-  // Commit + SCM
-  $('#commit-button').addEventListener('click', async () => {
+  // Commits + SCM
+  $('#commit-button')?.addEventListener('click', async () => {
     const msg = String($('#commit-message').value || '').trim();
     await commitWorkspace(msg || 'Commit');
     $('#commit-message').value = '';
-    await refreshHistory();
+    toast('Committed', 'success');
   });
-  $('#history-button').addEventListener('click', async () => {
-    setActiveTab('scm');
-    await refreshHistory();
-  });
-  $('#revert-button').addEventListener('click', async () => {
-    if (!selectedCommitId) return alert('Select a commit in Source tab.');
+  $('#history-button')?.addEventListener('click', () => { setActiveTab('scm'); refreshHistory(); });
+  $('#revert-button')?.addEventListener('click', async () => {
+    if (!selectedCommitId) return alert('Select a commit in Source tab first.');
     if (!confirm(`Revert to #${selectedCommitId}?`)) return;
     await revertToCommit(selectedCommitId);
   });
-  $('#export-patch-button').addEventListener('click', async () => {
-    if (!selectedCommitId) return alert('Select a commit in Source tab.');
+  $('#export-patch-button')?.addEventListener('click', async () => {
+    if (!selectedCommitId) return alert('Select a commit in Source tab first.');
     await exportPatch(selectedCommitId);
   });
 
   // Preview
-  $('#preview-toggle').addEventListener('click', async () => {
+  $('#preview-toggle')?.addEventListener('click', async () => {
     $('#preview-section').classList.toggle('hidden');
-    if (!$('#preview-section').classList.contains('hidden')) await updatePreview();
+    if (!$('#preview-section').classList.contains('hidden')) updatePreview();
   });
-  $('#preview-detach').addEventListener('click', async () => {
-    // Prefer /virtual if SW is active; else write HTML directly.
-    const swReady = (location.protocol.startsWith('http') && navigator.serviceWorker && !!navigator.serviceWorker.controller);
-    if (swReady) {
-      await updatePreview();
-      const html = lastPreviewHTML || '<p style="padding:1rem;color:#ccc">No preview</p>';
-      const w = window.open('', '_blank');
-      if (w) {
-        // Show the same preview instantly, plus a runner link.
-        const runner = `/virtual/index.html?ts=${Date.now()}`;
-        w.document.write(html + `
-<!-- Runner link -->
-<div style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui">`+
-          `<a href="${runner}" target="_self" style="padding:8px 10px;border-radius:12px;background:#1a0c2b;color:#ffd65a;border:1px solid rgba(255,214,90,0.35);text-decoration:none">Open Runner</a></div>`);
-        w.document.close();
-      }
-    } else {
-      await updatePreview();
-      const html = lastPreviewHTML || '<p style="padding:1rem;color:#ccc">No preview</p>';
-      const w = window.open('', '_blank');
-      if (w) {
-        w.document.write(html);
-        w.document.close();
-      }
-    }
+  $('#preview-detach')?.addEventListener('click', async () => {
+    await updatePreview();
+    const html = lastPreviewHTML || '<p style="padding:1rem;color:#ccc">No preview</p>';
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
   });
 
-// Org/workspace controls
-$('#orgSelect')?.addEventListener('change', async (e) => {
-  currentOrgId = e.target.value;
-  currentWorkspaceId = null;
-  const ws = await api(`/api/ws-list?org_id=${encodeURIComponent(currentOrgId)}`);
-  renderWsSelect(ws.workspaces || []);
-  if (ws.workspaces?.[0]?.id) {
-    currentWorkspaceId = ws.workspaces[0].id;
-    await loadWorkspaceFromCloud(currentWorkspaceId);
-    await loadChatFromCloud();
-  }
-});
-
-$('#wsSelect')?.addEventListener('change', async (e) => {
-  currentWorkspaceId = e.target.value;
-  if (currentWorkspaceId) {
-    await loadWorkspaceFromCloud(currentWorkspaceId);
-    await loadChatFromCloud();
-  }
-});
-
-$('#newOrgBtn')?.addEventListener('click', async () => {
-  const name = prompt('Org name?') || 'New Org';
-  const res = await api('/api/org-create', { method:'POST', body:{ name }});
-  await refreshOrgsAndWorkspaces();
-  toast('Org created');
-});
-
-$('#newWsBtn')?.addEventListener('click', async () => {
-  if (!currentOrgId) return alert('Select an org first.');
-  const name = prompt('Workspace name?') || 'New Workspace';
-  const res = await api('/api/ws-create', { method:'POST', body:{ org_id: currentOrgId, name }});
-  await refreshOrgsAndWorkspaces();
-  toast('Workspace created');
-});
+  // Org/workspace selectors
+  $('#orgSelect')?.addEventListener('change', async (e) => {
+    currentOrgId = e.target.value;
+    currentWorkspaceId = null;
+    const ws = await api(`/api/ws-list?org_id=${encodeURIComponent(currentOrgId)}`);
+    renderWsSelect(ws.workspaces || []);
+    if (ws.workspaces?.[0]?.id) { currentWorkspaceId = ws.workspaces[0].id; await loadWorkspaceFromCloud(currentWorkspaceId); await loadChatFromCloud(); }
+  });
+  $('#wsSelect')?.addEventListener('change', async (e) => {
+    currentWorkspaceId = e.target.value;
+    if (currentWorkspaceId) { await loadWorkspaceFromCloud(currentWorkspaceId); await loadChatFromCloud(); }
+  });
+  $('#newOrgBtn')?.addEventListener('click', async () => {
+    const name = prompt('Org name?') || 'New Org';
+    await api('/api/org-create', { method: 'POST', body: { name } });
+    await refreshOrgsAndWorkspaces();
+    toast('Org created', 'success');
+  });
+  $('#newWsBtn')?.addEventListener('click', async () => {
+    if (!currentOrgId) return alert('Select an org first.');
+    const name = prompt('Workspace name?') || 'New Workspace';
+    await api('/api/ws-create', { method: 'POST', body: { org_id: currentOrgId, name } });
+    await refreshOrgsAndWorkspaces();
+    toast('Workspace created', 'success');
+  });
 
   // Cloud sync
-  $('#sync-cloud').addEventListener('click', syncToCloud);
+  $('#sync-cloud')?.addEventListener('click', syncToCloud);
 
   // Tutorial
-  $('#tutorial').addEventListener('click', openTutorial);
-  $('#tutorialClose').addEventListener('click', closeTutorial);
+  $('#tutorial')?.addEventListener('click', openTutorial);
+  $('#tutorialClose')?.addEventListener('click', closeTutorial);
 
-  // AI settings (model override)
-  $('#ai-settings').addEventListener('click', () => {
+  // AI settings
+  $('#ai-settings')?.addEventListener('click', () => {
     const cur = localStorage.getItem('KAIXU_MODEL') || '';
-    const next = prompt('Optional: override model (blank = use server default). Example: gemini-2.5-flash', cur);
+    const next = prompt('Model override (blank = server default):', cur);
     if (next === null) return;
     const v = String(next || '').trim();
-    if (!v) localStorage.removeItem('KAIXU_MODEL');
-    else localStorage.setItem('KAIXU_MODEL', v);
-    alert('Saved.');
+    if (!v) localStorage.removeItem('KAIXU_MODEL'); else localStorage.setItem('KAIXU_MODEL', v);
+    toast('AI model saved');
   });
 
   // Auth
-  $('#authBtn').addEventListener('click', async () => {
+  $('#authBtn')?.addEventListener('click', async () => {
     if (authToken && currentUser?.email) {
-      const ok = confirm('Sign out?');
-      if (!ok) return;
+      if (!confirm('Sign out?')) return;
       saveAuthToken(null);
-      currentUser = null;
-      currentWorkspaceId = null;
-      chatMessages = [];
-      setUserChip();
-      renderChat();
+      currentUser = null; currentWorkspaceId = null;
+      chatMessages = []; setUserChip(); renderChat();
       openAuthModal();
-      return;
-    }
-    openAuthModal();
+    } else { openAuthModal(); }
   });
-  $('#authClose').addEventListener('click', closeAuthModal);
-  $('#authClose2').addEventListener('click', closeAuthModal);
+  $('#authClose')?.addEventListener('click', closeAuthModal);
+  $('#authClose2')?.addEventListener('click', closeAuthModal);
   $$('.authTabBtn').forEach((b) => b.addEventListener('click', () => {
     $$('.authTabBtn').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     const which = b.dataset.auth;
-    $('#authLogin').classList.toggle('hidden', which !== 'login');
-    $('#authSignup').classList.toggle('hidden', which !== 'signup');
+    $('#authLogin')?.classList.toggle('hidden', which !== 'login');
+    $('#authSignup')?.classList.toggle('hidden', which !== 'signup');
   }));
-  $('#signupSubmit').addEventListener('click', () => doSignup().catch(e => $('#authStatus').textContent = e.message));
-  $('#loginSubmit').addEventListener('click', () => doLogin().catch(e => $('#authStatus').textContent = e.message));
+  $('#signupSubmit')?.addEventListener('click', () => doSignup().catch(e => { if ($('#authStatus')) $('#authStatus').textContent = e.message; }));
+  $('#loginSubmit')?.addEventListener('click', () => doLogin().catch(e => { if ($('#authStatus')) $('#authStatus').textContent = e.message; }));
 
   // Chat
-  $('#chatSend').addEventListener('click', () => sendChat());
-  $('#chatInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      sendChat();
-    }
-  });
-
-  // Hotkeys
-  window.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      $('#save-file').click();
-    }
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
-      e.preventDefault();
-      setActiveTab('files');
-      $('#search-input').focus();
-    }
+  $('#chatSend')?.addEventListener('click', () => sendChat());
+  $('#chatInput')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendChat(); }
   });
 }
 
-// -----------------------------
-// Init
-// -----------------------------
-
+// ─── Init ──────────────────────────────────────────────────────────────────
 async function init() {
   await openDatabase();
-  initEditor();
-  bindEvents();
-  setActiveTab('files');
+  await initSettings();      // ui.js — load + apply IDE settings
+  initEditor();              // editor.js — tabs, split pane, auto-save
+  initExplorer();            // explorer.js — file tree + context menus
+  initSearch();              // search.js — search panel bindings
+  initCommands();            // commands.js — palette + keybindings
+  bindSettingsModal();       // ui.js — settings modal bindings
+  bindEvents();              // app.js — auth, chat, uploads, preview, commits
 
+  setActiveTab('files');
   setUserChip();
 
   await registerServiceWorker();
-
   await refreshFileTree();
-  // If index.html exists and nothing selected, open it after import
-  try {
-    const idx = await readFile('index.html');
-    if (idx && !currentFile) await selectFile('index.html');
-  } catch {}
-  if (!$('#preview-section').classList.contains('hidden')) {
-    await updatePreview();
-  }
   await refreshHistory();
 
-  const ok = await tryRestoreSession();
-  if (!ok) {
-    // Show auth modal on first load so the user knows it's an account-based IDE
-    openAuthModal();
-  }
+  try {
+    const idx = await readFile('index.html');
+    if (idx) await openFileInEditor('index.html', 0);
+  } catch {}
 
-  // First-run tutorial
-  const tutSeen = localStorage.getItem('KAIXU_TUTORIAL_SEEN');
-  if (!tutSeen) {
+  const ok = await tryRestoreSession();
+  if (!ok) openAuthModal();
+
+  if (!localStorage.getItem('KAIXU_TUTORIAL_SEEN')) {
     localStorage.setItem('KAIXU_TUTORIAL_SEEN', '1');
     openTutorial();
   }
