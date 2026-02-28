@@ -101,6 +101,90 @@ async function exportWorkspaceZip() {
   toast('ZIP exported', 'success');
 }
 
+// ─── Selective ZIP export (checked files only) ─────────────────────────────
+async function exportSelectedZip() {
+  const paths = selectedPaths && selectedPaths.size > 0 ? [...selectedPaths] : null;
+  if (!paths) { return exportWorkspaceZip(); }
+  const zip = new JSZip();
+  for (const path of paths) {
+    try {
+      const content = await readFile(path);
+      if (content.startsWith('__b64__:')) {
+        const bin = Uint8Array.from(atob(content.slice(8)), (c) => c.charCodeAt(0));
+        zip.file(path, bin);
+      } else {
+        zip.file(path, content);
+      }
+    } catch {}
+  }
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'kaixu-selected.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`Exported ${paths.length} file${paths.length !== 1 ? 's' : ''}`, 'success');
+}
+
+// ─── Clipboard / paste text import ─────────────────────────────────────────
+/*
+  Supports pasting blocks of text with file delimiters like:
+  === filename.ext ===
+  …content…
+  === other.js ===
+  …
+*/
+function _parsePastedText(text) {
+  const files = {};
+  const delimRe = /^={3,}\s*(.+?)\s*={3,}\s*$/m;
+  const lines = text.split('\n');
+  let curPath = null;
+  let curLines = [];
+  for (const line of lines) {
+    const m = line.match(delimRe);
+    if (m) {
+      if (curPath && curLines.length) files[curPath] = curLines.join('\n');
+      curPath = m[1].trim();
+      curLines = [];
+    } else if (curPath !== null) {
+      curLines.push(line);
+    }
+  }
+  if (curPath && curLines.length) files[curPath] = curLines.join('\n');
+  return files;
+}
+
+function openPasteModal() {
+  const modal = document.getElementById('paste-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.querySelector('#paste-textarea')?.focus();
+  }
+}
+
+function closePasteModal() {
+  document.getElementById('paste-modal')?.classList.add('hidden');
+}
+
+async function commitPasteImport() {
+  const raw = document.getElementById('paste-textarea')?.value || '';
+  const files = _parsePastedText(raw);
+  const count = Object.keys(files).length;
+  if (!count) {
+    toast('No file delimiters found. Use: === filename.js ===', 'error');
+    return;
+  }
+  for (const [path, content] of Object.entries(files)) {
+    await writeFile(path, content);
+  }
+  await refreshFileTree();
+  closePasteModal();
+  toast(`Imported ${count} file${count !== 1 ? 's' : ''} from clipboard`, 'success');
+}
+
 // ─── Local commits (Source Control) ───────────────────────────────────────
 
 async function loadCommits() {
@@ -718,6 +802,8 @@ function setActiveTab(name) {
   $('#files-pane')?.classList.toggle('hidden', name !== 'files');
   $('#chat-pane')?.classList.toggle('hidden', name !== 'chat');
   $('#history-pane')?.classList.toggle('hidden', name !== 'scm');
+  $('#outline-pane')?.classList.toggle('hidden', name !== 'outline');
+  $('#problems-pane')?.classList.toggle('hidden', name !== 'problems');
 }
 
 function openTutorial() { $('#tutorialModal')?.classList.remove('hidden'); }
@@ -797,6 +883,15 @@ function bindEvents() {
 
   // Export
   $('#export-zip')?.addEventListener('click', exportWorkspaceZip);
+  $('#export-selected-zip')?.addEventListener('click', exportSelectedZip);
+
+  // Paste import
+  $('#paste-import-btn')?.addEventListener('click', openPasteModal);
+  $('#paste-close')?.addEventListener('click', closePasteModal);
+  $('#paste-confirm')?.addEventListener('click', commitPasteImport);
+  document.getElementById('paste-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'paste-modal') closePasteModal();
+  });
 
   // Commits + SCM
   $('#commit-button')?.addEventListener('click', async () => {
@@ -898,6 +993,15 @@ function bindEvents() {
   $('#chatInput')?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendChat(); }
   });
+
+  // Register extra commands in the palette
+  if (typeof COMMANDS !== 'undefined') {
+    COMMANDS.push(
+      { id: 'export-zip', label: 'Export Workspace ZIP', category: 'File', keybinding: '', action: exportWorkspaceZip },
+      { id: 'export-selected-zip', label: 'Export Selected Files ZIP', category: 'File', keybinding: '', action: exportSelectedZip },
+      { id: 'paste-import', label: 'Import from Pasted Text…', category: 'File', keybinding: '', action: openPasteModal },
+    );
+  }
 }
 
 // ─── Init ──────────────────────────────────────────────────────────────────
@@ -908,6 +1012,9 @@ async function init() {
   initExplorer();            // explorer.js — file tree + context menus
   initSearch();              // search.js — search panel bindings
   initCommands();            // commands.js — palette + keybindings
+  initOutline();             // outline.js — symbol outline panel
+  initProblems();            // problems.js — lint / problems panel
+  initTemplates();           // templates.js — template browser
   bindSettingsModal();       // ui.js — settings modal bindings
   bindEvents();              // app.js — auth, chat, uploads, preview, commits
 

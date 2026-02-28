@@ -36,6 +36,8 @@
         <input type="file" id="file-upload" multiple style="display:none" />
         <input type="file" id="folder-upload" webkitdirectory directory multiple style="display:none" />
         <button id="export-zip">Export ZIP</button>
+        <button id="export-selected-zip" title="Export selected files as ZIP">Export Selected</button>
+        <button id="paste-import-btn" title="Import from pasted text">📋 Paste</button>
         <button id="sync-cloud" title="Sync workspace to Neon">Sync</button>
         <!-- Search / palette / split / format / settings -->
         <button id="search-panel-btn" title="Search workspace (Ctrl+Shift+F)">🔍</button>
@@ -70,6 +72,8 @@
             <button class="tabBtn active" data-tab="files">Files</button>
             <button class="tabBtn" data-tab="chat">Chat</button>
             <button class="tabBtn" data-tab="scm">Source</button>
+            <button class="tabBtn" data-tab="outline">Outline</button>
+            <button class="tabBtn" data-tab="problems">Problems<span id="problems-badge" class="badge hidden"></span></button>
           </div>
 
           <div id="files-pane" class="pane">
@@ -102,6 +106,28 @@
           </div>
 
           <div id="history-pane" class="pane hidden"></div>
+
+          <!-- Outline pane -->
+          <div id="outline-pane" class="pane hidden">
+            <div class="pane-toolbar">
+              <input id="outline-filter" placeholder="Filter symbols…" />
+            </div>
+            <div id="outline-list"></div>
+          </div>
+
+          <!-- Problems pane -->
+          <div id="problems-pane" class="pane hidden">
+            <div class="pane-toolbar">
+              <select id="problems-filter">
+                <option value="all">All</option>
+                <option value="error">Errors</option>
+                <option value="warning">Warnings</option>
+                <option value="info">Info</option>
+              </select>
+              <button id="problems-clear" class="toolbar-sm-btn" title="Clear all">✕ Clear</button>
+            </div>
+            <div id="problems-list"></div>
+          </div>
         </aside>
         <section id="editor-section">
           <!-- Search panel (hidden initially, toggled by Ctrl+Shift+F) -->
@@ -280,6 +306,31 @@
         </div>
       </div>
     </div>
+    <!-- Templates Modal -->
+    <div id="templates-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:760px;width:90vw;">
+        <h3>New from Template</h3>
+        <input id="templates-search" placeholder="Search templates…" style="width:100%;margin-bottom:12px;" />
+        <div id="templates-grid" class="template-grid"></div>
+        <div class="dialog-buttons" style="margin-top:16px;">
+          <button id="templates-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paste Import Modal -->
+    <div id="paste-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:620px;width:90vw;">
+        <h3>Import from Pasted Text</h3>
+        <p class="muted" style="margin:0 0 8px">Paste text blocks with <code>=== filename.ext ===</code> delimiters. Each block becomes a file.</p>
+        <textarea id="paste-textarea" class="paste-modal-textarea" placeholder="=== index.html ===&#10;&lt;!DOCTYPE html&gt;…&#10;=== app.js ===&#10;console.log('hello');"></textarea>
+        <div class="dialog-buttons" style="margin-top:12px;">
+          <button id="paste-confirm">Import Files</button>
+          <button id="paste-close">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <script src="jszip.min.js"></script>
     <script src="db.js"></script>
     <script src="ui.js"></script>
@@ -287,6 +338,9 @@
     <script src="explorer.js"></script>
     <script src="search.js"></script>
     <script src="commands.js"></script>
+    <script src="outline.js"></script>
+    <script src="problems.js"></script>
+    <script src="templates.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

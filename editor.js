@@ -133,6 +133,11 @@ async function _activateTab(id, preloadedContent) {
   _renderTabBar(tab.pane);
   _renderBreadcrumb(tab.pane, tab.path);
 
+  // Update Outline panel
+  if (typeof updateOutline === 'function') updateOutline(content, tab.path);
+  // Lint file on open
+  if (typeof lintFile === 'function') lintFile(tab.path, content);
+
   // Trigger preview refresh if preview is open
   if (typeof updatePreview === 'function' && !document.getElementById('preview-section').classList.contains('hidden')) {
     updatePreview();
@@ -434,6 +439,8 @@ async function _doAutoSave(pane) {
   tab.dirty = false;
   _renderTabBar(pane);
   if (typeof refreshFileTree === 'function') refreshFileTree();
+  // Lint on save
+  if (typeof lintFile === 'function') lintFile(tab.path, ta.value);
 }
 
 // ─── Recent files tracking ─────────────────────────────────────────────────
