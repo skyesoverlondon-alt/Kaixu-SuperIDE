@@ -5,9 +5,10 @@ let _pool;
 function getPool() {
   if (_pool) return _pool;
 
-  const connectionString = process.env.NEON_DATABASE_URL;
+  // Netlify-Neon integration sets DATABASE_URL; fall back to manual NEON_DATABASE_URL
+  const connectionString = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
   if (!connectionString) {
-    throw new Error('Missing NEON_DATABASE_URL');
+    throw new Error('Missing DATABASE_URL (set via Netlify-Neon integration or manually as NEON_DATABASE_URL)');
   }
 
   _pool = new Pool({

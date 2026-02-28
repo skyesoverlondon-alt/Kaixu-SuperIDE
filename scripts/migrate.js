@@ -6,9 +6,10 @@ const path = require('path');
 const { Client } = require('pg');
 
 async function run() {
-  const url = process.env.NEON_DATABASE_URL;
+  // Netlify-Neon integration sets DATABASE_URL; fall back to manual NEON_DATABASE_URL
+  const url = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
   if (!url) {
-    console.log('[migrate] NEON_DATABASE_URL not set; skipping migrations.');
+    console.log('[migrate] DATABASE_URL / NEON_DATABASE_URL not set; skipping migrations.');
     return;
   }
 

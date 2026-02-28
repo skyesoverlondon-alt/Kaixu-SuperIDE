@@ -53,7 +53,7 @@ const workspace = wsRes.rows[0];
     if (msg.toLowerCase().includes('jwt_secret') || msg.toLowerCase().includes('missing/weak')) {
       return json(500, { ok: false, error: 'Server misconfiguration: JWT_SECRET not set' });
     }
-    if (msg.toLowerCase().includes('neon_database_url') || msg.toLowerCase().includes('connect')) {
+    if (msg.toLowerCase().includes('database_url') || msg.toLowerCase().includes('connect')) {
       return json(500, { ok: false, error: 'Server misconfiguration: database not reachable' });
     }
     return json(500, { ok: false, error: 'Signup failed: ' + msg });
