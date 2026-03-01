@@ -375,7 +375,7 @@ create table if not exists file_embeddings (
   file_path    text not null,
   chunk_index  integer not null default 0,
   chunk_text   text not null,
-  embedding    vector(1536),   -- OpenAI text-embedding-3-small dimension
+  embedding    vector(768),     -- Gemini text-embedding-004 dimension
   updated_at   timestamptz not null default now(),
   unique (workspace_id, file_path, chunk_index)
 );

@@ -1,35 +1,45 @@
 // embeddings.js — RAG: sync file embeddings and perform semantic search
-// Requires env: OPENAI_API_KEY (or KAIXU_API_KEY), DATABASE_URL
+// Requires env: KAIXU_GATE_TOKEN, KAIXU_GATE_BASE (optional), DATABASE_URL
 //
 // POST { action: 'sync', workspaceId, files: [{path, content}] }
 //   → embeds each file (chunked) and upserts into file_embeddings
 //
 // GET ?workspaceId=&q=&limit=5
 //   → returns top-k semantically similar file chunks
+//
+// NOTE: embeddings route through the Kaixu Cloudflare Workers gateway,
+// the same gateway used by ai-edit.js. The gateway must expose a
+// POST /embeddings endpoint that returns { data: [{embedding: float[]}] }
+// using Gemini text-embedding-004 (768 dimensions).
+// If your gateway does not yet have this route, add it there first.
 
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
 const https            = require('https');
 
-// ── Embedding via OpenAI API ───────────────────────────────────────────────
-async function embed(texts) {
-  const apiKey = process.env.OPENAI_API_KEY || process.env.KAIXU_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
+const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
 
-  // OpenAI supports up to 2048 inputs per call; batch accordingly
+// ── Embedding via Kaixu Gateway (Gemini text-embedding-004) ──────────────
+async function embed(texts) {
+  const token = process.env.KAIXU_GATE_TOKEN;
+  if (!token) throw new Error('KAIXU_GATE_TOKEN not configured');
+  const base = (process.env.KAIXU_GATE_BASE || DEFAULT_GATE_BASE).replace(/\/+$/, '');
+  const gateUrl = new URL(`${base}/embeddings`);
+
+  // batch in groups of 100
   const batches = [];
   for (let i = 0; i < texts.length; i += 100) batches.push(texts.slice(i, i + 100));
 
   const allVectors = [];
   for (const batch of batches) {
-    const body = JSON.stringify({ input: batch, model: 'text-embedding-3-small' });
+    const body = JSON.stringify({ input: batch });
     const result = await new Promise((resolve, reject) => {
       const opts = {
-        hostname: 'api.openai.com',
-        path: '/v1/embeddings',
+        hostname: gateUrl.hostname,
+        path: gateUrl.pathname,
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type':  'application/json',
           'Content-Length': Buffer.byteLength(body),
         },
@@ -39,14 +49,14 @@ async function embed(texts) {
         res.on('data', (c) => (data += c));
         res.on('end', () => {
           try { resolve(JSON.parse(data)); }
-          catch { reject(new Error('OpenAI parse error')); }
+          catch { reject(new Error('Gateway parse error')); }
         });
       });
       req.on('error', reject);
       req.write(body);
       req.end();
     });
-    if (result.error) throw new Error(`OpenAI error: ${result.error.message}`);
+    if (result.error) throw new Error(`Gateway error: ${result.error.message || JSON.stringify(result.error)}`);
     allVectors.push(...result.data.map(d => d.embedding));
   }
   return allVectors;
