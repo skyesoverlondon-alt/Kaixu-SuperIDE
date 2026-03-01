@@ -20,11 +20,12 @@ const https            = require('https');
 const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
 
 // ── Embedding via Kaixu Gateway (Gemini text-embedding-004) ──────────────
-async function embed(texts) {
+// taskType: 'RETRIEVAL_DOCUMENT' for indexing, 'RETRIEVAL_QUERY' for search
+async function embed(texts, taskType = 'RETRIEVAL_DOCUMENT') {
   const token = process.env.KAIXU_GATE_TOKEN;
   if (!token) throw new Error('KAIXU_GATE_TOKEN not configured');
   const base = (process.env.KAIXU_GATE_BASE || DEFAULT_GATE_BASE).replace(/\/+$/, '');
-  const gateUrl = new URL(`${base}/embeddings`);
+  const gateUrl = new URL(`${base}/v1/embeddings`);
 
   // batch in groups of 100
   const batches = [];
@@ -32,7 +33,7 @@ async function embed(texts) {
 
   const allVectors = [];
   for (const batch of batches) {
-    const body = JSON.stringify({ input: batch });
+    const body = JSON.stringify({ content: batch, taskType });
     const result = await new Promise((resolve, reject) => {
       const opts = {
         hostname: gateUrl.hostname,
@@ -56,8 +57,8 @@ async function embed(texts) {
       req.write(body);
       req.end();
     });
-    if (result.error) throw new Error(`Gateway error: ${result.error.message || JSON.stringify(result.error)}`);
-    allVectors.push(...result.data.map(d => d.embedding));
+    if (!result.ok) throw new Error(`Gateway error: ${result.error || JSON.stringify(result)}`);
+    allVectors.push(...result.embeddings.map(e => e.values));
   }
   return allVectors;
 }
@@ -101,7 +102,7 @@ exports.handler = async (event) => {
       return { statusCode: 403, body: 'No access' };
 
     try {
-      const [queryVec] = await embed([q]);
+      const [queryVec] = await embed([q], 'RETRIEVAL_QUERY');
       const k = Math.min(parseInt(limit) || 5, 20);
       const { rows } = await db.query(
         `SELECT file_path, chunk_index, chunk_text,
@@ -163,7 +164,7 @@ exports.handler = async (event) => {
 
     try {
       const texts   = allChunks.map(c => c.text);
-      const vectors = await embed(texts);
+      const vectors = await embed(texts, 'RETRIEVAL_DOCUMENT');
 
       // Upsert in batches of 50
       let synced = 0;
