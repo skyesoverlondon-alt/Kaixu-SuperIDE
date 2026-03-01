@@ -19,27 +19,17 @@ const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 const EMBED_MODEL = 'text-embedding-004';
 
-// Try every common name for the Gemini API key
 function getGeminiKey(env) {
-  return env.GEMINI_API_KEY
-    || env.KAIXU_GEMINI_KEY
-    || env.KAIXU_API_KEY
-    || env.KAIXU_GOOGLE_KEY
-    || env.GOOGLE_AI_KEY
-    || env.GOOGLE_API_KEY
-    || env.AI_API_KEY
-    || env.API_KEY
-    || null;
+  return env.KAIXU_GEMINI_API_KEY || null;
 }
 
-// Try every common name for the gate auth token
-// If none are set, auth is skipped (Netlify-side requireAuth is the real guard)
+// KAIXU_OPEN_GATE = "true" means no token auth required on the Worker
+// KAIXU_APP_TOKENS = comma-separated list of valid bearer tokens
 function getGateToken(env) {
-  return env.GATE_TOKEN
+  if (env.KAIXU_OPEN_GATE === 'true' || env.KAIXU_OPEN_GATE === '1') return null;
+  return env.KAIXU_APP_TOKENS?.split(',')[0]?.trim()
+    || env.GATE_TOKEN
     || env.KAIXU_GATE_TOKEN
-    || env.AUTH_TOKEN
-    || env.SECRET_TOKEN
-    || env.TOKEN
     || null;
 }
 
@@ -61,14 +51,13 @@ export default {
     }
 
     // ── Auth ──────────────────────────────────────────────────────────────
-    // If a gate token is configured, enforce it. Otherwise skip (Netlify-side
-    // requireAuth is the real security boundary).
-    if (pathname !== '/health') {
-      const gateToken = getGateToken(env);
-      if (gateToken) {
-        const authHeader = request.headers.get('Authorization') || '';
-        const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-        if (token !== gateToken) {
+    if (pathname !== '/health' && pathname !== '/debug') {
+      if (env.KAIXU_OPEN_GATE !== 'true' && env.KAIXU_OPEN_GATE !== '1') {
+        const validTokens = (env.KAIXU_APP_TOKENS || '')
+          .split(',').map(t => t.trim()).filter(Boolean);
+        const incomingToken = (request.headers.get('Authorization') || '')
+          .replace(/^Bearer\s+/i, '').trim();
+        if (validTokens.length > 0 && !validTokens.includes(incomingToken)) {
           return Response.json(
             { ok: false, error: 'Unauthorized' },
             { status: 401, headers: corsHeaders }
