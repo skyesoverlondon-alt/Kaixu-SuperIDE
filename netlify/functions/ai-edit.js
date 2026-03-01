@@ -5,15 +5,31 @@ const logger = require('./_lib/logger')('ai-edit');
 const { checkQuota, recordUsage } = require('./_lib/quota');
 const { checkRateLimit } = require('./_lib/ratelimit');
 
-const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
-const DEFAULT_MODEL = 'kAIxU-flash'; // gate branded name — never raw Gemini model IDs
+const XNTH_GATE_CHAT = 'https://skyesol.netlify.app/.netlify/functions/gateway-chat';
+const DEFAULT_MODEL   = 'kAIxU-flash';
+
+// Map IDE branded model names → XnthGateway { provider, model } pairs.
+// Override via env: KAIXU_FLASH_PROVIDER / KAIXU_FLASH_MODEL / KAIXU_PRO_PROVIDER / KAIXU_PRO_MODEL
+const MODEL_MAP = {
+  'kAIxU-flash': {
+    provider: process.env.KAIXU_FLASH_PROVIDER || 'gemini',
+    model:    process.env.KAIXU_FLASH_MODEL    || 'gemini-2.0-flash-exp',
+  },
+  'kAIxU-pro': {
+    provider: process.env.KAIXU_PRO_PROVIDER || 'anthropic',
+    model:    process.env.KAIXU_PRO_MODEL    || 'claude-3-5-sonnet-20241022',
+  },
+};
+
+function resolveModel(brandedName) {
+  return MODEL_MAP[brandedName] || MODEL_MAP['kAIxU-flash'];
+}
 
 function getGateEnv() {
-  const base = (process.env.KAIXU_GATE_BASE || DEFAULT_GATE_BASE).replace(/\/+$/, '');
-  const token = process.env.KAIXU_GATE_TOKEN || '';
-  const model = process.env.KAIXU_DEFAULT_MODEL || DEFAULT_MODEL;
-  if (!token) throw new Error('Missing KAIXU_GATE_TOKEN');
-  return { base, token, model };
+  const token = process.env.KAIXU_VIRTUAL_KEY || '';
+  const defaultModel = process.env.KAIXU_DEFAULT_MODEL || DEFAULT_MODEL;
+  if (!token) throw new Error('Missing KAIXU_VIRTUAL_KEY');
+  return { token, defaultModel };
 }
 
 function agentSystemPrompt() {
@@ -52,42 +68,42 @@ function safeJsonParse(text) {
   return null;
 }
 
-async function gateGenerate(payload) {
-  const { base, token } = getGateEnv();
-  const res = await fetch(`${base}/v1/generate`, {
+async function gateGenerate({ provider, model, messages }) {
+  const { token } = getGateEnv();
+  const res = await fetch(XNTH_GATE_CHAT, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ provider, model, messages, max_tokens: 8192, temperature: 0 })
   });
   const data = await res.json().catch(() => ({}));
-  if (!data.ok) throw new Error(data.error || `Gate error (HTTP ${res.status})`);
-  return data;
+  if (!res.ok) throw new Error(data.error || `Gate error (HTTP ${res.status})`);
+  // XnthGateway non-streaming response: { output_text, provider, model, usage, month }
+  return {
+    text:  data.output_text || '',
+    usage: data.usage || {},
+    model: data.model || model,
+  };
 }
 
-async function generateJsonOnce({ model, messages }) {
+async function generateJsonOnce({ provider, model, messages }) {
   return await gateGenerate({
+    provider,
     model,
-    system: agentSystemPrompt(),
-    output: { format: 'json' },
-    generationConfig: { temperature: 0.0, maxOutputTokens: 8192 },
-    messages
+    messages: [{ role: 'system', content: agentSystemPrompt() }, ...messages],
   });
 }
 
-async function repairToJson({ model, raw }) {
-  const system = `Convert the following into VALID JSON that matches the exact schema previously specified. Output JSON only.`;
-  const messages = [
-    { role: 'user', content: `RAW_OUTPUT_START\n${raw}\nRAW_OUTPUT_END` }
-  ];
+async function repairToJson({ provider, model, raw }) {
   return await gateGenerate({
+    provider,
     model,
-    system,
-    output: { format: 'json' },
-    generationConfig: { temperature: 0.0, maxOutputTokens: 8192 },
-    messages
+    messages: [
+      { role: 'system', content: 'Convert the following into VALID JSON that matches the exact schema previously specified. Output JSON only.' },
+      { role: 'user',   content: `RAW_OUTPUT_START\n${raw}\nRAW_OUTPUT_END` },
+    ],
   });
 }
 
@@ -199,15 +215,16 @@ exports.handler = async (event) => {
   let usedModel = null;
 
   try {
-    const { model: envModel } = getGateEnv();
-    const m = String(model || envModel);
-    usedModel = m;
+    const { defaultModel } = getGateEnv();
+    const brandedName = String(model || defaultModel);
+    const { provider, model: resolvedModel } = resolveModel(brandedName);
+    usedModel = `${provider}/${resolvedModel}`;
 
-    const first = await generateJsonOnce({ model: m, messages: msgs });
+    const first = await generateJsonOnce({ provider, model: resolvedModel, messages: msgs });
     usageData = first.usage;
     let obj = safeJsonParse(first.text);
     if (!validateAgentObject(obj)) {
-      const repaired = await repairToJson({ model: m, raw: first.text });
+      const repaired = await repairToJson({ provider, model: resolvedModel, raw: first.text });
       obj = safeJsonParse(repaired.text);
     }
 
@@ -216,7 +233,7 @@ exports.handler = async (event) => {
     }
 
     success = true;
-    return json(200, { ok: true, result: obj, usage: first.usage, model: first.model });
+    return json(200, { ok: true, result: obj, usage: first.usage, model: first.model || resolvedModel });
   } catch (err) {
     return json(500, { ok: false, error: String(err?.message || err) });
   } finally {

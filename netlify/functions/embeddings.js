@@ -1,5 +1,5 @@
 // embeddings.js — RAG: sync file embeddings and perform semantic search
-// Requires env: KAIXU_GATE_TOKEN, KAIXU_GATE_BASE (optional), DATABASE_URL
+// Requires env: KAIXU_VIRTUAL_KEY, DATABASE_URL
 //
 // POST { action: 'sync', workspaceId, files: [{path, content}] }
 //   → embeds each file (chunked) and upserts into file_embeddings
@@ -7,11 +7,10 @@
 // GET ?workspaceId=&q=&limit=5
 //   → returns top-k semantically similar file chunks
 //
-// NOTE: embeddings route through the Kaixu Cloudflare Workers gateway,
-// the same gateway used by ai-edit.js.
-// Gate endpoint: POST /v1/embeddings
-// Gate response:  { ok: true, model: 'kAIxU-embed', embeddings: [{ index, values: float[] }] }
-// Model selection handled by the gate (768-dimensional vectors)
+// NOTE: embeddings route through the XnthGateway (skyesol.netlify.app).
+// Gate endpoint: POST /.netlify/functions/gateway-embed
+// Gate response:  { embeddings: [[float, ...], ...], dimensions: 1536 }
+// Provider: gemini / model: gemini-embedding-001 / outputDimensionality: 1536
 
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');

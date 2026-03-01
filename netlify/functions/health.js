@@ -32,14 +32,13 @@ exports.handler = async (event) => {
     result.db = 'error: ' + e.message.slice(0, 80);
   }
 
-  // Check Kaixu Gate — /v1/health requires auth
-  const gateBase = (process.env.KAIXU_GATE_BASE || 'https://kaixu67.skyesoverlondon.workers.dev').replace(/\/+$/, '');
+  // Check XnthGateway — health endpoint requires no auth (HEAD is fine)
+  const gateHealthUrl = 'https://skyesol.netlify.app/.netlify/functions/health';
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 4000);
-    const r = await fetch(`${gateBase}/v1/health`, {
+    const r = await fetch(gateHealthUrl, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${process.env.KAIXU_GATE_TOKEN || ''}` },
       signal: ctrl.signal,
     });
     clearTimeout(timer);

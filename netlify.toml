@@ -106,3 +106,11 @@
   [headers.values]
     Cache-Control = "public, max-age=86400"
     Access-Control-Allow-Methods = "GET, OPTIONS"
+# ── XnthGateway local dev proxy ─────────────────────────────────────────────
+# In local dev, frontend uses /api/* → redirected to skyesol.netlify.app
+# In production, /api/* never hits this redirect (functions are same-origin)
+[[redirects]]
+  from   = "/api/*"
+  to     = "https://skyesol.netlify.app/.netlify/functions/:splat"
+  status = 200
+  force  = false
