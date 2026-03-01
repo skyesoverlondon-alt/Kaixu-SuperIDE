@@ -1,0 +1,9 @@
+name = "kaixu67"
+main = "index.js"
+compatibility_date = "2025-01-01"
+
+# Set secrets via CLI or dashboard — do NOT put real values here:
+#   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put GATE_TOKEN
+#
+# GATE_TOKEN must match KAIXU_GATE_TOKEN in your Netlify env vars.
