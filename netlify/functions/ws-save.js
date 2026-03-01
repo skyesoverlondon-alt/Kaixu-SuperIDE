@@ -2,6 +2,7 @@ const { query } = require('./_lib/db');
 const { verifyToken, getBearerToken, json } = require('./_lib/auth');
 const { readJson } = require('./_lib/body');
 const logger = require('./_lib/logger')('ws-save');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 // Fire webhooks for a workspace event (best-effort, non-blocking)
 async function fireWebhooks(workspaceId, orgId, event, payload) {
@@ -27,6 +28,10 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
   const token = getBearerToken(event);
   if (!token) return json(401, { ok: false, error: 'Missing token' });
+
+  // Rate limit: 60 saves/min per token
+  const limited = await checkRateLimit(token, 'ws-save', { maxHits: 60, windowSecs: 60 });
+  if (limited) return json(429, { ok: false, error: 'Too many save requests. Limit: 60/min.', retryAfter: 60 });
 
   const parsed = await readJson(event);
   if (!parsed.ok) return parsed.response;

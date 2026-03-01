@@ -16,6 +16,7 @@
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
 const https            = require('https');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
 
@@ -85,6 +86,10 @@ exports.handler = async (event) => {
   catch (e) { return { statusCode: 401, body: e.message }; }
 
   const db = getDb();
+
+  // ── Rate limit: 10 req/min per user ─────────────────────────────────────
+  const limited = await checkRateLimit(user.sub, 'embeddings', { maxHits: 10, windowSecs: 60 });
+  if (limited) return { statusCode: 429, body: JSON.stringify({ ok: false, error: 'Too many embedding requests. Limit: 10/min.', retryAfter: 60 }) };
 
   // ── GET: semantic search ─────────────────────────────────────────────────
   if (event.httpMethod === 'GET') {

@@ -3,6 +3,7 @@ const { readJson } = require('./_lib/body');
 const { query } = require('./_lib/db');
 const logger = require('./_lib/logger')('ai-edit');
 const { checkQuota, recordUsage } = require('./_lib/quota');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -116,6 +117,10 @@ exports.handler = async (event) => {
   let decoded;
   try { decoded = verifyToken(token); } catch { return json(401, { ok: false, error: 'Invalid token' }); }
   const userId = decoded?.sub || decoded?.userId || null;
+
+  // ─── Rate limit: 20 req/min per user ─────────────────────────────────────
+  const limited = await checkRateLimit(userId || token, 'ai-edit', { maxHits: 20, windowSecs: 60 });
+  if (limited) return json(429, { ok: false, error: 'Too many AI requests. Limit: 20/min.', retryAfter: 60 });
 
   // ─── Kill switch check ──────────────────────────────────────────────────
   try {

@@ -2,7 +2,7 @@
   "name": "kaixu-super-ide",
   "version": "1.0.0",
   "private": true,
-  "description": "kAIxU Super IDE \u2014 browser IDE with Neon-backed accounts, kAIxU Gate AI editing, chat timeline, and Git-deployable Netlify Functions.",
+  "description": "kAIxU Super IDE — browser IDE with Neon-backed accounts, kAIxU Gate AI editing, chat timeline, and Git-deployable Netlify Functions.",
   "license": "UNLICENSED",
   "type": "commonjs",
   "engines": {
@@ -13,9 +13,43 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.12.0"
   },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "optionalDependencies": {
+    "@node-saml/node-saml": "^5.0.0",
+    "@sentry/node": "^8.0.0"
+  },
   "scripts": {
     "build": "node scripts/migrate.js",
     "migrate": "node scripts/migrate.js",
-    "dev": "npx netlify dev"
+    "dev": "npx netlify dev",
+    "test": "jest --testPathPattern=tests/ --forceExit",
+    "test:watch": "jest --testPathPattern=tests/ --watch",
+    "test:coverage": "jest --testPathPattern=tests/ --coverage --forceExit",
+    "lint": "node --check netlify/functions/*.js netlify/functions/_lib/*.js 2>&1 | head -50"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFiles": ["./tests/setup.js"],
+    "testMatch": ["**/tests/**/*.test.js"],
+    "collectCoverageFrom": [
+      "netlify/functions/**/*.js",
+      "!netlify/functions/_lib/db.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 50,
+        "functions": 60,
+        "lines": 60,
+        "statements": 60
+      }
+    },
+    "testTimeout": 10000,
+    "moduleNameMapper": {
+      "^@sentry/node$": "<rootDir>/tests/__mocks__/@sentry/node.js"
+    }
   }
 }

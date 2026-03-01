@@ -1,11 +1,16 @@
 const { query } = require('./_lib/db');
 const { verifyToken, getBearerToken, json } = require('./_lib/auth');
 const { readJson } = require('./_lib/body');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
   const token = getBearerToken(event);
   if (!token) return json(401, { ok: false, error: 'Missing token' });
+
+  // Rate limit: 5 org creations/hour per token
+  const limited = await checkRateLimit(token, 'org-create', { maxHits: 5, windowSecs: 3600 });
+  if (limited) return json(429, { ok: false, error: 'Too many org creations. Limit: 5/hour.', retryAfter: 3600 });
 
   const parsed = await readJson(event);
   if (!parsed.ok) return parsed.response;

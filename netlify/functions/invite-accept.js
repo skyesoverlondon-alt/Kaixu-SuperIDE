@@ -1,6 +1,5 @@
 const { query } = require('./_lib/db');
-const { requireAuth } = require('./_lib/auth');
-const { json } = require('./_lib/body');
+const { requireAuth, json } = require('./_lib/auth');
 const logger = require('./_lib/logger')('invite-accept');
 
 exports.handler = async (event) => {
