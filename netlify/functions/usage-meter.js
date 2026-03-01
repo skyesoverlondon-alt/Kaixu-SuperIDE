@@ -48,7 +48,7 @@ exports.handler = async (event) => {
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   } catch (err) {
     // Never fail the caller over metering errors
-    console.error('[usage-meter]', err.message);
+    require('./_lib/logger')('usage-meter').error('meter_error', { message: err.message });
     return { statusCode: 200, body: JSON.stringify({ ok: false, error: err.message }) };
   }
 };

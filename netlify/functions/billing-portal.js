@@ -60,7 +60,7 @@ exports.handler = async (event) => {
     });
     return { statusCode: 200, body: JSON.stringify({ url: portal.url }) };
   } catch (err) {
-    console.error('[billing-portal]', err);
+    require('./_lib/logger')('billing-portal').exception(err);
     return { statusCode: 500, body: err.message };
   }
 };

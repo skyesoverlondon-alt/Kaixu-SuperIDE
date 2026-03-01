@@ -50,7 +50,7 @@ exports.handler = async (event) => {
       }),
     };
   } catch (err) {
-    console.error('[billing-plans]', err);
+    require('./_lib/logger')('billing-plans').exception(err);
     return { statusCode: 500, body: err.message };
   }
 };

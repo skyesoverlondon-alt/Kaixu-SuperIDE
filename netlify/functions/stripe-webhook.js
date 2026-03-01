@@ -9,7 +9,8 @@
 //   invoice.payment_failed
 
 const { getDb } = require('./_lib/db');
-const crypto     = require('crypto');
+const logger    = require('./_lib/logger')('stripe-webhook');
+const crypto    = require('crypto');
 
 // ── Stripe signature verification ──────────────────────────────────────────
 function verifyStripeSignature(rawBody, sigHeader, secret) {
@@ -50,7 +51,7 @@ exports.handler = async (event) => {
   try {
     verifyStripeSignature(rawBody, sig, secret);
   } catch (err) {
-    console.error('[stripe-webhook] signature error:', err.message);
+    logger.error('signature_error', { message: err.message });
     return { statusCode: 400, body: `Webhook error: ${err.message}` };
   }
 
@@ -92,7 +93,7 @@ exports.handler = async (event) => {
             await db.query('UPDATE users SET plan_id=$1 WHERE id=$2', [plan.id, userId]);
           }
         }
-        console.log('[stripe-webhook] subscription created:', obj.id);
+        logger.info('subscription_created', { subscriptionId: obj.id });
         break;
       }
 
@@ -111,7 +112,7 @@ exports.handler = async (event) => {
           obj.current_period_start, obj.current_period_end,
           plan?.id || null,
         ]);
-        console.log('[stripe-webhook] subscription updated:', obj.id, obj.status);
+        logger.info('subscription_updated', { subscriptionId: obj.id, status: obj.status });
         break;
       }
 
@@ -137,7 +138,7 @@ exports.handler = async (event) => {
           if (org_id)  await db.query('UPDATE orgs  SET plan_id=$1 WHERE id=$2', [freePlanId, org_id]);
           if (user_id) await db.query('UPDATE users SET plan_id=$1 WHERE id=$2', [freePlanId, user_id]);
         }
-        console.log('[stripe-webhook] subscription deleted:', obj.id);
+        logger.info('subscription_deleted', { subscriptionId: obj.id });
         break;
       }
 
@@ -159,7 +160,7 @@ exports.handler = async (event) => {
             )
           `, [subId, obj.amount_paid]);
         }
-        console.log('[stripe-webhook] invoice paid:', obj.id, obj.amount_paid);
+        logger.info('invoice_paid', { invoiceId: obj.id, amountPaid: obj.amount_paid });
         break;
       }
 
@@ -171,17 +172,17 @@ exports.handler = async (event) => {
             UPDATE subscriptions SET status='past_due' WHERE stripe_subscription_id=$1
           `, [subId]);
         }
-        console.log('[stripe-webhook] invoice payment FAILED:', obj.id);
+        logger.warn('invoice_payment_failed', { invoiceId: obj.id });
         break;
       }
 
       default:
-        console.log('[stripe-webhook] unhandled event:', stripeEvent.type);
+        logger.info('unhandled_event', { type: stripeEvent.type });
     }
 
     return { statusCode: 200, body: JSON.stringify({ received: true }) };
   } catch (err) {
-    console.error('[stripe-webhook] handler error:', err);
+    logger.exception(err, { event: stripeEvent?.type });
     return { statusCode: 500, body: err.message };
   }
 };

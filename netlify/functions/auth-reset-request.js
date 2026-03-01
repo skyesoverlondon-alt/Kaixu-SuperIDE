@@ -7,10 +7,11 @@
 */
 
 const crypto   = require('crypto');
-const { query }          = require('./_lib/db');
-const { checkRateLimit } = require('./_lib/ratelimit');
-const { logger }         = require('./_lib/logger');
-const { parseBody }      = require('./_lib/body');
+const { query }                  = require('./_lib/db');
+const { checkRateLimit }         = require('./_lib/ratelimit');
+const { logger }                 = require('./_lib/logger');
+const { parseBody }              = require('./_lib/body');
+const { sendPasswordResetEmail } = require('./_lib/email');
 
 const CORS = {
   'Content-Type': 'application/json',
@@ -62,14 +63,17 @@ exports.handler = async (event) => {
 
     log.info('reset_token_created', { email, userId });
 
-    const isProd = process.env.NODE_ENV === 'production' && process.env.SEND_EMAIL_API;
-    if (!isProd) {
-      // Dev: return token directly so it can be copy-pasted or auto-filled
-      return ok({ ok: true, dev_token: token, message: 'Dev mode: use this token to reset your password.' });
-    }
+    const appUrl   = (process.env.APP_URL || process.env.URL || 'https://localhost').replace(/\/+$/, '');
+    const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
-    // Production: TODO integrate SendGrid / Resend / Postmark here
-    // await sendResetEmail(email, token);
+    const emailResult = await sendPasswordResetEmail({ to: email, resetUrl });
+    if (!emailResult.ok) {
+      // If SendGrid not configured (dev), return token directly for testing
+      log.warn('reset_email_failed', { email, error: emailResult.error });
+      if (!process.env.SENDGRID_API_KEY) {
+        return ok({ ok: true, dev_token: token, dev_reset_url: resetUrl, message: 'Dev mode: SENDGRID_API_KEY not set. Use dev_reset_url to test.' });
+      }
+    }
     return ok({ ok: true, message: 'If that email is registered, a reset link has been sent.' });
   } catch (e) {
     log.error('db_error', { message: e.message });

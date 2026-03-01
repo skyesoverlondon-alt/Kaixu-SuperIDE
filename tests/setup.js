@@ -36,3 +36,6 @@ jest.mock('../netlify/functions/_lib/quota', () => ({
 
 // ── Suppress unhandled promise rejections from fire-and-forget DB calls ─────────
 process.on('unhandledRejection', () => {});
+
+// ── Required env vars for functions that verify JWTs ─────────────────────────
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-do-not-use-in-prod-min-32chars!';

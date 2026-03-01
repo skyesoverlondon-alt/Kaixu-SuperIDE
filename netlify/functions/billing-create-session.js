@@ -125,7 +125,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({ url: session.url, sessionId: session.id }),
     };
   } catch (err) {
-    console.error('[billing-create-session]', err);
+    require('./_lib/logger')('billing-create-session').exception(err);
     return { statusCode: 500, body: err.message };
   }
 };

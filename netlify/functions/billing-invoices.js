@@ -87,7 +87,7 @@ exports.handler = async (event) => {
 
     return json(200, { ok: true, invoices, hasMore: data.has_more || false });
   } catch (err) {
-    console.error('[billing-invoices]', err);
+    require('./_lib/logger')('billing-invoices').exception(err);
     return json(500, { ok: false, error: err.message });
   }
 };

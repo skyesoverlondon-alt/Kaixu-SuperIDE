@@ -33,9 +33,28 @@ function json(statusCode, body, extraHeaders = {}) {
   };
 }
 
+/**
+ * Verify Bearer token from event. Returns { ok, decoded } or a ready 401 response.
+ * Usage:
+ *   const auth = requireAuth(event);
+ *   if (!auth.ok) return auth.response;
+ *   const { userId, orgId, role } = auth.decoded;
+ */
+function requireAuth(event) {
+  const token = getBearerToken(event);
+  if (!token) return { ok: false, response: json(401, { ok: false, error: 'Missing token' }) };
+  try {
+    const decoded = verifyToken(token);
+    return { ok: true, decoded };
+  } catch {
+    return { ok: false, response: json(401, { ok: false, error: 'Invalid or expired token' }) };
+  }
+}
+
 module.exports = {
   issueToken,
   verifyToken,
   getBearerToken,
+  requireAuth,
   json
 };

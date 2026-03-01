@@ -5,13 +5,7 @@
   Returns: { ok, db, gate, ts }
 */
 
-const { Pool } = require('pg');
-
-let _pool;
-function pool() {
-  if (!_pool) _pool = new Pool({ connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL, ssl: { rejectUnauthorized: false } });
-  return _pool;
-}
+const { query } = require('./_lib/db');
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -32,7 +26,7 @@ exports.handler = async (event) => {
 
   // Check DB
   try {
-    await pool().query('SELECT 1');
+    await query('SELECT 1');
     result.db = 'ok';
   } catch (e) {
     result.db = 'error: ' + e.message.slice(0, 80);

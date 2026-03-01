@@ -5,6 +5,7 @@ const { issueToken, json } = require('./_lib/auth');
 const { readJson } = require('./_lib/body');
 const { checkRateLimit } = require('./_lib/ratelimit');
 const logger = require('./_lib/logger');
+const { sendVerificationEmail } = require('./_lib/email');
 
 const log = logger('auth-signup');
 
@@ -70,12 +71,17 @@ exports.handler = async (event) => {
       [user.id, verifyToken, verifyExpires]
     ).catch(() => {}); // table may not exist yet
 
-    const verifyUrl = `${process.env.URL || 'https://localhost'}/.netlify/functions/auth-verify-email?token=${verifyToken}`;
-    // TODO: send email in production via SEND_EMAIL_API
+    const appUrl = (process.env.APP_URL || process.env.URL || 'https://localhost').replace(/\/+$/, '');
+    const verifyUrl = `${appUrl}/.netlify/functions/auth-verify-email?token=${verifyToken}`;
+
+    // Send verification email — non-blocking, don't fail signup if email fails
+    sendVerificationEmail({ to: e, verifyUrl }).catch(emailErr => {
+      log.warn('verification_email_failed', { userId: user.id, error: emailErr?.message });
+    });
 
     const token = issueToken({ sub: user.id, email: user.email });
     log.info('signup_success', { userId: user.id, ip });
-    return json(200, { ok: true, token, user, org, workspace, dev_verify_url: verifyUrl });
+    return json(200, { ok: true, token, user, org, workspace });
   } catch (err) {
     const msg = String(err?.message || err);
     log.error('signup_error', { message: msg, ip });
