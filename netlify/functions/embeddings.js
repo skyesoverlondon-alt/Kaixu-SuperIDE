@@ -10,8 +10,8 @@
 // NOTE: embeddings route through the Kaixu Cloudflare Workers gateway,
 // the same gateway used by ai-edit.js.
 // Gate endpoint: POST /v1/embeddings
-// Gate response:  { ok: true, embeddings: [{ index, values: float[] }] }
-// Model: Gemini text-embedding-004 (768 dimensions)
+// Gate response:  { ok: true, model: 'kAIxU-embed', embeddings: [{ index, values: float[] }] }
+// Model selection handled by the gate (768-dimensional vectors)
 
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
@@ -20,7 +20,7 @@ const { checkRateLimit } = require('./_lib/ratelimit');
 
 const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
 
-// ── Embedding via Kaixu Gateway (Gemini text-embedding-004) ──────────────
+// ── Embedding via Kaixu Gateway (kAIxU-embed) ─────────────────────────────
 // taskType: 'RETRIEVAL_DOCUMENT' for indexing, 'RETRIEVAL_QUERY' for search
 async function embed(texts, taskType = 'RETRIEVAL_DOCUMENT') {
   const token = process.env.KAIXU_GATE_TOKEN;

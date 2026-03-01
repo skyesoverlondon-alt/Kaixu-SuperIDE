@@ -6,7 +6,7 @@ const { checkQuota, recordUsage } = require('./_lib/quota');
 const { checkRateLimit } = require('./_lib/ratelimit');
 
 const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'kAIxU-flash'; // gate branded name — never raw Gemini model IDs
 
 function getGateEnv() {
   const base = (process.env.KAIXU_GATE_BASE || DEFAULT_GATE_BASE).replace(/\/+$/, '');
