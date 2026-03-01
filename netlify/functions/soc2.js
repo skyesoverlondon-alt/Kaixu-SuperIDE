@@ -50,7 +50,7 @@ exports.handler = async (event) => {
     let orgSnap = null;
     if (orgId) {
       const { rows } = await db.query(
-        `SELECT id, name, created_at, plan_id, deleted_at FROM orgs WHERE id=$1`,
+        `SELECT id, name, created_at, plan_id, deleted_at, require_mfa, sso_enabled, sso_provider FROM orgs WHERE id=$1`,
         [orgId]
       );
       orgSnap = rows[0] || null;
@@ -160,7 +160,7 @@ exports.handler = async (event) => {
         security: {
           rate_limit_events_30d: rateLimitRows,
           client_errors_30d: errRows[0]?.client_errors || 0,
-          mfa_enforced: false, // TODO: add org.require_mfa column
+          mfa_enforced: orgSnap?.require_mfa ?? false,
           honeypot: 'enabled (signup)',
           secrets_scanning: 'enabled (client-side, pre-commit warning)',
           csp: 'strict-origin-when-cross-origin (via netlify.toml)',

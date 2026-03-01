@@ -413,3 +413,6 @@ ALTER TABLE orgs ADD COLUMN IF NOT EXISTS sso_client_id    text;
 ALTER TABLE orgs ADD COLUMN IF NOT EXISTS sso_config       jsonb NOT NULL DEFAULT '{}';
 
 create unique index if not exists idx_orgs_sso_domain on orgs(sso_domain) where sso_domain is not null;
+
+-- ─── MFA enforcement on orgs ────────────────────────────────────────────────
+ALTER TABLE orgs ADD COLUMN IF NOT EXISTS require_mfa boolean NOT NULL DEFAULT false;
