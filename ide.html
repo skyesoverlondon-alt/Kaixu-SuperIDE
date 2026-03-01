@@ -15,9 +15,6 @@
     -->
     <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="styles.css" />
-    <!-- External libraries were removed for offline support.  All functionality is implemented directly in app.js. -->
-    <!-- The Monaco editor is not bundled to ensure offline functionality.  A simple
-         textarea editor is used instead. -->
   </head>
   <body>
     <div id="app">
@@ -1015,3 +1012,26 @@
     </div>
 
     <script src="jszip.min.js"></script>
+
+    <!-- kAIxU IDE modules — load order matters -->
+    <!-- Core layer -->
+    <script src="db.js"></script>
+    <script src="ui.js"></script>
+    <!-- Editor + panels -->
+    <script src="editor.js"></script>
+    <script src="explorer.js"></script>
+    <script src="search.js"></script>
+    <script src="outline.js"></script>
+    <script src="problems.js"></script>
+    <script src="snippets.js"></script>
+    <script src="templates.js"></script>
+    <script src="commands.js"></script>
+    <!-- App bootstrap (depends on all above) -->
+    <script src="app.js"></script>
+    <!-- Feature modules (depend on app.js) -->
+    <script src="diff.js"></script>
+    <script src="scm.js"></script>
+    <script src="collab.js"></script>
+    <script src="demo.js"></script>
+    <script src="github.js"></script>
+    <script src="admin.js"></script>

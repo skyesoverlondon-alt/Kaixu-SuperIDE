@@ -225,32 +225,47 @@ Contact: legal@kaixu.app | privacy@kaixu.app | security@kaixu.app
 ## File structure
 
 ```
-index.html              -- IDE shell
-ide.html                -- IDE main view
+index.html              -- Landing page
+ide.html                -- IDE shell (loads all frontend modules)
 homelanding.html        -- Marketing landing page
-app.js                  -- App bootstrap
-editor.js               -- CodeMirror editor
+styles.css              -- Global styles
+manifest.json           -- PWA manifest
+sw.js                   -- Service worker (offline support)
+
+-- Frontend modules (load order: db -> ui -> editor -> explorer -> search ->
+--   outline -> problems -> snippets -> templates -> commands -> app)
+db.js                   -- IndexedDB (local file storage)
+ui.js                   -- UI utilities (toast, modals, helpers)
+editor.js               -- CodeMirror multi-tab editor + split panes
 explorer.js             -- File tree
-search.js               -- Search panel
-outline.js              -- Code outline
-problems.js             -- Problems panel
+search.js               -- Workspace search panel
+outline.js              -- Code outline/symbol view
+problems.js             -- Problems panel (lint errors)
 snippets.js             -- Snippet library
 templates.js            -- File templates
-ui.js                   -- UI utilities
 commands.js             -- Command palette
-db.js                   -- IndexedDB (local storage)
-styles.css              -- Global styles
-sw.js                   -- Service worker (offline support)
-manifest.json           -- PWA manifest
+app.js                  -- App bootstrap, auth, AI chat, sync engine
+
+-- Feature modules (load after app.js)
+diff.js                 -- Visual diff viewer (commit history)
+scm.js                  -- Source control: branches, stash, blame, hunk revert
+collab.js               -- Real-time presence + cursor overlays
+demo.js                 -- Demo project loader
+github.js               -- GitHub OAuth integration
+admin.js                -- Admin console: org panel, usage, kill switch
+search.worker.js        -- Background web worker for search indexing
+jszip.min.js            -- ZIP import/export library
 
 netlify/functions/      -- All backend functions
-  _lib/                 -- Shared utilities (auth, db, logger, ratelimit)
+  _lib/                 -- Shared utilities (auth, db, logger, ratelimit, email)
 
 scripts/
   migrate.js            -- Run SQL schema against Neon
   setup-check.js        -- Pre-flight env validator
+  aria_pass.py          -- One-time accessibility patch for ARIA attributes
 
-sql/schema.sql          -- Full database schema
+sql/schema.sql          -- Full database schema (run this first)
+sql/rls.sql             -- Row-level security policies (optional, run after schema)
 tests/                  -- Jest test suites (46 tests)
 .github/workflows/      -- CI pipeline (GitHub Actions)
 
