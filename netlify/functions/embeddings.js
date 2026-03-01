@@ -8,10 +8,10 @@
 //   → returns top-k semantically similar file chunks
 //
 // NOTE: embeddings route through the Kaixu Cloudflare Workers gateway,
-// the same gateway used by ai-edit.js. The gateway must expose a
-// POST /embeddings endpoint that returns { data: [{embedding: float[]}] }
-// using Gemini text-embedding-004 (768 dimensions).
-// If your gateway does not yet have this route, add it there first.
+// the same gateway used by ai-edit.js.
+// Gate endpoint: POST /v1/embeddings
+// Gate response:  { ok: true, embeddings: [{ index, values: float[] }] }
+// Model: Gemini text-embedding-004 (768 dimensions)
 
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');

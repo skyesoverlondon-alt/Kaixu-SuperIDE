@@ -38,12 +38,12 @@ exports.handler = async (event) => {
     result.db = 'error: ' + e.message.slice(0, 80);
   }
 
-  // Check Kaixu Gate
-  const gateUrl = process.env.KAIXU_GATE_URL || 'https://kaixu67.skyesoverlondon.workers.dev';
+  // Check Kaixu Gate — /v1/health requires auth
+  const gateBase = (process.env.KAIXU_GATE_BASE || 'https://kaixu67.skyesoverlondon.workers.dev').replace(/\/+$/, '');
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 4000);
-    const r = await fetch(`${gateUrl}/health`, {
+    const r = await fetch(`${gateBase}/v1/health`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${process.env.KAIXU_GATE_TOKEN || ''}` },
       signal: ctrl.signal,
@@ -54,7 +54,7 @@ exports.handler = async (event) => {
     result.gate = e.name === 'AbortError' ? 'timeout' : 'error';
   }
 
-  result.ok = result.db === 'ok'; // Gate may not have /health — DB is required
+  result.ok = result.db === 'ok'; // DB is required; gate is informational
   return {
     statusCode: result.ok ? 200 : 503,
     headers: { ...CORS, 'Content-Type': 'application/json' },
