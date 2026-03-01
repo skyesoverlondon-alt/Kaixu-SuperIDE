@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Notification Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--line:#2a0050;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg0);color:var(--fg);font-family:Inter,sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.hdr{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid var(--line)}
+.hdr h1{font-size:15px;color:var(--purple-hot)} .hdr p{font-size:11px;color:#8060a0}
+.hdr-r{margin-left:auto;display:flex;gap:8px}
+.btn{padding:5px 11px;border-radius:5px;border:1px solid transparent;background:#1a0030;color:#c6b5ff;font-size:12px;cursor:pointer}
+.btn:hover{filter:brightness(1.08)} .btn.cyan{border-color:#30e0ff66;color:var(--cyan);background:#30e0ff1a} .btn.purple{border-color:#a243ff66;color:var(--purple);background:#a243ff1a} .btn.green{border-color:#4fffb066;color:var(--green);background:#4fffb01a}
+.layout{display:flex;flex:1;overflow:hidden}
+.side{width:280px;background:var(--bg1);border-right:1px solid var(--line);display:flex;flex-direction:column}
+.sec{padding:10px 12px;border-bottom:1px solid #1a0030}.sec h3{font-size:10px;color:#7050a0;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.chk{display:flex;align-items:center;gap:7px;font-size:12px;color:#c8b8dd;margin:6px 0}.chk input{accent-color:var(--purple)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.toolbar{padding:8px 12px;border-bottom:1px solid #1a0030;background:var(--bg1);display:flex;gap:8px;align-items:center}
+.in{background:var(--bg2);border:1px solid #3a0060;color:var(--fg);border-radius:5px;padding:6px 10px;font-size:12px}.in:focus{outline:none;border-color:var(--purple)}
+.feed{flex:1;overflow:auto;padding:10px}.feed::-webkit-scrollbar{width:5px}.feed::-webkit-scrollbar-thumb{background:#3a0060}
+.item{background:var(--bg1);border:1px solid #1a0030;border-radius:7px;padding:10px 12px;margin-bottom:8px}
+.top{display:flex;align-items:center;gap:8px}.src{font-size:10px;padding:2px 6px;border-radius:3px;background:#ffffff12;color:#c0b0d8}.sev{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:700}
+.s-error{background:#ff4f6a22;color:var(--red)}.s-warn{background:#ffd36a22;color:var(--gold)}.s-info{background:#30e0ff22;color:var(--cyan)}.s-ok{background:#4fffb022;color:var(--green)}
+.ts{margin-left:auto;font-size:10px;color:#6a5a8f}
+.msg{margin-top:7px;font-size:12px;line-height:1.45}
+.meta{margin-top:7px;font-size:10px;color:#8879a8;display:flex;gap:12px;flex-wrap:wrap}
+.channels{display:flex;gap:6px;flex-wrap:wrap}.ch{font-size:10px;padding:2px 6px;border-radius:3px;background:#ffffff0d;color:#b7a7d1;border:1px solid #ffffff1a}
+.foot{padding:3px 12px;background:#060010;border-top:1px solid #1a0030;font-size:10px;color:#605085;display:flex;gap:14px}.foot b{color:#dfd5ef}
+.rule{padding:8px;border:1px solid #2a0050;border-radius:6px;background:#120024;margin-bottom:6px;font-size:11px;color:#cdbde2}
+.ai{padding:10px;border-top:1px solid #1a0030;background:#0b0018}
+.ai pre{background:#16002e;border:1px solid #2a0050;border-radius:6px;padding:8px;white-space:pre-wrap;font-size:11px;color:#d7caeb;max-height:140px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="hdr"><div style="font-size:18px">🔔</div><div><h1>Notification Center</h1><p>Unified alerts across deploys, CI, database, team, and webhooks</p></div><div class="hdr-r"><button class="btn cyan" onclick="refreshFeed()">↻ Refresh</button><button class="btn purple" onclick="markAllRead()">✓ Mark all read</button><button class="btn green" onclick="simulateWebhook()">＋ Simulate webhook</button></div></div>
+<div class="layout">
+  <aside class="side">
+    <div class="sec"><h3>Filter by Source</h3>
+      <label class="chk"><input type="checkbox" checked data-src="deploy" onchange="applyFilters()"/>Deploy</label>
+      <label class="chk"><input type="checkbox" checked data-src="ci" onchange="applyFilters()"/>CI</label>
+      <label class="chk"><input type="checkbox" checked data-src="db" onchange="applyFilters()"/>Database</label>
+      <label class="chk"><input type="checkbox" checked data-src="team" onchange="applyFilters()"/>Team</label>
+      <label class="chk"><input type="checkbox" checked data-src="security" onchange="applyFilters()"/>Security</label>
+    </div>
+    <div class="sec"><h3>Channels</h3><div class="channels"><span class="ch">IDE Bell</span><span class="ch">Email</span><span class="ch">Slack</span><span class="ch">Discord</span><span class="ch">SMS</span></div></div>
+    <div class="sec"><h3>Rules</h3>
+      <div class="rule">Only notify on <b>production deploy failures</b></div>
+      <div class="rule">Snooze <b>non-critical CI warnings</b> for 2h</div>
+      <div class="rule">Send <b>security alerts</b> to Email + SMS</div>
+    </div>
+    <div class="sec"><h3>Digest</h3><div style="font-size:11px;color:#c5b6dc;line-height:1.45">Daily digest runs at 18:00 UTC and batches INFO/WARN items.</div></div>
+  </aside>
+  <main class="main">
+    <div class="toolbar"><input class="in" id="q" placeholder="Search notifications (regex/text)" style="min-width:280px" oninput="applyFilters()"/><select class="in" id="sev" onchange="applyFilters()"><option value="all">All severities</option><option value="error">Error</option><option value="warn">Warn</option><option value="info">Info</option><option value="ok">OK</option></select><span style="margin-left:auto;font-size:11px;color:#7a6a9f">Live stream: <b id="live" style="color:#4fffb0">ON</b></span></div>
+    <div class="feed" id="feed"></div>
+    <div class="ai"><div style="display:flex;gap:8px;align-items:center;margin-bottom:7px"><button class="btn purple" onclick="aiSummarize()">✦ AI Summarize feed</button><span style="font-size:11px;color:#806fa5">Uses kAIxU gate token from localStorage.sovereign_brain_cfg</span></div><pre id="aiOut">No summary yet.</pre></div>
+  </main>
+</div>
+<div class="foot"><span>Total: <b id="tCount">0</b></span><span>Unread: <b id="uCount">0</b></span><span>Errors: <b id="eCount">0</b></span><span>Status: <b id="status">Idle</b></span></div>
+<script>
+const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+let items=[
+{id:1,src:'deploy',sev:'error',msg:'Production deploy failed: migrations timeout on ws-save.',ts:'16:08',read:false,meta:['target:netlify','env:prod']},
+{id:2,src:'ci',sev:'warn',msg:'Main branch checks flaky: test_retry reached 3 attempts.',ts:'16:03',read:false,meta:['repo:Kaixu-SuperIDE','workflow:unit']},
+{id:3,src:'team',sev:'info',msg:'@alex mentioned you on card: “gate hardening pass”.',ts:'15:58',read:true,meta:['board:Todo','column:Review']},
+{id:4,src:'db',sev:'ok',msg:'Nightly backup completed successfully.',ts:'15:43',read:true,meta:['db:neon-prod','duration:2m11s']},
+{id:5,src:'security',sev:'error',msg:'Repeated auth failures detected on /auth-login.',ts:'15:31',read:false,meta:['ip:93.21.x.x','count:17']}
+];
+function render(list=items){
+  const feed=document.getElementById('feed');
+  feed.innerHTML=list.map(n=>`<article class="item"><div class="top"><span class="src">${n.src.toUpperCase()}</span><span class="sev s-${n.sev}">${n.sev.toUpperCase()}</span><span class="ts">${n.ts}</span></div><div class="msg">${n.read?'':'<span style="color:#d130ff">● </span>'}${n.msg}</div><div class="meta">${n.meta.map(m=>`<span>${m}</span>`).join('')}</div></article>`).join('')||'<div style="color:#7f6ea4">No notifications match current filters.</div>';
+  stats();
+}
+function stats(){
+  document.getElementById('tCount').textContent=items.length;
+  document.getElementById('uCount').textContent=items.filter(x=>!x.read).length;
+  document.getElementById('eCount').textContent=items.filter(x=>x.sev==='error').length;
+}
+function applyFilters(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const sev=document.getElementById('sev').value;
+  const on=[...document.querySelectorAll('[data-src]')].filter(x=>x.checked).map(x=>x.dataset.src);
+  render(items.filter(n=>on.includes(n.src)&& (sev==='all'||n.sev===sev) && (`${n.msg} ${n.meta.join(' ')}`.toLowerCase().includes(q))));
+}
+function markAllRead(){items=items.map(i=>({...i,read:true}));render();setStatus('All marked read');}
+function refreshFeed(){render();setStatus('Feed refreshed');}
+function simulateWebhook(){
+  const id=Date.now();
+  items.unshift({id,src:'deploy',sev:Math.random()>.5?'info':'warn',msg:'Webhook: new deploy event ingested.',ts:new Date().toTimeString().slice(0,5),read:false,meta:['source:webhook','channel:IDE Bell']});
+  render(); setStatus('Webhook event ingested');
+}
+async function aiSummarize(){
+  const out=document.getElementById('aiOut'); out.textContent='kAIxU summarizing...';
+  const token=(JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token)||'';
+  if(!token){out.textContent='Missing kAIxU gate token in sovereign_brain_cfg.';return;}
+  try{
+    const body={provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:`Summarize this notification feed into: 1) urgent actions 2) monitor later 3) suggested rule updates.\n\n${JSON.stringify(items)}`}],max_tokens:420,app_id:'kaixu-notification-center'};
+    const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)});
+    const d=await r.json(); out.textContent=d.output_text||'No summary received.'; setStatus('AI summary ready');
+  }catch(e){out.textContent=`Error: ${e.message}`; setStatus('AI summary failed');}
+}
+function setStatus(t){document.getElementById('status').textContent=t;}
+render();
+</script>
+</body>
+</html>

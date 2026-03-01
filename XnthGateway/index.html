@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kaixu Gateway Admin</title>
+  <link rel="canonical" href="https://skyesol.netlify.app/" />
+  <meta name="description" content="Kaixu Gateway Admin and kAIxU Gateway 13 controls with billing, keys, monitoring, and exports." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Kaixu Gateway Admin" />
+  <meta property="og:description" content="Administer Kaixu Gateway: keys, billing, monitoring, exports, and kAIxU Gateway 13 intro." />
+  <meta property="og:url" content="https://skyesol.netlify.app/" />
+  <meta property="og:image" content="https://cdn1.sharemyimage.com/2026/02/17/Logo-2-1.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Kaixu Gateway Admin" />
+  <meta name="twitter:description" content="Administer Kaixu Gateway: keys, billing, monitoring, exports, and kAIxU Gateway 13 intro." />
+  <meta name="twitter:image" content="https://cdn1.sharemyimage.com/2026/02/17/Logo-2-1.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Kaixu Gateway Admin",
+    "operatingSystem": "Web",
+    "applicationCategory": "BusinessApplication",
+    "description": "Admin console for Kaixu Gateway with keys, billing, monitoring, and exports.",
+    "url": "https://skyesol.netlify.app/",
+    "image": "https://cdn1.sharemyimage.com/2026/02/17/Logo-2-1.png",
+    "creator": {"@type": "Organization", "name": "SkyeSol"}
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type": "Question","name": "How do I administer Kaixu Gateway?","acceptedAnswer": {"@type": "Answer","text": "Use the Kaixu Gateway Admin to manage customers, keys, billing, monitoring, and exports."}},
+      {"@type": "Question","name": "Is there an offline-friendly mode?","acceptedAnswer": {"@type": "Answer","text": "The gateway UI is lightweight and can cache assets; the Skye DocX suite supports offline editing."}},
+      {"@type": "Question","name": "Where do I get support?","acceptedAnswer": {"@type": "Answer","text": "Use the SOL network links in the top bar or contact the SkyeSol team via the provided channels."}}
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="assets/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@450;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --intro-bg-deep: #0b0914;
+      --intro-accent-purple: #8A4FFF;
+      --intro-accent-gold: #FFD700;
+      --intro-glow-purple: rgba(138, 79, 255, 0.4);
+      --intro-glow-gold: rgba(255, 215, 0, 0.5);
+      --intro-text-main: #fcfcfc;
+    }
+
+    /* kAIxU Gateway 13 intro overlay */
+    #kAIxU-intro {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #05040a;
+      z-index: 9999;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: all;
+      animation: introBlast 0.8s cubic-bezier(0.8, 0, 0.2, 1) 4.5s forwards;
+      font-family: 'Inter', sans-serif;
+    }
+
+    #kAIxU-intro .intro-grid {
+      position: absolute;
+      bottom: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background-image: linear-gradient(rgba(138, 79, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(138, 79, 255, 0.3) 1px, transparent 1px);
+      background-size: 50px 50px;
+      transform: perspective(600px) rotateX(75deg) translateY(0);
+      opacity: 0;
+      animation: gridBoot 2s cubic-bezier(0.2, 0.8, 0.2, 1) 0s forwards;
+    }
+
+    #kAIxU-intro .intro-scanner {
+      position: absolute;
+      top: -10%;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--intro-accent-gold);
+      box-shadow: 0 0 30px 5px var(--intro-glow-gold);
+      opacity: 0;
+      animation: laserScan 1.8s ease-in-out 0s forwards;
+    }
+
+    #kAIxU-intro .intro-terminal {
+      position: absolute;
+      top: 10%;
+      left: 5%;
+      font-family: 'Fira Code', monospace;
+      color: var(--intro-accent-purple);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      line-height: 1.8;
+      opacity: 0;
+      animation: terminalBoot 1.8s steps(20, end) 0s forwards;
+      text-shadow: 0 0 5px var(--intro-glow-purple);
+    }
+
+    #kAIxU-intro .intro-centerpiece {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+    }
+
+    #kAIxU-intro .intro-logo {
+      max-width: 220px;
+      opacity: 0;
+      transform: scale(0.5) translateY(50px);
+      filter: blur(20px);
+      animation: logoMaterialize 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) 1.8s forwards, logoPulse 2s ease-in-out 3.3s infinite alternate;
+    }
+
+    #kAIxU-intro .intro-brand-text {
+      margin-top: 30px;
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--intro-text-main);
+      letter-spacing: -5px;
+      opacity: 0;
+      filter: blur(10px);
+      animation: textExpand 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 2.2s forwards;
+    }
+
+    #kAIxU-intro .intro-brand-sub {
+      margin-top: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--intro-accent-gold);
+      letter-spacing: 12px;
+      opacity: 0;
+      animation: subFade 1s ease-out 2.6s forwards;
+      text-shadow: 0 0 10px var(--intro-glow-gold);
+    }
+
+    #kAIxU-intro .intro-whiteout {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--intro-accent-gold);
+      mix-blend-mode: overlay;
+      opacity: 0;
+      z-index: 5;
+      animation: whiteoutFlash 0.8s ease-out 4.2s forwards;
+    }
+
+    @keyframes gridBoot {
+      0% { transform: perspective(600px) rotateX(75deg) translateY(-200px); opacity: 0; filter: hue-rotate(90deg); }
+      30% { opacity: 1; }
+      80% { opacity: 1; filter: hue-rotate(0deg); }
+      100% { transform: perspective(600px) rotateX(75deg) translateY(200px); opacity: 0; }
+    }
+
+    @keyframes laserScan {
+      0% { top: -10%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 110%; opacity: 0; }
+    }
+
+    @keyframes terminalBoot {
+      0% { opacity: 1; clip-path: inset(0 0 100% 0); }
+      90% { opacity: 1; clip-path: inset(0 0 0% 0); }
+      100% { opacity: 0; clip-path: inset(0 0 0% 0); }
+    }
+
+    @keyframes logoMaterialize {
+      0% { opacity: 0; transform: scale(0.5) translateY(50px); filter: blur(20px) drop-shadow(0 0 0 transparent); }
+      100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px) drop-shadow(0 0 30px var(--intro-glow-purple)); }
+    }
+
+    @keyframes logoPulse {
+      0% { filter: drop-shadow(0 0 30px var(--intro-glow-purple)); transform: scale(1); }
+      100% { filter: drop-shadow(0 0 50px var(--intro-glow-gold)); transform: scale(1.05); }
+    }
+
+    @keyframes textExpand {
+      0% { opacity: 0; letter-spacing: -10px; filter: blur(10px); transform: scale(0.9); }
+      100% { opacity: 1; letter-spacing: 6px; filter: blur(0px); transform: scale(1); }
+    }
+
+    @keyframes subFade {
+      0% { opacity: 0; transform: translateY(-10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes whiteoutFlash {
+      0% { opacity: 0; }
+      50% { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes introBlast {
+      0% { opacity: 1; transform: scale(1); filter: blur(0); }
+      100% { opacity: 0; transform: scale(3) translateZ(200px); filter: blur(20px); visibility: hidden; }
+    }
+  </style>
+</head>
+<body>
+  <!-- SOL Platform Nav -->
+  <div id="sol-platnav" style="position:fixed;bottom:18px;right:18px;z-index:99999;display:flex;flex-direction:column;gap:6px;font-family:ui-sans-serif,system-ui,sans-serif;">
+    <a href="/index.html" style="padding:8px 15px;border-radius:999px;background:rgba(5,4,10,.92);border:1px solid rgba(255,255,255,.16);color:#f2f0ff;text-decoration:none;backdrop-filter:blur(12px);white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.15px;box-shadow:0 10px 34px rgba(0,0,0,.55);display:block;text-align:center;" onmouseover="this.style.borderColor='rgba(184,107,255,.6)'" onmouseout="this.style.borderColor='rgba(255,255,255,.16)'">&#8592; SOL Home</a>
+    <a href="/Platforms-Apps-Infrastructure/" style="padding:8px 15px;border-radius:999px;background:rgba(5,4,10,.92);border:1px solid rgba(255,255,255,.16);color:#f2f0ff;text-decoration:none;backdrop-filter:blur(12px);white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.15px;box-shadow:0 10px 34px rgba(0,0,0,.55);display:block;text-align:center;" onmouseover="this.style.borderColor='rgba(59,214,255,.6)'" onmouseout="this.style.borderColor='rgba(255,255,255,.16)'">&#11043; All Platforms</a>
+  </div>
+  <div id="kAIxU-intro">
+    <div class="intro-grid"></div>
+    <div class="intro-scanner"></div>
+    <div class="intro-terminal" id="kAIxU-intro-terminal">
+      &gt; SECURE CONNECTION ESTABLISHED<br />
+      &gt; ROUTING TO kAIxU GATEWAY 13... [OK]<br />
+      &gt; INITIALIZING NEURAL ENGINE... [OK]<br />
+      &gt; LOADING kAIxU FRAMEWORK v13.0<br />
+      &gt; DECRYPTING OFFLINE LEDGER... [OK]<br />
+      &gt; MOUNTING FILE SYSTEM...
+    </div>
+    <div class="intro-whiteout"></div>
+    <div class="intro-centerpiece">
+      <img src="https://cdn1.sharemyimage.com/2026/02/17/Logo-2-1.png" alt="kAIxU Gateway 13" class="intro-logo" />
+      <div class="intro-brand-text">kAIxU GATEWAY 13</div>
+      <div class="intro-brand-sub">PRIME ACCESS NODE</div>
+    </div>
+  </div>
+
+  <canvas id="three-bg" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
+  <div class="bg"></div>
+
+  <!-- ══════ Site-wide nav (always visible) ══════ -->
+  <nav style="background:rgba(5,5,10,0.92); border-bottom:1px solid rgba(255,255,255,0.08); padding:6px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:12px; font-family:'Inter',sans-serif; position:sticky; top:0; z-index:900; backdrop-filter:blur(12px);">
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+      <a href="/" style="color:#ffd36a; text-decoration:none; font-weight:600;">← SOLEnterprises</a>
+      <span style="color:rgba(255,255,255,0.20);">|</span>
+      <a href="/platforms.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">Platforms</a>
+      <a href="/Services/WebBuilds.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">Services</a>
+      <a href="/about.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">Founder</a>
+      <a href="/contact.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">Contact</a>
+      <span style="color:rgba(255,255,255,0.20);">|</span>
+      <a href="/SkyeDocx/homepage.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">SkyeDocx</a>
+      <a href="/blog.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">Blog</a>
+      <a href="/network.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">Network</a>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+      <span style="color:rgba(255,255,255,0.30); font-weight:600;">GATEWAY:</span>
+      <a href="/gateway" style="color:#a243ff; text-decoration:none; font-weight:500;">Admin</a>
+      <a href="/kAIxu/RequestKaixuAPIKey.html" style="color:#ffd36a; text-decoration:none;">Get API Key</a>
+      <a href="/gateway/dashboard.html" style="color:#27f2ff; text-decoration:none;">User Dashboard</a>
+      <a href="smoketest.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">Smoke Tests</a>
+      <a href="gate-proofx.html" style="color:rgba(255,255,255,0.65); text-decoration:none;">Gate Proofx</a>
+      <a href="/.netlify/functions/health" target="_blank" rel="noreferrer" style="color:rgba(255,255,255,0.65); text-decoration:none;">Health</a>
+    </div>
+  </nav>
+
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">K</div>
+        <div>
+          <div class="title">Kaixu Gateway</div>
+          <div class="subtitle">Admin dashboard · virtual keys · sub-keys · spend caps · SSE · Stripe</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="gatewayBaseBtn" class="btn ghost" type="button" title="Switch which gateway this dashboard calls">Gateway Base</button>
+        <button id="logoutBtn" class="btn danger" style="display:none;">Logout</button>
+      </div>
+    </header>
+
+    <section id="toast" class="toast" style="display:none;"></section>
+
+    <section id="loginView" class="card">
+      <h2>Admin login</h2>
+      <p class="muted">Password comes from <code>ADMIN_PASSWORD</code>.</p>
+      <div class="row">
+        <input id="adminPassword" type="password" placeholder="Admin password" autocomplete="current-password" />
+        <button id="loginBtn" class="btn primary">Login</button>
+      </div>
+      <p class="muted small">v5 adds universal caps, per-device seats, allowlists, exports, invoice snapshots, Stripe top-ups, and stronger rate limiting.</p>
+      <div style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.10);">
+        <p class="muted small">Looking for an API key? <a href="/kAIxu/RequestKaixuAPIKey.html" style="color:#ffd36a;">Request a kAIxu API key →</a></p>
+        <p class="muted small">Already have a key? <a href="/gateway/dashboard.html" style="color:#27f2ff;">Open User Dashboard →</a></p>
+      </div>
+    </section>
+
+    <section id="appView" style="display:none;">
+      <nav class="tabs">
+        <button class="tab active" data-tab="customers">Customers</button>
+        <button class="tab" data-tab="create">Create Customer + Master Key</button>
+        <button class="tab" data-tab="keys">Keys (Sub-keys / Rotate / Revoke)</button>
+        <button class="tab" data-tab="usage">Usage</button>
+        <button class="tab" data-tab="billing">Billing &amp; Controls</button>
+        <button class="tab" data-tab="devices">Devices</button>
+        <button class="tab" data-tab="exports">Exports &amp; Invoices</button>
+        <button class="tab" data-tab="push">KaixuPush</button>
+        <button class="tab" data-tab="github">GitHub Push</button>
+        <button class="tab" data-tab="embeddings">Embeddings</button>
+        <button class="tab" data-tab="docs">Integration</button>
+        <button class="tab" data-tab="monitor">Monitor</button>
+        <button class="tab" data-tab="tutorial">📖 Tutorial</button>
+      </nav>
+
+      <section class="grid">
+        <div class="card tabpanel" id="tab-customers">
+          <div class="cardhead">
+            <h2>Customers</h2>
+            <button id="refreshCustomers" class="btn ghost">Refresh</button>
+          </div>
+          <div class="tablewrap">
+            <table class="table" id="customersTable">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Email</th>
+                  <th>Plan</th>
+                  <th>Monthly cap</th>
+                  <th>Active</th>
+                  <th>Active keys</th>
+                  <th>Netlify token</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="muted small">Click a customer row to prefill Customer ID for Keys/Usage.</p>
+<div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px;">
+            <button id="setNetlifyToken" class="btn">Set Netlify token (selected)</button>
+            <button id="clearNetlifyToken" class="btn ghost">Clear Netlify token</button>
+          </div>
+          <p class="muted small">Netlify token is stored encrypted in Netlify DB. KaixuPush will prefer the customer token; it falls back to NETLIFY_AUTH_TOKEN if unset.</p>
+        </div>
+
+        <div class="card tabpanel" id="tab-create" style="display:none;">
+          <h2>Create customer + issue master key</h2>
+          <div class="form">
+            <label>Email</label>
+            <input id="cEmail" placeholder="user@company.com" />
+
+            <div class="cols">
+              <div>
+                <label>Plan name</label>
+                <input id="cPlan" placeholder="starter" value="starter" />
+              </div>
+              <div>
+                <label>Monthly cap (cents)</label>
+                <input id="cCap" placeholder="2000 = $20" value="2000" />
+              </div>
+            </div>
+
+            <button id="createBtn" class="btn primary">Create + Issue Master Key</button>
+
+            <div id="keyBox" class="keybox" style="display:none;">
+              <div class="keyhead">
+                <div>
+                  <div class="kTitle">Key (copy now)</div>
+                  <div class="muted small">Shown once. Store securely.</div>
+                </div>
+                <button id="copyKey" class="btn ghost">Copy</button>
+              </div>
+              <code id="keyValue" class="keyvalue"></code>
+            </div>
+          </div>
+        </div>
+
+        <div class="card tabpanel" id="tab-keys" style="display:none;">
+          <h2>Keys (Sub-keys / Rotate / Revoke)</h2>
+
+          <div class="cols">
+            <div>
+              <label>Customer ID</label>
+              <input id="kCustomerId" placeholder="123" />
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:10px;">
+              <button id="loadKeys" class="btn primary" style="width:100%;">Load keys</button>
+              <button id="refreshKeys" class="btn ghost">Refresh</button>
+            </div>
+          </div>
+
+          <div class="tablewrap" style="margin-top:12px;">
+            <table class="table" id="keysTable" style="min-width:900px;">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Last4</th>
+                  <th>Label</th>
+                  <th>Cap override</th>
+                  <th>RPM override</th>
+                  <th>Max devices</th>
+                  <th>Require install</th>
+                  <th>Allowed providers</th>
+                  <th>Allowed models</th>
+                  <th>Revoked</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:14px 0;" />
+
+          <h3>Create sub-key</h3>
+          <div class="cols">
+            <div>
+              <label>Label</label>
+              <input id="kLabel" placeholder="user-tyrone-01" />
+            </div>
+            <div>
+              <label>Monthly cap override (cents, blank = inherit)</label>
+              <input id="kCapOverride" placeholder="2000" />
+            </div>
+          </div>
+          <div class="cols">
+            <div>
+              <label>RPM override (blank = default)</label>
+              <input id="kRpm" placeholder="120" />
+            </div>
+            <div>
+              <label>RPD override (optional)</label>
+              <input id="kRpd" placeholder="5000" />
+            </div>
+          </div>
+
+          <div class="cols">
+            <div>
+              <label>Max devices override (blank = inherit)</label>
+              <input id="kMaxDevices" placeholder="3" />
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+              <label style="display:flex; align-items:center; gap:8px; margin:0;">
+                <input type="checkbox" id="kRequireInstall" /> Require install_id
+              </label>
+            </div>
+          </div>
+          <div class="cols">
+            <div>
+              <label>Allowed providers override (comma, optional)</label>
+              <input id="kAllowedProviders" placeholder="openai,anthropic" />
+            </div>
+            <div>
+              <label>Allowed models override JSON (optional)</label>
+              <textarea id="kAllowedModels" placeholder="{&quot;openai&quot;:[&quot;gpt-4o-mini&quot;],&quot;anthropic&quot;:[&quot;*&quot;]}" style="min-height:60px;"></textarea>
+            </div>
+          </div>
+
+          <button id="createSubKey" class="btn primary">Create Sub-key</button>
+
+          <div id="subKeyBox" class="keybox" style="display:none;">
+            <div class="keyhead">
+              <div>
+                <div class="kTitle">Sub-key (copy now)</div>
+                <div class="muted small">Shown once. Store securely.</div>
+              </div>
+              <button id="copySubKey" class="btn ghost">Copy</button>
+            </div>
+            <code id="subKeyValue" class="keyvalue"></code>
+          </div>
+
+          <p class="muted small">Rotate = create a new key with same settings and revoke the old key. Revoke = immediate cutoff.</p>
+        </div>
+
+        <div class="card tabpanel" id="tab-usage" style="display:none;">
+          <h2>Usage</h2>
+          <div class="cols">
+            <div>
+              <label>Customer ID</label>
+              <input id="uCustomerId" placeholder="123" />
+            </div>
+            <div>
+              <label>Month (YYYY-MM)</label>
+              <input id="uMonth" placeholder="2026-02" />
+            </div>
+          </div>
+          <button id="loadUsage" class="btn primary">Load usage</button>
+
+          <div id="usageSummary" class="summary" style="display:none;">
+            <div class="stat">
+              <div class="label">Cap</div>
+              <div class="value" id="sCap">$0</div>
+            </div>
+            <div class="stat">
+              <div class="label">Extra</div>
+              <div class="value" id="sExtra">$0</div>
+            </div>
+            <div class="stat">
+              <div class="label">Spent</div>
+              <div class="value" id="sSpent">$0</div>
+            </div>
+            <div class="stat">
+              <div class="label">Tokens</div>
+              <div class="value" id="sTok">0</div>
+            </div>
+          </div>
+
+          <div class="tablewrap" style="margin-top:12px;">
+            <table class="table" id="eventsTable">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Provider</th>
+                  <th>Model</th>
+                  <th>Input</th>
+                  <th>Output</th>
+                  <th>Cost (cents)</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <p class="muted small">SSE endpoint: <code>POST /.netlify/functions/gateway-stream</code></p>
+        </div>
+
+        
+
+        <div class="card tabpanel" id="tab-billing" style="display:none;">
+          <div class="cardhead">
+            <h2>Billing &amp; Controls</h2>
+            <button id="loadCustomerConfig" class="btn ghost">Load</button>
+          </div>
+
+          <div class="row" style="flex-wrap:wrap;">
+            <label class="muted small">Customer ID</label>
+            <input id="billCustomerId" placeholder="Customer ID" style="max-width:160px;" />
+            <label class="muted small">Month</label>
+            <input id="billMonth" placeholder="YYYY-MM" style="max-width:140px;" />
+          </div>
+
+          <div class="grid2" style="margin-top:10px;">
+            <div class="card">
+              <h3 style="margin-top:0;">Customer policy</h3>
+              <div class="row" style="flex-wrap:wrap;">
+                <input id="custPlan" placeholder="plan_name" style="max-width:180px;" />
+                <input id="custCap" placeholder="monthly_cap_cents" style="max-width:220px;" />
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="custActive" /> Active</label>
+              </div>
+              <div class="row" style="flex-wrap:wrap;">
+                <input id="custMaxDevices" placeholder="max_devices_per_key (optional)" style="max-width:260px;" />
+                <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="custRequireInstall" /> Require install_id</label>
+              </div>
+              <div class="row" style="flex-direction:column; align-items:stretch;">
+                <input id="custAllowedProviders" placeholder="allowed_providers (comma) e.g. openai,anthropic" />
+                <textarea id="custAllowedModels" placeholder="allowed_models JSON (optional) e.g. {\"openai\":[\"gpt-4o-mini\"],\"anthropic\":[\"*\"]}" style="min-height:110px;"></textarea>
+              </div>
+              <div class="row" style="flex-wrap:wrap;">
+                <button id="saveCustomerConfig" class="btn primary">Save</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 style="margin-top:0;">Top-ups</h3>
+              <p class="muted small">Manual top-ups credit <code>extra_cents</code>. Stripe checkout requires Stripe env vars + webhook.</p>
+              <div class="row" style="flex-wrap:wrap;">
+                <input id="topupCents" placeholder="amount_cents" style="max-width:180px;" />
+                <button id="manualTopupBtn" class="btn ghost">Manual top-up</button>
+              </div>
+              <div class="row" style="flex-wrap:wrap;">
+                <input id="stripeTopupCents" placeholder="amount_cents" style="max-width:180px;" />
+                <button id="stripeTopupBtn" class="btn primary">Create Stripe checkout</button>
+                <a id="stripeTopupLink" class="btn ghost" target="_blank" rel="noreferrer" style="display:none;">Open checkout</a>
+              </div>
+              <hr style="border:0; border-top:1px solid rgba(255,255,255,0.12); margin:14px 0;" />
+              <h3 style="margin:0 0 8px 0;">Invoice snapshot</h3>
+              <div class="row" style="flex-wrap:wrap;">
+                <button id="loadInvoiceBtn" class="btn ghost">Load invoice JSON</button>
+                <button id="createInvoiceBtn" class="btn primary">Create/Update snapshot</button>
+              </div>
+              <pre class="block" id="adminInvoiceJson" style="max-height:320px; overflow:auto;">—</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card tabpanel" id="tab-devices" style="display:none;">
+          <div class="cardhead">
+            <h2>Devices</h2>
+            <button id="loadDevicesBtn" class="btn ghost">Load</button>
+          </div>
+          <div class="row" style="flex-wrap:wrap;">
+            <input id="devCustomerId" placeholder="Customer ID" style="max-width:160px;" />
+            <input id="devKeyId" placeholder="Key ID (optional)" style="max-width:180px;" />
+          </div>
+          <div class="tablewrap" style="margin-top:10px;">
+            <table class="table" id="adminDevicesTable" style="min-width:1000px;">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Install ID</th>
+                  <th>First seen</th>
+                  <th>Last seen</th>
+                  <th>Revoked</th>
+                  <th>User-Agent</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card tabpanel" id="tab-exports" style="display:none;">
+          <div class="cardhead">
+            <h2>Exports &amp; Invoices</h2>
+          </div>
+          <p class="muted small">Downloads use your admin password header, so they fetch and save locally.</p>
+          <div class="row" style="flex-wrap:wrap;">
+            <input id="expCustomerId" placeholder="Customer ID" style="max-width:160px;" />
+            <input id="expMonth" placeholder="YYYY-MM" style="max-width:140px;" />
+            <input id="expKeyId" placeholder="Key ID (optional)" style="max-width:180px;" />
+          </div>
+          <div class="row" style="flex-wrap:wrap;">
+            <button id="admDlEvents" class="btn primary">Download Events CSV</button>
+            <button id="admDlSummary" class="btn ghost">Download Summary CSV</button>
+            <button id="admDlInvoice" class="btn ghost">Download Invoice CSV</button>
+          </div>
+        </div>
+
+<div class="card tabpanel" id="tab-push" style="display:none;">
+  <div class="cardhead">
+    <h2>KaixuPush (Deploy Proxy)</h2>
+    <div class="muted small">Projects · Deploy history · Chunk jobs · Push invoices</div>
+  </div>
+
+  <div class="cols">
+    <div>
+      <label>Customer ID</label>
+      <input id="pushCustomerId" placeholder="123" />
+    </div>
+    <div>
+      <label>Month (YYYY-MM)</label>
+      <input id="pushMonth" placeholder="2026-02" />
+    </div>
+  </div>
+
+  <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px;">
+    <button id="pushLoadProjects" class="btn primary" type="button">Load Projects</button>
+    <button id="pushLoadDeploys" class="btn" type="button">Load Deploys</button>
+    <button id="pushLoadJobs" class="btn" type="button">Load Jobs</button>
+    <button id="pushLoadInvoices" class="btn ghost" type="button">Load Invoices</button>
+    <button id="pushGenInvoice" class="btn ghost" type="button">Generate Invoice (Month)</button>
+  </div>
+
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:14px 0;" />
+
+  <h3>Project registry</h3>
+  <div class="cols">
+    <div>
+      <label>Project ID</label>
+      <input id="pushProjectId" placeholder="solenterprises-main" />
+    </div>
+    <div>
+      <label>Project name</label>
+      <input id="pushProjectName" placeholder="SOLEnterprises Main Site" />
+    </div>
+  </div>
+  <div class="cols">
+    <div>
+      <label>Netlify Site ID</label>
+      <input id="pushNetlifySiteId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+    </div>
+    <div style="display:flex; align-items:flex-end; gap:10px;">
+      <button id="pushSaveProject" class="btn primary" type="button" style="width:100%;">Upsert Project</button>
+      <button id="pushClearProjectForm" class="btn ghost" type="button">Clear</button>
+    </div>
+  </div>
+
+  <div class="tablewrap" style="margin-top:12px;">
+    <table class="table" id="pushProjectsTable" style="min-width:900px;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Project ID</th>
+          <th>Name</th>
+          <th>Netlify Site ID</th>
+          <th>Updated</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="muted small">Tip: click a row to load into the form.</p>
+
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:14px 0;" />
+
+  <h3>Deploy history</h3>
+  <div class="tablewrap">
+    <table class="table" id="pushDeploysTable" style="min-width:1000px;">
+      <thead>
+        <tr>
+          <th>Push ID</th>
+          <th>Project</th>
+          <th>Branch</th>
+          <th>State</th>
+          <th>Required</th>
+          <th>Uploaded</th>
+          <th>URL</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:14px 0;" />
+
+  <h3>Chunk jobs</h3>
+  <div class="tablewrap">
+    <table class="table" id="pushJobsTable" style="min-width:1100px;">
+      <thead>
+        <tr>
+          <th>Push ID</th>
+          <th>Project</th>
+          <th>Path</th>
+          <th>SHA1</th>
+          <th>Parts</th>
+          <th>Received</th>
+          <th>Staged bytes</th>
+          <th>Status</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:14px 0;" />
+
+  <h3>Push invoices</h3>
+  <div class="tablewrap">
+    <table class="table" id="pushInvoicesTable" style="min-width:900px;">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Total</th>
+          <th>Pricing</th>
+          <th>Deploys</th>
+          <th>Bytes</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+        
+        <div class="card tabpanel" id="tab-github" style="display:none;">
+          <div class="cardhead">
+            <h2>GitHub Push Gateway</h2>
+            <div class="muted small">Token status · Repos · ZIP push jobs</div>
+          </div>
+
+          <div class="cols">
+            <div>
+              <label>Customer ID</label>
+              <input id="ghCustomerId" placeholder="123" />
+            </div>
+            <div>
+              <label>Limit</label>
+              <input id="ghLimit" placeholder="50" />
+            </div>
+          </div>
+
+          <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px;">
+            <button id="ghTokenStatus" class="btn" type="button">Token Status</button>
+            <button id="ghTokenClear" class="btn danger" type="button">Clear Token</button>
+          </div>
+
+          <div class="cols" style="margin-top:10px;">
+            <div>
+              <label>Set PAT (fine-grained or classic)</label>
+              <input id="ghPat" placeholder="ghp_..." />
+              <div class="muted small">Stored encrypted in DB. Use OAuth flow for enterprise if preferred.</div>
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+              <button id="ghTokenSet" class="btn primary" type="button" style="width:100%;">Save PAT</button>
+            </div>
+          </div>
+
+          <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:14px 0;" />
+
+          <div class="row" style="gap:10px; flex-wrap:wrap;">
+            <button id="ghLoadRepos" class="btn primary" type="button">Load Repos</button>
+            <button id="ghLoadJobs" class="btn" type="button">Load Jobs</button>
+          </div>
+
+          <h3 style="margin-top:12px;">Repositories</h3>
+          <div class="tablewrap">
+            <table class="table" id="ghReposTable">
+              <thead><tr>
+                <th>Repo</th><th>Private</th><th>Default</th><th>Updated</th><th>Link</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <h3 style="margin-top:12px;">Recent ZIP push jobs</h3>
+          <div class="tablewrap">
+            <table class="table" id="ghJobsTable">
+              <thead><tr>
+                <th>Job</th><th>Repo</th><th>Branch</th><th>Status</th><th>Bytes</th><th>Attempts</th><th>Updated</th><th>Result</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="muted small" style="margin-top:12px;">
+            OAuth flow endpoints exist: <code>/.netlify/functions/github-oauth-start</code> and <code>/.netlify/functions/github-oauth-callback</code>.
+            Git DB push pipeline endpoints: <code>/gh-push-init</code>, <code>/gh-push-upload-chunk</code>, <code>/gh-push-upload-complete</code>, <code>/gh-push-status</code>.
+          </div>
+        </div>
+
+<!-- ═══════════════════════════════════════ EMBEDDINGS ═══════════════════════════════════════ -->
+<div class="card tabpanel" id="tab-embeddings" style="display:none;">
+  <div class="cardhead">
+    <h2>Embeddings Lane</h2>
+    <div class="muted small">Generate · Store · Search — True Semantic RAG inside the Gateway</div>
+  </div>
+
+  <!-- ── Generate Embeddings ── -->
+  <div style="border-left:3px solid #a243ff; padding-left:16px; margin-top:16px;">
+    <h3 style="color:#a243ff; margin:0 0 10px;">Generate Embeddings</h3>
+    <div class="cols">
+      <div>
+        <label>Customer ID</label>
+        <input id="embCustomerId" placeholder="123" />
+      </div>
+      <div>
+        <label>Provider</label>
+        <select id="embProvider">
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Gemini</option>
+          <option value="voyage">Voyage AI</option>
+        </select>
+      </div>
+      <div>
+        <label>Model</label>
+        <select id="embModel">
+          <option value="text-embedding-3-small">text-embedding-3-small (1536d)</option>
+          <option value="text-embedding-3-large">text-embedding-3-large (3072d)</option>
+          <option value="text-embedding-ada-002">text-embedding-ada-002 (1536d)</option>
+          <option value="embedding-001">Gemini embedding-001 (768d)</option>
+          <option value="text-embedding-004">Gemini text-embedding-004 (768d)</option>
+          <option value="voyage-3">voyage-3 (1024d)</option>
+          <option value="voyage-3-lite">voyage-3-lite (512d)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cols" style="margin-top:10px;">
+      <div>
+        <label>Collection / Namespace</label>
+        <input id="embCollection" placeholder="my-docs" value="default" />
+        <div class="muted small">Logical grouping for your vectors. Think of it like a table.</div>
+      </div>
+      <div>
+        <label>Dimensions override (optional)</label>
+        <input id="embDimensions" placeholder="auto" />
+        <div class="muted small">Leave blank for model default. OpenAI v3 models support shortening.</div>
+      </div>
+    </div>
+
+    <label style="margin-top:10px;">Input text(s) — one per line for batch</label>
+    <textarea id="embInput" placeholder="The quick brown fox jumps over the lazy dog.&#10;Another document to embed.&#10;A third piece of content for semantic search." style="min-height:120px; width:100%; font-family:'Fira Code',monospace; font-size:12px;"></textarea>
+
+    <div class="cols" style="margin-top:8px;">
+      <div>
+        <label>Document IDs (optional, one per line — auto-generated if blank)</label>
+        <textarea id="embDocIds" placeholder="doc-001&#10;doc-002&#10;doc-003" style="min-height:80px; width:100%; font-family:'Fira Code',monospace; font-size:12px;"></textarea>
+      </div>
+      <div>
+        <label>Metadata JSON (optional, applied to all)</label>
+        <textarea id="embMeta" placeholder='{"source": "upload", "category": "docs"}' style="min-height:80px; width:100%; font-family:'Fira Code',monospace; font-size:12px;"></textarea>
+      </div>
+    </div>
+
+    <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:10px;">
+      <button id="embGenerateBtn" class="btn primary" type="button">Generate & Store Embeddings</button>
+      <button id="embGenerateOnlyBtn" class="btn" type="button">Generate Only (don't store)</button>
+      <button id="embClearInputBtn" class="btn ghost" type="button">Clear</button>
+    </div>
+
+    <div id="embGenerateResult" style="display:none; margin-top:12px;">
+      <div class="summary">
+        <div class="stat">
+          <div class="label">Vectors</div>
+          <div class="value" id="embResCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Dimensions</div>
+          <div class="value" id="embResDims">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Tokens used</div>
+          <div class="value" id="embResTokens">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Cost</div>
+          <div class="value" id="embResCost">$0.00</div>
+        </div>
+      </div>
+      <pre class="block" id="embResJson" style="max-height:200px; overflow:auto; margin-top:8px;">—</pre>
+    </div>
+  </div>
+
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:20px 0;" />
+
+  <!-- ── Semantic Search ── -->
+  <div style="border-left:3px solid #27f2ff; padding-left:16px;">
+    <h3 style="color:#27f2ff; margin:0 0 10px;">Semantic Search</h3>
+    <p class="muted small">Query your stored embeddings with natural language. The gateway embeds your query in real-time, performs cosine similarity against your collection, and returns the top-K matches.</p>
+
+    <div class="cols">
+      <div style="flex:2;">
+        <label>Query</label>
+        <input id="embQuery" placeholder="How do I reset my password?" />
+      </div>
+      <div>
+        <label>Collection</label>
+        <input id="embSearchCollection" placeholder="default" value="default" />
+      </div>
+      <div>
+        <label>Top K</label>
+        <input id="embTopK" placeholder="5" value="5" type="number" min="1" max="100" />
+      </div>
+    </div>
+
+    <div class="cols" style="margin-top:8px;">
+      <div>
+        <label>Similarity threshold (0–1, optional)</label>
+        <input id="embThreshold" placeholder="0.7" value="0.7" />
+      </div>
+      <div>
+        <label>Metadata filter JSON (optional)</label>
+        <input id="embFilterMeta" placeholder='{"category": "docs"}' />
+      </div>
+      <div style="display:flex; align-items:flex-end;">
+        <button id="embSearchBtn" class="btn primary" type="button" style="width:100%;">Search</button>
+      </div>
+    </div>
+
+    <div id="embSearchResult" style="display:none; margin-top:12px;">
+      <div class="summary">
+        <div class="stat">
+          <div class="label">Results</div>
+          <div class="value" id="embSearchCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Query ms</div>
+          <div class="value" id="embSearchMs">0</div>
+        </div>
+      </div>
+      <div class="tablewrap" style="margin-top:10px;">
+        <table class="table" id="embSearchTable">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Score</th>
+              <th>Doc ID</th>
+              <th>Text (preview)</th>
+              <th>Metadata</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:20px 0;" />
+
+  <!-- ── Collections Manager ── -->
+  <div style="border-left:3px solid #ffd36a; padding-left:16px;">
+    <h3 style="color:#ffd36a; margin:0 0 10px;">Collections</h3>
+    <p class="muted small">Manage your vector namespaces. Each collection is an isolated set of embeddings.</p>
+
+    <div class="row" style="gap:10px; flex-wrap:wrap; margin-top:8px;">
+      <button id="embListCollBtn" class="btn primary" type="button">List Collections</button>
+      <button id="embCollStatsBtn" class="btn" type="button">Collection Stats</button>
+      <input id="embCollStatsName" placeholder="collection name" style="max-width:200px;" />
+    </div>
+
+    <div class="tablewrap" style="margin-top:12px;">
+      <table class="table" id="embCollTable">
+        <thead>
+          <tr>
+            <th>Collection</th>
+            <th>Vectors</th>
+            <th>Dimensions</th>
+            <th>Model</th>
+            <th>Created</th>
+            <th>Last updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <hr style="border:0;border-top:1px solid rgba(255,255,255,0.08); margin:14px 0;" />
+
+    <h4>Manage documents</h4>
+    <div class="cols">
+      <div>
+        <label>Collection</label>
+        <input id="embDocCollection" placeholder="default" />
+      </div>
+      <div>
+        <label>Document ID (for lookup/delete)</label>
+        <input id="embDocId" placeholder="doc-001" />
+      </div>
+      <div style="display:flex; align-items:flex-end; gap:10px;">
+        <button id="embDocLookupBtn" class="btn" type="button">Lookup</button>
+        <button id="embDocDeleteBtn" class="btn danger" type="button">Delete</button>
+      </div>
+    </div>
+    <pre class="block" id="embDocResult" style="max-height:200px; overflow:auto; margin-top:8px;">—</pre>
+
+    <hr style="border:0;border-top:1px solid rgba(255,255,255,0.08); margin:14px 0;" />
+
+    <h4>Bulk operations</h4>
+    <div class="row" style="gap:10px; flex-wrap:wrap;">
+      <input id="embBulkCollection" placeholder="collection" style="max-width:200px;" />
+      <button id="embBulkExportBtn" class="btn" type="button">Export Collection (JSON)</button>
+      <button id="embBulkPurgeBtn" class="btn danger" type="button">Purge Collection</button>
+    </div>
+  </div>
+
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,0.10); margin:20px 0;" />
+
+  <!-- ── Embeddings Usage ── -->
+  <div style="border-left:3px solid #a243ff; padding-left:16px;">
+    <h3 style="color:#a243ff; margin:0 0 10px;">Embeddings Usage</h3>
+    <div class="cols">
+      <div>
+        <label>Customer ID</label>
+        <input id="embUsageCustId" placeholder="123" />
+      </div>
+      <div>
+        <label>Month</label>
+        <input id="embUsageMonth" placeholder="2026-02" />
+      </div>
+      <div style="display:flex; align-items:flex-end;">
+        <button id="embUsageBtn" class="btn primary" type="button" style="width:100%;">Load Usage</button>
+      </div>
+    </div>
+
+    <div id="embUsageResult" style="display:none; margin-top:12px;">
+      <div class="summary">
+        <div class="stat">
+          <div class="label">Embed calls</div>
+          <div class="value" id="embUsageCalls">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Vectors stored</div>
+          <div class="value" id="embUsageVectors">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Tokens</div>
+          <div class="value" id="embUsageTokens">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Search queries</div>
+          <div class="value" id="embUsageSearches">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Cost</div>
+          <div class="value" id="embUsageCost">$0.00</div>
+        </div>
+      </div>
+
+      <div class="tablewrap" style="margin-top:10px;">
+        <table class="table" id="embUsageTable">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Operation</th>
+              <th>Provider</th>
+              <th>Model</th>
+              <th>Vectors</th>
+              <th>Tokens</th>
+              <th>Cost (cents)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px; padding:16px; border:1px solid rgba(255,255,255,0.08); border-radius:8px; background:rgba(138,79,255,0.05);">
+    <p class="muted small" style="margin:0;"><strong>Architecture note:</strong> All embeddings are generated <em>inside</em> the gateway — your clients never call OpenAI/Gemini/Voyage directly for embeddings. The gateway handles model routing, token metering, vector storage (pgvector in Neon), and cosine similarity search. This is <strong>true semantic RAG</strong>: ingest → embed → store → search, all through one authenticated endpoint with the same <code>kx_live_…</code> key.</p>
+  </div>
+</div>
+<!-- ═══════════════════════════════════════ /EMBEDDINGS ═══════════════════════════════════════ -->
+
+<div class="card tabpanel" id="tab-docs" style="display:none;">
+          <h2>Integration</h2>
+
+          <h3>Non-stream</h3>
+          <code class="block">POST /.netlify/functions/gateway-chat</code>
+
+          <h3>Streaming (SSE)</h3>
+          <code class="block">POST /.netlify/functions/gateway-stream</code>
+          <p class="muted small">Client opens EventSource-like stream via <code>fetch</code> and reads SSE frames (event/meta/delta/done).</p>
+
+          <h3>Normalized chat request</h3>
+<pre class="block">{
+  "provider": "openai" | "anthropic" | "gemini",
+  "model": "...",
+  "messages": [{"role":"user","content":"Hello"}],
+  "max_tokens": 256,
+  "temperature": 0.7
+}</pre>
+
+          <h3>Embeddings — Generate &amp; Store</h3>
+          <code class="block">POST /.netlify/functions/gateway-embed</code>
+<pre class="block">{
+  "provider": "openai" | "gemini" | "voyage",
+  "model": "text-embedding-3-small",
+  "input": ["First document", "Second document"],
+  "collection": "my-docs",
+  "store": true,
+  "doc_ids": ["doc-001", "doc-002"],
+  "metadata": {"source": "api"},
+  "dimensions": 1536
+}</pre>
+          <p class="muted small">Set <code>store: false</code> to generate vectors without persisting. Omit <code>doc_ids</code> for auto-generated UUIDs. <code>dimensions</code> is optional (model default used).</p>
+
+          <h3>Embeddings — Semantic Search</h3>
+          <code class="block">POST /.netlify/functions/gateway-embed-search</code>
+<pre class="block">{
+  "query": "How do I reset my password?",
+  "collection": "my-docs",
+  "top_k": 5,
+  "threshold": 0.7,
+  "filter": {"category": "docs"}
+}</pre>
+          <p class="muted small">The gateway embeds your query using the same model as the collection, then performs pgvector cosine similarity search. Results include <code>doc_id</code>, <code>score</code>, <code>text</code>, and <code>metadata</code>.</p>
+
+          <h3>Embeddings — Collection Management</h3>
+          <code class="block">GET  /.netlify/functions/gateway-embed-collections</code>
+          <code class="block">GET  /.netlify/functions/gateway-embed-collections?name=my-docs</code>
+          <code class="block">DELETE /.netlify/functions/gateway-embed-collections?name=my-docs</code>
+          <p class="muted small">List all collections, get stats for one, or purge an entire collection.</p>
+
+          <h3>SSE events</h3>
+<pre class="block">event: meta
+data: {"provider":"openai","model":"gpt-4o-mini","month":{"month":"2026-02","cap_cents":2000,"spent_cents":0,"key_cap_cents":500,"key_spent_cents":12}}
+
+event: delta
+data: {"text":"Hel"}
+
+event: delta
+data: {"text":"lo!"}
+
+event: done
+data: {"usage":{"input_tokens":12,"output_tokens":18,"cost_cents":1},"month":{"month":"2026-02","cap_cents":2000,"spent_cents":1,"key_cap_cents":500,"key_spent_cents":13}}</pre>
+
+          <p class="muted small">This build is Netlify DB-native (Neon) and uses an in-house DB-backed rate limiter (no Redis required).</p>
+        </div>
+      
+        <div class="card tabpanel" id="tab-monitor" style="display:none;">
+          <div class="cardhead">
+            <h2>Monitor</h2>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span id="monStatus" class="pill">idle</span>
+              <button id="monLiveBtn" class="btn">Start Live</button>
+              <button id="monRefreshBtn" class="btn ghost">Refresh</button>
+              <button id="monClearBtn" class="btn ghost">Clear</button>
+              <button id="monPruneBtn" class="btn danger">Prune</button>
+            </div>
+          </div>
+
+          <div class="form" style="margin-top:10px;">
+            <div class="cols">
+              <div>
+                <label>Level</label>
+                <select id="monLevel">
+                  <option value="">(any)</option>
+                  <option value="error">error</option>
+                  <option value="warn">warn</option>
+                  <option value="info">info</option>
+                </select>
+              </div>
+              <div>
+                <label>Kind</label>
+                <select id="monKind">
+                  <option value="">(any)</option>
+                  <option value="client_error">client_error</option>
+                  <option value="error">error</option>
+                  <option value="slow">slow</option>
+                  <option value="rate_limited">rate_limited</option>
+                  <option value="blocked">blocked</option>
+                  <option value="audit">audit</option>
+                </select>
+              </div>
+              <div>
+                <label>Function</label>
+                <input id="monFn" placeholder="gateway-stream" />
+              </div>
+              <div>
+                <label>App</label>
+                <input id="monApp" placeholder="SkyIDE" />
+              </div>
+            </div>
+
+            <div class="cols">
+              <div style="flex:2;">
+                <label>Request ID</label>
+                <input id="monRequestId" placeholder="x-kaixu-request-id / x-request-id" />
+              </div>
+              <div style="display:flex; align-items:flex-end; gap:10px;">
+                <button id="monSearchBtn" class="btn primary" type="button">Search</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tablewrap" style="margin-top:10px;">
+            <table class="table" id="monitorTable">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Level</th>
+                  <th>Function</th>
+                  <th>App</th>
+                  <th>Status</th>
+                  <th>Provider/Model</th>
+                  <th>ms</th>
+                  <th>Request</th>
+                  <th>Summary</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <p class="muted small" style="margin-top:10px;">
+            Tip: tag your apps with headers <span style="font-family:var(--mono);">x-kaixu-app</span> and <span style="font-family:var(--mono);">x-kaixu-build</span>. For client-side errors (before the request hits the gateway), POST to <span style="font-family:var(--mono);">/.netlify/functions/client-error-report</span>.
+          </p>
+        </div>
+
+<!-- ═══════════════════════════════════════ TUTORIAL ═══════════════════════════════════════ -->
+<div class="card tabpanel" id="tab-tutorial" style="display:none;">
+  <h2>📖 Admin Tutorial — How to Use kAIxU Gateway</h2>
+  <p class="muted">This is your complete guide to running the gateway. Bookmark this tab.</p>
+
+  <div style="margin-top:20px; display:flex; flex-direction:column; gap:24px;">
+
+    <!-- OVERVIEW -->
+    <div style="border-left:3px solid #ffd36a; padding-left:16px;">
+      <h3 style="color:#ffd36a; margin:0 0 8px;">⚡ How It Works</h3>
+      <p class="muted small">kAIxU Gateway is a <strong>metered AI proxy</strong>. You own the real provider API keys (OpenAI, Anthropic, Gemini). Clients get <strong>kAIxu virtual keys</strong> (<code>kx_live_…</code>) that route through your gateway. You set spend caps, rate limits, and device seats. Clients pay you → you pay providers. The margin is yours.</p>
+      <p class="muted small" style="margin-top:6px;">All keys, usage, billing, and audit data live in Neon Postgres (via <code>@netlify/neon</code>). No Redis. No external services unless you add Stripe.</p>
+    </div>
+
+    <!-- TAB 1: CUSTOMERS -->
+    <div style="border-left:3px solid #a243ff; padding-left:16px;">
+      <h3 style="color:#a243ff; margin:0 0 8px;">1. Customers Tab</h3>
+      <p class="muted small"><strong>What it shows:</strong> All registered customers — email, plan, monthly cap, active status, key count, and whether they have a Netlify token set (for KaixuPush).</p>
+      <p class="muted small" style="margin-top:6px;"><strong>How to use:</strong></p>
+      <ul class="muted small" style="padding-left:18px; list-style:disc;">
+        <li>Click <strong>Refresh</strong> to reload the list</li>
+        <li><strong>Click any row</strong> to select that customer — their ID auto-fills into the Keys, Usage, Billing, Devices, and Exports tabs</li>
+        <li>Use <strong>Set Netlify token</strong> to store an encrypted deploy token for the selected customer (used by KaixuPush)</li>
+      </ul>
+    </div>
+
+    <!-- TAB 2: CREATE -->
+    <div style="border-left:3px solid #27f2ff; padding-left:16px;">
+      <h3 style="color:#27f2ff; margin:0 0 8px;">2. Create Customer + Master Key</h3>
+      <p class="muted small"><strong>What it does:</strong> Creates a new customer record AND immediately issues them a master API key.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>Steps:</strong></p>
+      <ol class="muted small" style="padding-left:18px;">
+        <li>Enter their <strong>email</strong></li>
+        <li>Set the <strong>plan name</strong> (e.g. "starter", "pro", "enterprise") — this is just a label</li>
+        <li>Set the <strong>monthly cap in cents</strong> (2000 = $20/month spend limit)</li>
+        <li>Click <strong>Create + Issue Master Key</strong></li>
+        <li>⚠️ The raw key (<code>kx_live_…</code>) appears <strong>once</strong>. Copy it immediately and send to the client. You cannot retrieve it later — only the hash is stored.</li>
+      </ol>
+    </div>
+
+    <!-- TAB 3: KEYS -->
+    <div style="border-left:3px solid #ffd36a; padding-left:16px;">
+      <h3 style="color:#ffd36a; margin:0 0 8px;">3. Keys (Sub-keys / Rotate / Revoke)</h3>
+      <p class="muted small"><strong>What it does:</strong> Manage all keys for a customer. Create sub-keys with custom limits, rotate compromised keys, or revoke access instantly.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>Key concepts:</strong></p>
+      <ul class="muted small" style="padding-left:18px; list-style:disc;">
+        <li><strong>Sub-keys</strong> inherit the customer's cap but can have their own overrides (lower cap, different RPM, restricted providers/models)</li>
+        <li><strong>Rotate</strong> = creates a new key with the same settings, revokes the old one. Use when a key is compromised</li>
+        <li><strong>Revoke</strong> = immediate cutoff. The key stops working instantly</li>
+        <li><strong>Cap override</strong>: If set, this key has its own separate spend cap (in cents) independent of the customer cap</li>
+        <li><strong>Allowed providers/models</strong>: Restrict which AI providers or specific models this key can access</li>
+        <li><strong>Max devices</strong>: How many unique install_ids can use this key simultaneously</li>
+      </ul>
+    </div>
+
+    <!-- TAB 4: USAGE -->
+    <div style="border-left:3px solid #a243ff; padding-left:16px;">
+      <h3 style="color:#a243ff; margin:0 0 8px;">4. Usage</h3>
+      <p class="muted small"><strong>What it shows:</strong> Detailed usage breakdown for a customer in a specific month — total cap, extra credits, amount spent, total tokens, and every individual API call.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>How to use:</strong></p>
+      <ol class="muted small" style="padding-left:18px;">
+        <li>Enter or select a <strong>Customer ID</strong></li>
+        <li>Set the <strong>month</strong> (YYYY-MM format, defaults to current)</li>
+        <li>Click <strong>Load usage</strong></li>
+      </ol>
+      <p class="muted small" style="margin-top:6px;">The summary cards show Cap / Extra / Spent / Tokens. The table below shows every individual gateway call with provider, model, input/output tokens, and cost in cents.</p>
+    </div>
+
+    <!-- TAB 5: BILLING -->
+    <div style="border-left:3px solid #27f2ff; padding-left:16px;">
+      <h3 style="color:#27f2ff; margin:0 0 8px;">5. Billing & Controls</h3>
+      <p class="muted small"><strong>Customer policy</strong> — change a customer's plan name, monthly cap, active status, device limits, provider/model allowlists. Click <strong>Save</strong> to apply.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>Top-ups:</strong></p>
+      <ul class="muted small" style="padding-left:18px; list-style:disc;">
+        <li><strong>Manual top-up</strong>: Adds extra_cents to the customer's balance for the current month (use when a client pays you directly)</li>
+        <li><strong>Stripe checkout</strong>: Creates a Stripe checkout session. Requires <code>STRIPE_SECRET_KEY</code> and <code>STRIPE_WEBHOOK_SECRET</code> env vars</li>
+      </ul>
+      <p class="muted small" style="margin-top:6px;"><strong>Invoice snapshots:</strong> Load or create a JSON invoice record for the month. Useful for record-keeping.</p>
+    </div>
+
+    <!-- TAB 6: DEVICES -->
+    <div style="border-left:3px solid #ffd36a; padding-left:16px;">
+      <h3 style="color:#ffd36a; margin:0 0 8px;">6. Devices</h3>
+      <p class="muted small"><strong>What it shows:</strong> Every unique device (install_id) that has used a customer's keys. Shows first-seen, last-seen, user-agent, and revocation status.</p>
+      <p class="muted small" style="margin-top:6px;">If a customer sets <code>require_install_id = true</code>, every request must include an <code>x-install-id</code> header. Devices are auto-registered up to <code>max_devices_per_key</code>. You can revoke individual devices here.</p>
+    </div>
+
+    <!-- TAB 7: EXPORTS -->
+    <div style="border-left:3px solid #a243ff; padding-left:16px;">
+      <h3 style="color:#a243ff; margin:0 0 8px;">7. Exports & Invoices</h3>
+      <p class="muted small">Download CSV exports of usage data:</p>
+      <ul class="muted small" style="padding-left:18px; list-style:disc;">
+        <li><strong>Events CSV</strong> — every individual API call with timestamps, tokens, cost</li>
+        <li><strong>Summary CSV</strong> — aggregated monthly summary</li>
+        <li><strong>Invoice CSV</strong> — formatted for billing/accounting</li>
+      </ul>
+      <p class="muted small" style="margin-top:6px;">Filter by customer, month, and optionally a specific key.</p>
+    </div>
+
+    <!-- TAB 8: KAIXUPUSH -->
+    <div style="border-left:3px solid #27f2ff; padding-left:16px;">
+      <h3 style="color:#27f2ff; margin:0 0 8px;">8. KaixuPush (Deploy Proxy)</h3>
+      <p class="muted small"><strong>What it is:</strong> A deployment pipeline that lets clients push sites to Netlify through your gateway. Each deploy is tracked, metered, and invoiced.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>Workflow:</strong></p>
+      <ol class="muted small" style="padding-left:18px;">
+        <li><strong>Register a project</strong> — give it an ID, name, and the Netlify Site ID it deploys to</li>
+        <li>Client pushes files via the chunked upload pipeline</li>
+        <li>Track deploys in <strong>Deploy history</strong> and chunk uploads in <strong>Chunk jobs</strong></li>
+        <li>Generate invoices per month with <strong>Generate Invoice</strong></li>
+      </ol>
+      <p class="muted small" style="margin-top:6px;">The client's Netlify token (set in Customers tab) is used for deploys. If not set, falls back to your <code>NETLIFY_AUTH_TOKEN</code>.</p>
+    </div>
+
+    <!-- TAB 9: GITHUB -->
+    <div style="border-left:3px solid #ffd36a; padding-left:16px;">
+      <h3 style="color:#ffd36a; margin:0 0 8px;">9. GitHub Push</h3>
+      <p class="muted small"><strong>What it is:</strong> Push code to GitHub repositories through the gateway. Clients store their GitHub PAT (encrypted), and the gateway handles ZIP-based pushes to any branch.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>Steps:</strong></p>
+      <ol class="muted small" style="padding-left:18px;">
+        <li><strong>Set PAT</strong> — save the client's GitHub personal access token (stored encrypted in DB)</li>
+        <li><strong>Load Repos</strong> — see all repos the token has access to</li>
+        <li><strong>Load Jobs</strong> — view recent ZIP push operations and their status</li>
+      </ol>
+      <p class="muted small" style="margin-top:6px;">OAuth flow also available at <code>/.netlify/functions/github-oauth-start</code>.</p>
+    </div>
+
+    <!-- TAB 10: EMBEDDINGS -->
+    <div style="border-left:3px solid #a243ff; padding-left:16px;">
+      <h3 style="color:#a243ff; margin:0 0 8px;">10. Embeddings Lane (Semantic RAG)</h3>
+      <p class="muted small"><strong>What it is:</strong> A complete embeddings pipeline built into the gateway. Generate vector embeddings from any supported provider, store them in pgvector (Neon), and run semantic similarity search — all authenticated through the same <code>kx_live_…</code> key.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>Why it matters:</strong> This is <strong>true semantic RAG</strong>. Your clients don't need their own OpenAI keys, a separate vector database, or a retrieval pipeline. Everything goes through one gateway with metered billing.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>Workflow:</strong></p>
+      <ol class="muted small" style="padding-left:18px;">
+        <li>Choose a <strong>provider + model</strong> (OpenAI text-embedding-3-small recommended for cost/performance)</li>
+        <li>Paste or send text(s) → they get embedded and optionally stored in a <strong>collection</strong></li>
+        <li>Use <strong>Semantic Search</strong> to query your stored vectors with natural language</li>
+        <li>Pipe search results into your chat completions for grounded, RAG-powered responses</li>
+      </ol>
+      <p class="muted small" style="margin-top:6px;"><strong>Supported providers:</strong></p>
+      <ul class="muted small" style="padding-left:18px; list-style:disc;">
+        <li><strong>OpenAI</strong> — text-embedding-3-small (1536d, cheapest), text-embedding-3-large (3072d, best quality), ada-002 (legacy)</li>
+        <li><strong>Gemini</strong> — embedding-001 (768d), text-embedding-004 (768d)</li>
+        <li><strong>Voyage AI</strong> — voyage-3 (1024d), voyage-3-lite (512d, fastest)</li>
+      </ul>
+      <p class="muted small" style="margin-top:6px;"><strong>Collections:</strong> Each collection is a logical namespace. You can have "support-docs", "product-catalog", "knowledge-base", etc. Each tracks its model and dimensions so queries always use the right model.</p>
+    </div>
+
+    <!-- TAB 11: INTEGRATION -->
+    <div style="border-left:3px solid #ffd36a; padding-left:16px;">
+      <h3 style="color:#ffd36a; margin:0 0 8px;">11. Integration</h3>
+      <p class="muted small">Quick-reference for API endpoints and request/response formats. Share this with clients so they know how to call the gateway.</p>
+      <ul class="muted small" style="padding-left:18px; list-style:disc;">
+        <li><strong>Non-stream:</strong> <code>POST /.netlify/functions/gateway-chat</code> — returns full response</li>
+        <li><strong>Stream (SSE):</strong> <code>POST /.netlify/functions/gateway-stream</code> — returns Server-Sent Events</li>
+      </ul>
+      <p class="muted small" style="margin-top:6px;">Both endpoints accept the same normalized request body with <code>provider</code>, <code>model</code>, <code>messages</code>, <code>max_tokens</code>, <code>temperature</code>. Auth via <code>Authorization: Bearer kx_live_…</code> header.</p>
+    </div>
+
+    <!-- TAB 12: MONITOR -->
+    <div style="border-left:3px solid #27f2ff; padding-left:16px;">
+      <h3 style="color:#27f2ff; margin:0 0 8px;">12. Monitor</h3>
+      <p class="muted small"><strong>What it does:</strong> Real-time and historical view of gateway events — errors, warnings, rate-limited requests, slow responses, and audit entries.</p>
+      <p class="muted small" style="margin-top:6px;"><strong>How to use:</strong></p>
+      <ul class="muted small" style="padding-left:18px; list-style:disc;">
+        <li><strong>Start Live</strong> — polls for new events every few seconds</li>
+        <li><strong>Filter</strong> by level (error/warn/info), kind, function name, app name, or request ID</li>
+        <li><strong>Click a row</strong> to see the full JSON payload in a modal</li>
+        <li><strong>Prune</strong> — delete old events to keep the table clean</li>
+      </ul>
+      <p class="muted small" style="margin-top:6px;">Tip: have your clients tag requests with <code>x-kaixu-app: MyApp</code> so you can filter by app.</p>
+    </div>
+
+    <!-- QUICK REFERENCE -->
+    <div style="border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:20px; background:rgba(255,255,255,0.03);">
+      <h3 style="color:#ffd36a; margin:0 0 12px;">🔑 Quick Reference</h3>
+      <table class="table" style="font-size:12px;">
+        <thead><tr><th>Item</th><th>Details</th></tr></thead>
+        <tbody>
+          <tr><td>Key format</td><td><code>kx_live_</code> + 48 base64url chars (56 total)</td></tr>
+          <tr><td>Auth header</td><td><code>Authorization: Bearer kx_live_…</code></td></tr>
+          <tr><td>Admin auth</td><td>JWT from <code>ADMIN_PASSWORD</code> login (12h TTL)</td></tr>
+          <tr><td>Chat endpoint</td><td><code>POST /.netlify/functions/gateway-chat</code></td></tr>
+          <tr><td>Stream endpoint</td><td><code>POST /.netlify/functions/gateway-stream</code></td></tr>
+          <tr><td>Embed endpoint</td><td><code>POST /.netlify/functions/gateway-embed</code></td></tr>
+          <tr><td>Embed search</td><td><code>POST /.netlify/functions/gateway-embed-search</code></td></tr>
+          <tr><td>Collections</td><td><code>GET/DELETE /.netlify/functions/gateway-embed-collections</code></td></tr>
+          <tr><td>Vector storage</td><td>pgvector (Neon Postgres) — cosine similarity</td></tr>
+          <tr><td>Self-service keys</td><td><a href="/kAIxu/RequestKaixuAPIKey.html" style="color:#ffd36a;">/request-key</a> (public, no admin needed)</td></tr>
+          <tr><td>User dashboard</td><td><a href="/gateway/dashboard.html" style="color:#27f2ff;">/gateway/dashboard.html</a></td></tr>
+          <tr><td>Health check</td><td><code>GET /.netlify/functions/health</code></td></tr>
+          <tr><td>Spend caps</td><td>Customer-level + per-key override (in cents)</td></tr>
+          <tr><td>Rate limits</td><td>RPM (per key) + RPD (optional) — DB-backed, no Redis</td></tr>
+          <tr><td>Device seats</td><td><code>max_devices_per_key</code> with optional <code>require_install_id</code></td></tr>
+          <tr><td>Chat providers</td><td>OpenAI, Anthropic, Gemini</td></tr>
+          <tr><td>Embed providers</td><td>OpenAI, Gemini, Voyage AI</td></tr>
+          <tr><td>Env vars needed</td><td><code>ADMIN_PASSWORD</code>, <code>JWT_SECRET</code>, <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>GEMINI_API_KEY</code>, <code>VOYAGE_API_KEY</code> (optional)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TYPICAL WORKFLOW -->
+    <div style="border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:20px; background:rgba(255,255,255,0.03);">
+      <h3 style="color:#a243ff; margin:0 0 12px;">🚀 Typical Workflow (New Client)</h3>
+      <ol class="muted small" style="padding-left:18px; line-height:2;">
+        <li>Go to <strong>Create</strong> tab → enter email, set plan + cap → click Create</li>
+        <li>Copy the <code>kx_live_…</code> key and send it to the client securely</li>
+        <li>Client adds <code>Authorization: Bearer kx_live_…</code> to their API calls</li>
+        <li>Client hits <code>/.netlify/functions/gateway-chat</code> or <code>gateway-stream</code></li>
+        <li>Monitor usage in the <strong>Usage</strong> tab</li>
+        <li>Adjust caps/limits in <strong>Billing & Controls</strong> as needed</li>
+        <li>If a key is compromised → <strong>Keys</strong> tab → Rotate</li>
+        <li>End of month → <strong>Exports</strong> tab → download invoice CSV</li>
+      </ol>
+    </div>
+
+    <!-- SELF-SERVICE -->
+    <div style="border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:20px; background:rgba(255,255,255,0.03);">
+      <h3 style="color:#27f2ff; margin:0 0 12px;">🤖 Self-Service Key Generator</h3>
+      <p class="muted small">Clients can request their own starter key at <a href="/kAIxu/RequestKaixuAPIKey.html" style="color:#ffd36a;">/request-key</a> without needing you to be involved.</p>
+      <ul class="muted small" style="padding-left:18px; list-style:disc;">
+        <li>They enter their email → get a <code>kx_live_…</code> key instantly</li>
+        <li>Defaults: $20/month cap, 10 RPM, 3 max devices, starter plan</li>
+        <li>Abuse guard: max 5 keys per email per hour</li>
+        <li>If they already had a key, the old one is revoked and a new one issued</li>
+        <li>You can customize defaults with <code>DEFAULT_SELFSERVE_*</code> env vars</li>
+      </ul>
+      <p class="muted small" style="margin-top:8px;">The client still shows up in your <strong>Customers</strong> tab. You can upgrade their plan, change caps, or issue sub-keys anytime.</p>
+    </div>
+
+  </div>
+</div>
+<!-- ═══════════════════════════════════════ /TUTORIAL ═══════════════════════════════════════ -->
+
+      </section>
+    </section>
+
+    <footer class="foot">
+      <span class="muted small">Kaixu Gateway v6.0 · Semantic RAG · kAIxu Canon enforced · deploy-kaixuCanon-20260227</span>
+    </footer>
+  </main>
+
+  <script src="assets/app.js"></script>
+
+  <!-- Gateway Base modal (lets you point this UI at a dedicated gateway) -->
+  <div id="baseModal" class="modalOverlay" style="display:none;">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px;">
+        <div>
+          <h3>Gateway Base</h3>
+          <p class="muted">Leave blank to use this site. Set a full URL to point at your dedicated gateway (VPS).</p>
+          <p class="muted">Current effective base: <code id="apiBaseCurrent"></code></p>
+        </div>
+        <button id="apiBaseClose" class="btn ghost" type="button" aria-label="Close">✕</button>
+      </div>
+
+      <div class="row">
+        <input id="apiBaseInput" placeholder="https://gateway.yourdomain.com" />
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <a id="apiBaseHealthLink" class="btn ghost" href="/.netlify/functions/health" target="_blank" rel="noreferrer">Open Health for this base</a>
+      </div>
+
+      <div class="actions">
+        <button id="apiBaseUseThisSite" class="btn" type="button">Use This Site</button>
+        <button id="apiBaseSave" class="btn primary" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monitor detail modal -->
+  <div id="monitorModal" class="modalOverlay" style="display:none;">
+    <div class="modal">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px;">
+        <div>
+          <h3>Monitor event</h3>
+          <p class="muted">Full, structured payload for debugging (copy/paste into an issue or back into your IDE).</p>
+        </div>
+        <button id="monCloseBtn" class="btn danger" type="button">Close</button>
+      </div>
+      <div class="row" style="justify-content:flex-end; gap:10px;">
+        <button id="monCopyBtn" class="btn ghost" type="button">Copy JSON</button>
+      </div>
+      <pre id="monDetail" class="code"></pre>
+    </div>
+  </div>
+
+</body>
+<script>
+  // kAIxU Gateway 13 intro: animate terminal ticker and remove overlay after boot.
+  (() => {
+    const terminal = document.getElementById('kAIxU-intro-terminal');
+    let terminalInterval;
+    if (terminal) {
+      terminalInterval = setInterval(() => {
+        terminal.innerHTML += '<br>> SYS_' + Math.random().toString(16).substr(2, 8).toUpperCase() + ' ALLOCATED';
+      }, 150);
+    }
+
+    setTimeout(() => {
+      if (terminalInterval) clearInterval(terminalInterval);
+      const intro = document.getElementById('kAIxU-intro');
+      if (intro) intro.remove();
+    }, 5300);
+  })();
+</script>
+<script src="assets/three-bg-gate.js"></script>
+</html>

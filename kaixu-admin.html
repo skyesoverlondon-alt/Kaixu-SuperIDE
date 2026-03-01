@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KaixuSI — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0:#040008;--bg1:#0a0012;--bg2:#100020;
+  --ink:#e8ecff;--muted:#6050a0;
+  --purple:#a243ff;--purple-hot:#d130ff;
+  --gold:#ffd36a;--gold-hot:#ffb700;
+  --cyan:#30e0ff;--green:#4fffb0;--red:#ff5c72;
+  --mono:'Share Tech Mono',monospace;
+  --sans:'Inter',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100vh;}
+body{background:var(--bg0);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:-30vh;left:50%;transform:translateX(-50%);width:1000px;height:700px;background:radial-gradient(ellipse at 50% 0%,rgba(162,67,255,.2) 0%,transparent 65%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;bottom:-30vh;right:-10%;width:600px;height:600px;background:radial-gradient(ellipse at 80% 100%,rgba(255,183,0,.06) 0%,transparent 65%);pointer-events:none;z-index:0;}
+
+/* scaffold */
+.admin-wrap{position:relative;z-index:10;max-width:1400px;margin:0 auto;padding:0 24px 80px;}
+
+/* top bar */
+.topbar{display:flex;align-items:center;gap:16px;padding:28px 0 36px;flex-wrap:wrap;}
+.topbar-logo{display:flex;align-items:center;gap:12px;}
+.logo-orb{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d130ff,#5a00cc 60%,#1a0040 100%);box-shadow:0 0 16px rgba(162,67,255,.8),0 0 40px rgba(162,67,255,.4);animation:orbP 3s ease-in-out infinite;flex-shrink:0;}
+@keyframes orbP{0%,100%{box-shadow:0 0 16px rgba(162,67,255,.8),0 0 40px rgba(162,67,255,.4);}50%{box-shadow:0 0 28px rgba(162,67,255,1),0 0 70px rgba(162,67,255,.6);}}
+.logo-title{font-size:1.4rem;font-weight:900;letter-spacing:-.03em;background:linear-gradient(135deg,#fff 0%,var(--purple) 70%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo-sub{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-top:2px;}
+.topbar-gap{flex:1;}
+.health-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:100px;padding:6px 18px;font-family:var(--mono);font-size:12px;color:var(--muted);transition:border-color .3s;}
+.health-pill.ok{border-color:rgba(79,255,176,.3);color:var(--green);}
+.health-pill.err{border-color:rgba(255,92,114,.3);color:var(--red);}
+.hdot{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:dp 2s ease-in-out infinite;}
+.hdot.ok{background:var(--green);box-shadow:0 0 8px var(--green);}
+.hdot.err{background:var(--red);box-shadow:0 0 8px var(--red);}
+@keyframes dp{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* auth strip */
+.auth-strip{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:36px;padding:20px 24px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:12px;}
+.as-f{display:flex;flex-direction:column;gap:5px;flex:1;min-width:180px;}
+.as-f label{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+.as-input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:7px;color:var(--ink);font-size:13px;padding:8px 12px;font-family:var(--mono);outline:none;transition:border-color .2s,box-shadow .2s;}
+.as-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(162,67,255,.13);}
+.as-btn{height:38px;padding:0 22px;border:none;border-radius:7px;cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.07em;}
+.as-btn.primary{background:linear-gradient(135deg,var(--purple),var(--purple-hot));color:#fff;box-shadow:0 0 14px rgba(162,67,255,.4);}
+.as-btn.primary:hover{box-shadow:0 0 28px rgba(162,67,255,.7);transform:translateY(-1px);}
+.as-btn.secondary{background:rgba(255,255,255,.06);color:var(--ink);border:1px solid rgba(255,255,255,.1);}
+.as-btn.secondary:hover{background:rgba(255,255,255,.09);}
+
+/* section header */
+.sec-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.sec-title{font-size:1.1rem;font-weight:700;letter-spacing:-.02em;}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(162,67,255,.3),transparent);}
+.sec-badge{font-size:11px;font-family:var(--mono);background:rgba(162,67,255,.12);color:var(--purple-hot);border:1px solid rgba(162,67,255,.2);border-radius:100px;padding:2px 10px;}
+
+/* metrics row */
+.metrics-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:48px;}
+.metric-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px 22px;
+  animation:floatC var(--fd,5s) ease-in-out infinite;animation-delay:var(--dl,0s);
+  transition:border-color .3s;position:relative;overflow:hidden;}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gc,var(--purple)),transparent);opacity:.5;}
+@keyframes floatC{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+.metric-n{font-size:2rem;font-weight:900;letter-spacing:-.04em;color:var(--gc,var(--purple));}
+.metric-l{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:4px;text-transform:uppercase;letter-spacing:.08em;}
+
+/* issue form */
+.issue-card{background:rgba(255,255,255,.025);border:1px solid rgba(162,67,255,.15);border-radius:14px;padding:28px;margin-bottom:48px;position:relative;overflow:hidden;}
+.issue-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--purple-hot),transparent);}
+.issue-fields{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px;}
+.if{display:flex;flex-direction:column;gap:5px;flex:1;min-width:180px;}
+.if label{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+.if input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:7px;color:var(--ink);font-size:13px;padding:9px 12px;font-family:var(--mono);outline:none;transition:border-color .2s,box-shadow .2s;}
+.if input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(162,67,255,.13);}
+.issue-actions{display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap;}
+.issue-btn{height:40px;padding:0 26px;border:none;border-radius:8px;cursor:pointer;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.07em;background:linear-gradient(135deg,var(--purple),var(--purple-hot));color:#fff;box-shadow:0 0 18px rgba(162,67,255,.45);transition:box-shadow .2s,transform .15s;}
+.issue-btn:hover{box-shadow:0 0 36px rgba(162,67,255,.8);transform:translateY(-2px);}
+.issue-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.key-reveal{flex:1;min-width:280px;background:rgba(0,0,0,.5);border:1px solid rgba(79,255,176,.25);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:13px;color:var(--green);word-break:break-all;display:none;position:relative;}
+.key-reveal.show{display:block;}
+.warn-once{font-size:10px;color:var(--gold);font-family:var(--mono);margin-top:6px;letter-spacing:.05em;}
+.copy-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.08);border:none;border-radius:5px;color:var(--muted);font-family:var(--mono);font-size:10px;padding:2px 8px;cursor:pointer;}
+.copy-btn:hover{color:var(--ink);}
+
+/* keys table */
+.keys-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.keys-search{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:7px;color:var(--ink);font-size:13px;padding:7px 12px;font-family:var(--mono);outline:none;transition:border-color .2s;width:220px;}
+.keys-search:focus{border-color:var(--purple);}
+.filter-btn{height:32px;padding:0 14px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:transparent;color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;transition:color .15s,border-color .15s;}
+.filter-btn.active{border-color:var(--purple);color:var(--purple-hot);}
+.refresh-btn{height:32px;padding:0 14px;border:1px solid rgba(162,67,255,.2);border-radius:6px;background:rgba(162,67,255,.06);color:var(--purple);font-family:var(--mono);font-size:11px;cursor:pointer;margin-left:auto;transition:background .15s;}
+.refresh-btn:hover{background:rgba(162,67,255,.12);}
+
+.keys-wrap{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;}
+.keys-table{width:100%;border-collapse:collapse;font-size:13px;}
+.keys-table th{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:12px 16px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06);font-weight:400;}
+.keys-table td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;font-family:var(--mono);}
+.keys-table tr:last-child td{border-bottom:none;}
+.keys-table tr:hover td{background:rgba(255,255,255,.015);}
+.status-chip{display:inline-block;font-size:10px;padding:2px 9px;border-radius:100px;font-family:var(--mono);font-weight:700;}
+.s-active{background:rgba(79,255,176,.1);color:var(--green);border:1px solid rgba(79,255,176,.25);}
+.s-revoked{background:rgba(255,92,114,.08);color:var(--red);border:1px solid rgba(255,92,114,.2);}
+.tbl-btn{border:none;border-radius:5px;font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 10px;cursor:pointer;transition:opacity .15s;}
+.tbl-btn:hover{opacity:.75;}
+.tb-revoke{background:rgba(255,92,114,.12);color:var(--red);border:1px solid rgba(255,92,114,.2);}
+.tb-restore{background:rgba(79,255,176,.1);color:var(--green);border:1px solid rgba(79,255,176,.2);}
+.tbl-quota{font-size:11px;}
+.quota-bar{display:inline-block;width:60px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;vertical-align:middle;margin-left:6px;overflow:hidden;}
+.quota-fill{height:100%;border-radius:2px;background:var(--purple);transition:width .4s;}
+.quota-fill.warn{background:var(--gold);}
+.quota-fill.over{background:var(--red);}
+.empty-row td{text-align:center;color:var(--muted);font-style:italic;padding:36px!important;}
+
+/* toast */
+.toast-wrap{position:fixed;bottom:28px;right:28px;z-index:9999;display:flex;flex-direction:column;gap:10px;}
+.toast{background:rgba(10,0,18,.95);border:1px solid rgba(162,67,255,.3);border-radius:10px;padding:12px 18px;font-family:var(--mono);font-size:13px;color:var(--ink);box-shadow:0 0 30px rgba(0,0,0,.6);animation:toastIn .25s ease;max-width:340px;display:flex;gap:10px;align-items:flex-start;}
+.toast.ok{border-color:rgba(79,255,176,.35);color:var(--green);}
+.toast.err{border-color:rgba(255,92,114,.35);color:var(--red);}
+@keyframes toastIn{from{transform:translateX(30px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* spinner */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spinR .5s linear infinite;vertical-align:middle;}
+@keyframes spinR{100%{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="admin-wrap">
+
+  <!-- top bar -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-orb"></div>
+      <div>
+        <div class="logo-title">KaixuSI Admin</div>
+        <div class="logo-sub">owner · keys · metrics</div>
+      </div>
+    </div>
+    <div class="topbar-gap"></div>
+    <div class="health-pill" id="hPill">
+      <span class="hdot" id="hDot"></span>
+      <span id="hLabel">checking…</span>
+    </div>
+    <a href="TOOLS/GatewayLive.html" target="_blank" style="color:#4fffb0;font-family:var(--mono);font-size:12px;text-decoration:none;padding:6px 14px;border:1px solid rgba(79,255,176,.35);border-radius:7px;text-shadow:0 0 10px rgba(79,255,176,.5);box-shadow:0 0 10px rgba(79,255,176,.15)">⚡ Live Smoke</a>
+    <a href="homelanding.html" style="color:var(--muted);font-family:var(--mono);font-size:12px;text-decoration:none;padding:6px 14px;border:1px solid rgba(255,255,255,.08);border-radius:7px;">← Home</a>
+  </div>
+
+  <!-- auth strip -->
+  <div class="auth-strip">
+    <div class="as-f">
+      <label>JWT Token (from IDE login)</label>
+      <input class="as-input" id="jwtToken" type="password" placeholder="paste your bearer token" />
+    </div>
+    <div class="as-f">
+      <label>Admin Secret (KAIXUSI_ADMIN_SECRET)</label>
+      <input class="as-input" id="adminSecret" type="password" placeholder="optional master secret" />
+    </div>
+    <div class="as-f">
+      <label>Worker URL (for health)</label>
+      <input class="as-input" id="workerUrl" value="https://kaixusi.skyesoverlondon.workers.dev" />
+    </div>
+    <button class="as-btn primary" onclick="loadAll()">Load</button>
+    <button class="as-btn secondary" onclick="saveAuth()">Save Creds</button>
+  </div>
+
+  <!-- metrics -->
+  <div class="sec-header">
+    <span class="sec-title">Overview</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="metrics-row" id="metricsRow">
+    <div class="metric-card" style="--fd:5.2s;--dl:0s;--gc:var(--green)">
+      <div class="metric-n" id="mTotal">—</div><div class="metric-l">Total Keys</div>
+    </div>
+    <div class="metric-card" style="--fd:5.5s;--dl:.3s;--gc:var(--purple-hot)">
+      <div class="metric-n" id="mActive">—</div><div class="metric-l">Active</div>
+    </div>
+    <div class="metric-card" style="--fd:6s;--dl:.6s;--gc:var(--red)">
+      <div class="metric-n" id="mRevoked">—</div><div class="metric-l">Revoked</div>
+    </div>
+    <div class="metric-card" style="--fd:5.8s;--dl:.9s;--gc:var(--gold)">
+      <div class="metric-n" id="mCalls">—</div><div class="metric-l">Total Calls</div>
+    </div>
+    <div class="metric-card" style="--fd:5.4s;--dl:1.2s;--gc:var(--cyan)">
+      <div class="metric-n" id="mWorker">—</div><div class="metric-l">Worker Health</div>
+    </div>
+  </div>
+
+  <!-- issue new key -->
+  <div class="sec-header">
+    <span class="sec-title">Issue New Key</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="issue-card">
+    <div style="font-size:13px;color:var(--muted)">The plaintext key is shown <em>once</em>. Save it immediately. Only the SHA-256 hash is stored.</div>
+    <div class="issue-fields">
+      <div class="if"><label>Label</label><input id="kLabel" placeholder="e.g. Acme Corp Production" /></div>
+      <div class="if"><label>Owner Email</label><input id="kEmail" type="email" placeholder="contact@customer.com" /></div>
+      <div class="if" style="max-width:160px"><label>Monthly Limit</label><input id="kLimit" type="number" value="1000" min="1" max="100000" /></div>
+    </div>
+    <div class="issue-actions">
+      <button class="issue-btn" id="issueBtn" onclick="issueKey()">⚡ Generate Key</button>
+      <div class="key-reveal" id="keyReveal">
+        <button class="copy-btn" onclick="cpKey()">copy</button>
+        <div id="keyText"></div>
+        <div class="warn-once">⚠ This key is shown once only. Copy and deliver it securely.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- keys list -->
+  <div class="sec-header">
+    <span class="sec-title">Customer Keys</span>
+    <div class="sec-line"></div>
+    <span class="sec-badge" id="totalBadge">0 keys</span>
+  </div>
+  <div class="keys-toolbar">
+    <input class="keys-search" id="kSearch" placeholder="filter by label or email…" oninput="renderTable()" />
+    <button class="filter-btn active" id="fAll" onclick="setFilter('all')">All</button>
+    <button class="filter-btn" id="fActive" onclick="setFilter('active')">Active</button>
+    <button class="filter-btn" id="fRevoked" onclick="setFilter('revoked')">Revoked</button>
+    <button class="refresh-btn" onclick="loadKeys()">↻ Refresh</button>
+  </div>
+  <div class="keys-wrap">
+    <table class="keys-table">
+      <thead>
+        <tr>
+          <th>Label</th>
+          <th>Owner</th>
+          <th>Key Prefix</th>
+          <th>Status</th>
+          <th>Calls / Limit</th>
+          <th>Last Used</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="keysTbody">
+        <tr class="empty-row"><td colspan="8">Load credentials and click Load</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- toast container -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let allKeys = [];
+let filterMode = 'all';
+
+// ── cred helpers ─────────────────────────────────────────────────────────────
+function authHeaders() {
+  const jwt = $('jwtToken').value.trim();
+  const asc = $('adminSecret').value.trim();
+  const h = { 'Content-Type': 'application/json' };
+  if (jwt) h['Authorization'] = `Bearer ${jwt}`;
+  if (asc) h['X-KaixuSI-Admin'] = asc;
+  return h;
+}
+function saveAuth() {
+  try {
+    localStorage.setItem('kxAdm', JSON.stringify({
+      jwt: $('jwtToken').value.trim(),
+      adm: $('adminSecret').value.trim(),
+      worker: $('workerUrl').value.trim()
+    }));
+    toast('Credentials saved to localStorage', 'ok');
+  } catch(e) { toast('Could not save: ' + e.message, 'err'); }
+}
+function loadAuth() {
+  try {
+    const s = localStorage.getItem('kxAdm');
+    if (!s) return;
+    const d = JSON.parse(s);
+    if (d.jwt) $('jwtToken').value = d.jwt;
+    if (d.adm) $('adminSecret').value = d.adm;
+    if (d.worker) $('workerUrl').value = d.worker;
+  } catch {}
+}
+
+// ── toast ────────────────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  $('toastWrap').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── health ───────────────────────────────────────────────────────────────────
+async function pingHealth() {
+  const url = $('workerUrl').value.replace(/\/+$/, '');
+  try {
+    const r = await fetch(`${url}/health`);
+    const d = await r.json();
+    const ok = r.ok && d.status === 'ok';
+    $('hDot').className = `hdot ${ok ? 'ok' : 'err'}`;
+    $('hLabel').textContent = ok ? `${d.brain || 'KaixuSI'} · ${d.origin || '?'}` : 'error';
+    $('hPill').className = `health-pill ${ok ? 'ok' : 'err'}`;
+    $('mWorker').textContent = ok ? '✓' : '✗';
+  } catch {
+    $('hDot').className = 'hdot err';
+    $('hLabel').textContent = 'unreachable';
+    $('hPill').className = 'health-pill err';
+    $('mWorker').textContent = '✗';
+  }
+}
+
+// ── load keys ────────────────────────────────────────────────────────────────
+async function loadKeys() {
+  try {
+    const r = await fetch('/.netlify/functions/kaixu-keys-list?limit=200', { headers: authHeaders() });
+    const d = await r.json();
+    if (!r.ok) { toast(d.error || ('Load failed: ' + r.status), 'err'); return; }
+    allKeys = d.keys || [];
+    // metrics
+    const active = allKeys.filter(k => k.is_active).length;
+    const revoked = allKeys.length - active;
+    const calls = allKeys.reduce((s, k) => s + (k.call_count || 0), 0);
+    $('mTotal').textContent = allKeys.length;
+    $('mActive').textContent = active;
+    $('mRevoked').textContent = revoked;
+    $('mCalls').textContent = calls.toLocaleString();
+    $('totalBadge').textContent = `${allKeys.length} keys`;
+    renderTable();
+  } catch(e) {
+    toast('Network error: ' + e.message, 'err');
+  }
+}
+
+async function loadAll() {
+  saveAuth();
+  await Promise.all([pingHealth(), loadKeys()]);
+}
+
+// ── render table ─────────────────────────────────────────────────────────────
+function setFilter(mode) {
+  filterMode = mode;
+  ['fAll','fActive','fRevoked'].forEach(id => $(id).classList.remove('active'));
+  $({ all:'fAll', active:'fActive', revoked:'fRevoked' }[mode]).classList.add('active');
+  renderTable();
+}
+
+function renderTable() {
+  const q = $('kSearch').value.toLowerCase();
+  let rows = allKeys.filter(k => {
+    if (filterMode === 'active'  && !k.is_active) return false;
+    if (filterMode === 'revoked' &&  k.is_active) return false;
+    if (q && !((k.label||'').toLowerCase().includes(q) || (k.owner_email||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  if (!rows.length) {
+    $('keysTbody').innerHTML = `<tr class="empty-row"><td colspan="8">${allKeys.length ? 'No matching keys' : 'No keys issued yet'}</td></tr>`;
+    return;
+  }
+
+  $('keysTbody').innerHTML = rows.map(k => {
+    const pct = k.monthly_limit ? Math.min(1, k.call_count / k.monthly_limit) : 0;
+    const fillClass = pct >= 1 ? 'over' : pct >= .8 ? 'warn' : '';
+    const lu = k.last_used_at ? ago(k.last_used_at) : '—';
+    const ca = k.created_at ? tsFmt(k.created_at) : '—';
+    const statusChip = k.is_active
+      ? `<span class="status-chip s-active">active</span>`
+      : `<span class="status-chip s-revoked">revoked</span>`;
+    const actionBtn = k.is_active
+      ? `<button class="tbl-btn tb-revoke" onclick="revokeKey('${k.id}',false)">Revoke</button>`
+      : `<button class="tbl-btn tb-restore" onclick="revokeKey('${k.id}',true)">Restore</button>`;
+    return `<tr>
+      <td>${esc(k.label||'—')}</td>
+      <td>${esc(k.owner_email||'—')}</td>
+      <td style="color:var(--muted)">kxsi_${k.key_prefix}…</td>
+      <td>${statusChip}</td>
+      <td class="tbl-quota">${(k.call_count||0).toLocaleString()} / ${(k.monthly_limit||0).toLocaleString()}
+        <span class="quota-bar"><span class="quota-fill ${fillClass}" style="width:${Math.round(pct*100)}%"></span></span>
+      </td>
+      <td style="color:var(--muted)">${lu}</td>
+      <td style="color:var(--muted)">${ca}</td>
+      <td>${actionBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── issue key ────────────────────────────────────────────────────────────────
+async function issueKey() {
+  const btn = $('issueBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> generating…';
+  $('keyReveal').classList.remove('show');
+
+  const body = {
+    label: $('kLabel').value.trim(),
+    owner_email: $('kEmail').value.trim(),
+    monthly_limit: parseInt($('kLimit').value || '1000', 10)
+  };
+
+  try {
+    const r = await fetch('/.netlify/functions/kaixu-keys-issue', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.error || 'Issue failed: ' + r.status, 'err'); return; }
+    $('keyText').textContent = d.key;
+    $('keyReveal').classList.add('show');
+    toast(`Key issued for ${d.owner_email || d.label || 'customer'}`, 'ok');
+    // insert into local list
+    allKeys.unshift({
+      id: d.key_id, label: d.label, owner_email: d.owner_email,
+      key_prefix: d.key.slice(5, 13),
+      is_active: true, call_count: 0, monthly_limit: d.monthly_limit,
+      last_used_at: null, created_at: new Date().toISOString()
+    });
+    $('kLabel').value = ''; $('kEmail').value = ''; $('kLimit').value = '1000';
+    updateMetrics();
+    renderTable();
+  } catch(e) {
+    toast('Network error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Generate Key';
+  }
+}
+
+function cpKey() {
+  navigator.clipboard.writeText($('keyText').textContent);
+  toast('Key copied to clipboard', 'ok');
+}
+
+// ── revoke / restore ─────────────────────────────────────────────────────────
+async function revokeKey(id, restore) {
+  const action = restore ? 'restore' : 'revoke';
+  try {
+    const r = await fetch('/.netlify/functions/kaixu-keys-revoke', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ id, action })
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.error || 'Action failed', 'err'); return; }
+    // update local
+    const k = allKeys.find(k => k.id === id);
+    if (k) k.is_active = restore;
+    updateMetrics(); renderTable();
+    toast(`Key ${action}d`, 'ok');
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+function updateMetrics() {
+  const active = allKeys.filter(k => k.is_active).length;
+  const calls = allKeys.reduce((s, k) => s + (k.call_count || 0), 0);
+  $('mTotal').textContent = allKeys.length;
+  $('mActive').textContent = active;
+  $('mRevoked').textContent = allKeys.length - active;
+  $('mCalls').textContent = calls.toLocaleString();
+  $('totalBadge').textContent = `${allKeys.length} keys`;
+}
+
+// ── utils ────────────────────────────────────────────────────────────────────
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function ago(ts) {
+  const s = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s/60)}m ago`;
+  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+  return `${Math.floor(s/86400)}d ago`;
+}
+function tsFmt(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+
+// ── init ─────────────────────────────────────────────────────────────────────
+loadAuth();
+pingHealth();
+setInterval(pingHealth, 30000);
+</script>
+</body>
+</html>

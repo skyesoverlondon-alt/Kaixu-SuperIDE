@@ -32,8 +32,8 @@ exports.handler = async (event) => {
     result.db = 'error: ' + e.message.slice(0, 80);
   }
 
-  // Check XnthGateway — health endpoint requires no auth (HEAD is fine)
-  const gateHealthUrl = 'https://skyesol.netlify.app/.netlify/functions/health';
+  // Check KaixuSI Worker — /health is public (no auth required)
+  const gateHealthUrl = `${(process.env.KAIXUSI_WORKER_URL || '').replace(/\/+$/, '')}/health`;
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 4000);

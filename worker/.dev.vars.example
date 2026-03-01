@@ -1,0 +1,11 @@
+# Copy this file to .dev.vars and fill in your values.
+# .dev.vars is gitignored — never commit secrets.
+#
+# These values are used by `npm run dev` (wrangler dev) locally.
+# In production, these are set via `npx wrangler secret put <NAME>`.
+
+KAIXUSI_SECRET=your-local-dev-secret
+OPENAI_KEY=sk-...
+ANTHROPIC_KEY=sk-ant-...
+GEMINI_KEY=AIza...
+DATABASE_URL=postgresql://user:pass@host/db?sslmode=require

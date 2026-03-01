@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kAIxU — API Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+<style>
+:root{--bg0:#040008;--bg1:#080012;--bg2:#0d001c;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--muted:#64748b;--ink:#e2e8f0;--glass:rgba(8,4,14,.92);--border:rgba(162,67,255,.18)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100vh;overflow:hidden;background:var(--bg0);color:var(--ink);font-family:'Inter',sans-serif;font-size:13px}
+.mono{font-family:'Share Tech Mono',monospace}
+
+/* LAYOUT */
+#app{display:grid;grid-template-rows:52px 1fr;grid-template-columns:260px 1fr;height:100vh}
+header{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 16px;background:rgba(4,0,8,.95);border-bottom:1px solid var(--border);z-index:50}
+.logo-txt{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--gold);letter-spacing:.1em}
+.header-tabs{display:flex;gap:4px;margin-left:12px}
+.htab{padding:5px 14px;border-radius:8px;font-size:11px;font-family:'Share Tech Mono',monospace;letter-spacing:.08em;cursor:pointer;border:1px solid transparent;color:var(--muted);transition:all .15s}
+.htab.active,.htab:hover{color:var(--purple);border-color:rgba(162,67,255,.3);background:rgba(162,67,255,.08)}
+.hspacer{flex:1}
+.hbtn{padding:5px 14px;border-radius:8px;font-size:10px;font-family:'Share Tech Mono',monospace;letter-spacing:.08em;cursor:pointer;border:1px solid;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.hbtn-p{background:var(--purple);color:#fff;border-color:var(--purple);box-shadow:0 0 12px rgba(162,67,255,.4)}
+.hbtn-p:hover{background:var(--purple-hot)}
+.hbtn-g{color:var(--muted);border-color:rgba(255,255,255,.1);background:transparent}
+.hbtn-g:hover{color:var(--ink);border-color:rgba(255,255,255,.2)}
+
+/* SIDEBAR */
+#sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-hdr{padding:10px 12px 6px;display:flex;align-items:center;justify-content:space-between}
+.sb-title{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.sb-btn{background:rgba(162,67,255,.12);border:1px solid rgba(162,67,255,.25);border-radius:6px;padding:3px 8px;font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--purple);cursor:pointer}
+.sb-btn:hover{background:rgba(162,67,255,.2)}
+.sb-search{padding:0 10px 8px}
+.sb-search input{width:100%;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--ink);padding:5px 10px;font-size:11px;font-family:'Share Tech Mono',monospace;outline:none}
+.sb-search input:focus{border-color:var(--purple)}
+#collections{flex:1;overflow-y:auto;padding:0 8px 8px}
+.coll-group{margin-bottom:8px}
+.coll-name{font-size:10px;font-family:'Share Tech Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 6px 4px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.coll-name:hover{color:var(--ink)}
+.coll-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;cursor:pointer;transition:background .1s}
+.coll-item:hover{background:rgba(255,255,255,.05)}
+.coll-item.active{background:rgba(162,67,255,.1)}
+.method-badge{font-family:'Share Tech Mono',monospace;font-size:9px;font-weight:bold;padding:1px 5px;border-radius:4px;min-width:38px;text-align:center}
+.m-GET{background:rgba(79,255,176,.12);color:var(--green)}
+.m-POST{background:rgba(255,211,106,.12);color:var(--gold)}
+.m-PUT{background:rgba(48,224,255,.12);color:var(--cyan)}
+.m-PATCH{background:rgba(255,159,67,.12);color:var(--orange)}
+.m-DELETE{background:rgba(255,79,106,.12);color:var(--red)}
+.coll-req-name{font-size:11px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-hist-hdr{padding:8px 12px 4px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);border-top:1px solid rgba(255,255,255,.05)}
+#history-list{overflow-y:auto;max-height:160px;padding:0 8px 8px}
+
+/* MAIN */
+#main{display:flex;flex-direction:column;overflow:hidden}
+#url-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg1)}
+#method-sel{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:var(--green);padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;outline:none;min-width:90px}
+#method-sel option{background:#0c0618}
+#url-input{flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--ink);padding:6px 12px;font-family:'Share Tech Mono',monospace;font-size:12px;outline:none;transition:border-color .15s}
+#url-input:focus{border-color:var(--purple)}
+#send-btn{padding:6px 20px;background:var(--purple);border:none;border-radius:8px;color:#fff;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;cursor:pointer;box-shadow:0 0 16px rgba(162,67,255,.4);transition:all .15s;white-space:nowrap}
+#send-btn:hover{background:var(--purple-hot);transform:translateY(-1px)}
+#send-btn:disabled{background:#3a1a5a;color:#5a3a7a;cursor:not-allowed;transform:none;box-shadow:none}
+#curl-btn{padding:6px 12px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap}
+#curl-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+
+#panels{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden}
+.panel{display:flex;flex-direction:column;overflow:hidden}
+.panel:first-child{border-right:1px solid var(--border)}
+.panel-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--bg1);padding:0 12px}
+.ptab{padding:8px 14px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.08em;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:all .15s;margin-bottom:-1px}
+.ptab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.ptab:hover{color:var(--ink)}
+.panel-body{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+
+/* KV ROWS */
+.kv-row{display:grid;grid-template-columns:1fr 1fr 28px;gap:6px;align-items:center}
+.kv-row input{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:6px;color:var(--ink);padding:5px 8px;font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;width:100%}
+.kv-row input:focus{border-color:var(--purple)}
+.kv-del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px;line-height:1}
+.kv-del:hover{color:var(--red)}
+.add-row-btn{background:transparent;border:1px dashed rgba(255,255,255,.12);border-radius:6px;color:var(--muted);cursor:pointer;font-size:10px;font-family:'Share Tech Mono',monospace;padding:5px 12px;transition:all .15s;text-align:left}
+.add-row-btn:hover{border-color:var(--purple);color:var(--purple)}
+
+/* BODY EDITOR */
+.body-type-row{display:flex;gap:6px;margin-bottom:8px}
+.btype{padding:4px 10px;border-radius:6px;font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;border:1px solid rgba(255,255,255,.1);color:var(--muted);transition:all .15s}
+.btype.active{background:rgba(162,67,255,.12);border-color:rgba(162,67,255,.35);color:var(--purple)}
+#body-editor{flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--ink);padding:10px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;resize:none;line-height:1.7;min-height:120px}
+#body-editor:focus{border-color:var(--purple)}
+
+/* AUTH */
+.auth-type-row{display:flex;gap:6px;margin-bottom:10px}
+.atype{padding:4px 10px;border-radius:6px;font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;border:1px solid rgba(255,255,255,.1);color:var(--muted);transition:all .15s}
+.atype.active{background:rgba(79,255,176,.08);border-color:rgba(79,255,176,.3);color:var(--green)}
+#auth-fields{display:flex;flex-direction:column;gap:6px}
+.auth-label{font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.auth-input{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:var(--ink);padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;width:100%}
+.auth-input:focus{border-color:var(--green)}
+
+/* RESPONSE */
+#resp-status{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(0,0,0,.2);flex-shrink:0}
+.status-pill{padding:2px 10px;border-radius:20px;font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:bold}
+.s2xx{background:rgba(79,255,176,.12);color:var(--green);border:1px solid rgba(79,255,176,.3)}
+.s3xx{background:rgba(48,224,255,.1);color:var(--cyan);border:1px solid rgba(48,224,255,.25)}
+.s4xx{background:rgba(255,211,106,.1);color:var(--gold);border:1px solid rgba(255,211,106,.25)}
+.s5xx{background:rgba(255,79,106,.1);color:var(--red);border:1px solid rgba(255,79,106,.25)}
+.resp-meta{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted)}
+.resp-copy{margin-left:auto;padding:3px 10px;border-radius:6px;background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--muted);font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer}
+.resp-copy:hover{border-color:var(--purple);color:var(--purple)}
+#resp-body{flex:1;overflow:auto;padding:10px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+.json-key{color:var(--cyan)}
+.json-str{color:var(--green)}
+.json-num{color:var(--gold)}
+.json-bool{color:var(--purple)}
+.json-null{color:var(--muted)}
+.resp-placeholder{color:var(--muted);font-style:italic;text-align:center;margin:40px auto;max-width:280px;line-height:1.7}
+
+/* AI PANEL */
+#ai-strip{padding:8px 12px;border-top:1px solid var(--border);background:var(--bg1);display:flex;gap:8px;align-items:center}
+#ai-input{flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--ink);padding:6px 10px;font-size:11px;font-family:'Share Tech Mono',monospace;outline:none}
+#ai-input:focus{border-color:var(--purple)}
+#ai-send{padding:6px 14px;background:rgba(162,67,255,.12);border:1px solid rgba(162,67,255,.3);border-radius:8px;color:var(--purple);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer}
+#ai-send:hover{background:rgba(162,67,255,.2)}
+
+/* SCROLLBARS */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(162,67,255,.3);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--purple)}
+* {scrollbar-width:thin;scrollbar-color:rgba(162,67,255,.3) transparent}
+
+/* TOAST */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;padding:.6rem 1rem;border-radius:8px;font-size:11px;font-family:'Share Tech Mono',monospace;opacity:0;transform:translateY(20px);transition:all .25s;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* CURL MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:#0c0618;border:1px solid var(--border);border-radius:16px;padding:1.25rem 1.5rem;width:min(680px,92vw);max-height:80vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.modal h3{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--purple)}
+.modal textarea{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--green);padding:10px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;resize:vertical;min-height:100px;outline:none;line-height:1.7;width:100%}
+.modal textarea:focus{border-color:var(--cyan)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.mbtn{padding:6px 16px;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;border:1px solid;transition:all .15s}
+.mbtn-p{background:var(--purple);color:#fff;border-color:var(--purple)}
+.mbtn-p:hover{background:var(--purple-hot)}
+.mbtn-g{background:transparent;color:var(--muted);border-color:rgba(255,255,255,.1)}
+.mbtn-g:hover{color:var(--ink);border-color:rgba(255,255,255,.25)}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="app">
+
+<!-- HEADER -->
+<header>
+  <div class="logo-txt">kAIxU</div>
+  <span style="color:var(--muted);font-size:11px;font-family:'Share Tech Mono',monospace">/ API Playground</span>
+  <div class="header-tabs">
+    <div class="htab active" onclick="setTab('request')">Request</div>
+    <div class="htab" onclick="setTab('websocket')">WebSocket</div>
+    <div class="htab" onclick="setTab('graphql')">GraphQL</div>
+  </div>
+  <div class="hspacer"></div>
+  <button class="hbtn hbtn-g" onclick="saveRequest()">💾 Save</button>
+  <button class="hbtn hbtn-g" id="curl-import-btn" onclick="showCurlModal()">cURL</button>
+  <a href="../homelanding.html" class="hbtn hbtn-g" style="text-decoration:none">← Home</a>
+  <a href="GatewayLive.html" target="_blank" class="hbtn hbtn-g" style="color:var(--green);border-color:rgba(79,255,176,.3)">⚡ Live Smoke</a>
+</header>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-hdr">
+    <span class="sb-title">Collections</span>
+    <button class="sb-btn" onclick="newCollection()">+ New</button>
+  </div>
+  <div class="sb-search"><input type="text" placeholder="Search requests…" oninput="filterCollections(this.value)"></div>
+  <div id="collections"></div>
+  <div class="sb-hist-hdr">History</div>
+  <div id="history-list"></div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- URL BAR -->
+  <div id="url-bar">
+    <select id="method-sel" onchange="updateMethodColor()">
+      <option value="GET">GET</option>
+      <option value="POST">POST</option>
+      <option value="PUT">PUT</option>
+      <option value="PATCH">PATCH</option>
+      <option value="DELETE">DELETE</option>
+      <option value="HEAD">HEAD</option>
+      <option value="OPTIONS">OPTIONS</option>
+    </select>
+    <input id="url-input" type="text" placeholder="https://api.example.com/v1/endpoint" spellcheck="false">
+    <button id="curl-btn" onclick="showCurlModal()">cURL ↕</button>
+    <button id="send-btn" onclick="sendRequest()">▶ Send</button>
+  </div>
+
+  <!-- PANELS -->
+  <div id="panels">
+    <!-- REQUEST PANEL -->
+    <div class="panel">
+      <div class="panel-tabs">
+        <div class="ptab active" onclick="reqTab('params')">Params</div>
+        <div class="ptab" onclick="reqTab('headers')">Headers</div>
+        <div class="ptab" onclick="reqTab('body')">Body</div>
+        <div class="ptab" onclick="reqTab('auth')">Auth</div>
+      </div>
+      <div class="panel-body" id="req-body">
+        <!-- PARAMS -->
+        <div id="tab-params">
+          <div style="font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Query Parameters</div>
+          <div id="params-rows"></div>
+          <button class="add-row-btn" onclick="addKVRow('params-rows','param')">+ Add Parameter</button>
+        </div>
+        <!-- HEADERS -->
+        <div id="tab-headers" style="display:none">
+          <div style="font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Request Headers</div>
+          <div id="headers-rows"></div>
+          <button class="add-row-btn" onclick="addKVRow('headers-rows','header')">+ Add Header</button>
+        </div>
+        <!-- BODY -->
+        <div id="tab-body" style="display:none;flex-direction:column;gap:0">
+          <div class="body-type-row">
+            <div class="btype active" onclick="setBodyType('json')">JSON</div>
+            <div class="btype" onclick="setBodyType('form')">Form</div>
+            <div class="btype" onclick="setBodyType('raw')">Raw Text</div>
+            <div class="btype" onclick="setBodyType('none')">None</div>
+          </div>
+          <textarea id="body-editor" spellcheck="false" placeholder='{"key": "value"}'></textarea>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button class="add-row-btn" onclick="formatBody()">⟳ Format JSON</button>
+            <button class="add-row-btn" onclick="clearBody()">✕ Clear</button>
+          </div>
+        </div>
+        <!-- AUTH -->
+        <div id="tab-auth" style="display:none">
+          <div class="auth-type-row">
+            <div class="atype active" onclick="setAuth('bearer')">Bearer</div>
+            <div class="atype" onclick="setAuth('basic')">Basic</div>
+            <div class="atype" onclick="setAuth('apikey')">API Key</div>
+            <div class="atype" onclick="setAuth('none')">None</div>
+          </div>
+          <div id="auth-fields"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESPONSE PANEL -->
+    <div class="panel" style="flex-direction:column">
+      <div class="panel-tabs">
+        <div class="ptab active" onclick="respTab('body')">Response</div>
+        <div class="ptab" onclick="respTab('headers')">Headers</div>
+        <div class="ptab" onclick="respTab('cookies')">Cookies</div>
+      </div>
+      <div id="resp-status" style="display:none">
+        <span class="status-pill" id="resp-status-pill"></span>
+        <span class="resp-meta" id="resp-time"></span>
+        <span class="resp-meta" id="resp-size"></span>
+        <button class="resp-copy" onclick="copyResponse()">Copy</button>
+      </div>
+      <div id="resp-body">
+        <div class="resp-placeholder">
+          <div style="font-size:24px;margin-bottom:10px">🛰</div>
+          <div style="font-family:'Share Tech Mono',monospace;color:var(--muted)">Hit Send to fire the request.<br>Response appears here — raw JSON,<br>status code, timing, headers.</div>
+        </div>
+      </div>
+      <div id="resp-headers" style="display:none;flex:1;overflow:auto;padding:10px 12px">
+        <div id="resp-headers-body" style="font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.9"></div>
+      </div>
+      <div id="resp-cookies" style="display:none;flex:1;overflow:auto;padding:10px 12px">
+        <div id="resp-cookies-body" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">No cookies set by response.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI STRIP -->
+  <div id="ai-strip">
+    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">kAIxU</span>
+    <input id="ai-input" placeholder='Describe a request: "GET all users from the kAIxU API with Bearer auth"' onkeydown="if(event.key==='Enter')aiRequest()">
+    <button id="ai-send" onclick="aiRequest()">⚡ Build</button>
+  </div>
+</div>
+</div>
+
+<!-- cURL MODAL -->
+<div id="curl-modal" style="display:none" class="modal-bg" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <h3>cURL Import / Export</h3>
+    <textarea id="curl-text" spellcheck="false" placeholder="Paste a curl command to import, or copy the generated curl from below…"></textarea>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-g" onclick="exportCurl()">Export Current Request</button>
+      <button class="mbtn mbtn-p" onclick="importCurl()">Import cURL</button>
+      <button class="mbtn mbtn-g" onclick="document.getElementById('curl-modal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let lastResponse = null;
+let history = JSON.parse(localStorage.getItem('apipg-history') || '[]');
+let collections = JSON.parse(localStorage.getItem('apipg-collections') || '[]');
+let currentBodyType = 'json';
+let currentAuth = 'bearer';
+
+// Default collections
+if (!collections.length) {
+  collections = [
+    { id: 'kaixu', name: 'kAIxU Worker', reqs: [
+      { method:'GET',  url:'https://kaixusi.skyesoverlondon.workers.dev/health', name:'Health Check' },
+      { method:'POST', url:'https://kaixusi.skyesoverlondon.workers.dev/v1/chat', name:'Chat Completion', body:'{"model":"kAIxU-Brain-2.5","messages":[{"role":"user","content":"Hello!"}],"max_tokens":50}', auth:'bearer' },
+      { method:'POST', url:'https://kaixusi.skyesoverlondon.workers.dev/v1/embed', name:'Embeddings', body:'{"model":"kAIxU-Embed-1","input":"Hello world"}', auth:'bearer' },
+    ]},
+    { id: 'misc', name: 'Examples', reqs: [
+      { method:'GET',  url:'https://jsonplaceholder.typicode.com/posts/1', name:'JSONPlaceholder GET' },
+      { method:'POST', url:'https://httpbin.org/post', name:'HTTPBin POST Test', body:'{"hello":"world"}' },
+      { method:'GET',  url:'https://api.github.com/repos/skyesoverlondon-alt/Kaixu-SuperIDE', name:'GitHub Repo' },
+    ]},
+  ];
+  saveCollections();
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  renderCollections();
+  renderHistory();
+  addKVRow('params-rows', 'param');
+  addKVRow('headers-rows', 'header');
+  setAuth('bearer');
+  updateMethodColor();
+  // Load secret from sovereign brain
+  try {
+    const c = JSON.parse(localStorage.getItem('sovereign_brain_cfg') || '{}');
+    if (c.secret) document.getElementById('auth-token')?.setAttribute('placeholder', c.secret ? '(from Vault) ' + c.secret.slice(0,8)+'…' : 'Bearer token');
+  } catch {}
+});
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+function setTab(t) {
+  document.querySelectorAll('.htab').forEach(el => el.classList.toggle('active', el.textContent.toLowerCase().includes(t)));
+}
+function reqTab(t) {
+  ['params','headers','body','auth'].forEach(id => {
+    document.getElementById(`tab-${id}`).style.display = id === t ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.ptab').forEach((el,i) => {
+    const names = ['params','headers','body','auth'];
+    el.classList.toggle('active', names[i] === t);
+  });
+  if (t !== 'params' && t !== 'headers') {
+    document.getElementById(`tab-${t}`).style.flexDirection = t === 'body' ? 'column' : 'column';
+  }
+}
+function respTab(t) {
+  ['body','headers','cookies'].forEach(id => {
+    document.getElementById(`resp-${id==='body'?'body':id}`).style.display = 'none';
+  });
+  document.getElementById('resp-' + (t === 'body' ? 'body' : t)).style.display = t==='body'?'block':'block';
+  document.querySelectorAll('.panel:last-child .ptab').forEach((el,i) => {
+    el.classList.toggle('active', ['body','headers','cookies'][i] === t);
+  });
+}
+
+// ── METHOD ─────────────────────────────────────────────────────────────────
+function updateMethodColor() {
+  const sel = document.getElementById('method-sel');
+  const colors = {GET:'var(--green)',POST:'var(--gold)',PUT:'var(--cyan)',PATCH:'var(--orange)',DELETE:'var(--red)',HEAD:'var(--muted)',OPTIONS:'var(--muted)'};
+  sel.style.color = colors[sel.value] || 'var(--ink)';
+}
+
+// ── KV ROWS ────────────────────────────────────────────────────────────────
+function addKVRow(containerId, type, key='', val='') {
+  const c = document.getElementById(containerId);
+  const row = document.createElement('div');
+  row.className = 'kv-row';
+  row.innerHTML = `<input type="text" placeholder="${type==='header'?'Header':type==='param'?'Key':'Key'}" value="${key}" spellcheck="false">
+    <input type="text" placeholder="Value" value="${val}" spellcheck="false">
+    <button class="kv-del" onclick="this.parentElement.remove()">✕</button>`;
+  c.appendChild(row);
+}
+function getKVRows(containerId) {
+  const rows = {};
+  document.querySelectorAll(`#${containerId} .kv-row`).forEach(row => {
+    const [k, v] = row.querySelectorAll('input');
+    if (k.value.trim()) rows[k.value.trim()] = v.value.trim();
+  });
+  return rows;
+}
+
+// ── BODY ───────────────────────────────────────────────────────────────────
+function setBodyType(t) {
+  currentBodyType = t;
+  document.querySelectorAll('.btype').forEach(el => el.classList.toggle('active', el.textContent.toLowerCase()===t));
+  const ed = document.getElementById('body-editor');
+  const placeholders = {json:'{"key": "value"}', form:'key=value&key2=value2', raw:'Your raw body text…', none:'(no body)'};
+  ed.placeholder = placeholders[t] || '';
+  ed.disabled = t === 'none';
+  ed.style.opacity = t === 'none' ? '.3' : '1';
+}
+function formatBody() {
+  const ed = document.getElementById('body-editor');
+  try { ed.value = JSON.stringify(JSON.parse(ed.value), null, 2); toast('Formatted','ok'); }
+  catch { toast('Not valid JSON','err'); }
+}
+function clearBody() { document.getElementById('body-editor').value = ''; }
+
+// ── AUTH ───────────────────────────────────────────────────────────────────
+function setAuth(t) {
+  currentAuth = t;
+  document.querySelectorAll('.atype').forEach(el => el.classList.toggle('active', el.textContent.toLowerCase()===t));
+  const f = document.getElementById('auth-fields');
+  // Try to get secret from vault
+  let vaultSecret = '';
+  try { vaultSecret = JSON.parse(localStorage.getItem('sovereign_brain_cfg') || '{}').secret || ''; } catch {}
+  const fields = {
+    bearer: `<div class="auth-label">Bearer Token</div><input class="auth-input" id="auth-token" type="password" placeholder="Paste token or use Secrets Vault" value="${vaultSecret}">
+      <div style="font-size:9px;color:var(--muted);margin-top:4px;font-family:'Share Tech Mono',monospace">${vaultSecret?'✓ Loaded from Secrets Vault':'No token in Vault — add one in SovereignVariables'}</div>`,
+    basic: `<div class="auth-label">Username</div><input class="auth-input" id="auth-user" type="text" placeholder="username">
+      <div class="auth-label" style="margin-top:8px">Password</div><input class="auth-input" id="auth-pass" type="password" placeholder="password">`,
+    apikey: `<div class="auth-label">Header Name</div><input class="auth-input" id="auth-key-name" type="text" placeholder="X-API-Key" value="X-API-Key">
+      <div class="auth-label" style="margin-top:8px">Key Value</div><input class="auth-input" id="auth-key-val" type="password" placeholder="your-api-key">`,
+    none: `<div style="color:var(--muted);font-size:11px;font-family:'Share Tech Mono',monospace">No authentication</div>`,
+  };
+  f.innerHTML = fields[t] || '';
+}
+
+function getAuthHeaders() {
+  const h = {};
+  if (currentAuth === 'bearer') {
+    const tok = document.getElementById('auth-token')?.value;
+    if (tok) h['Authorization'] = `Bearer ${tok}`;
+  } else if (currentAuth === 'basic') {
+    const u = document.getElementById('auth-user')?.value;
+    const p = document.getElementById('auth-pass')?.value;
+    if (u) h['Authorization'] = `Basic ${btoa(u+':'+p)}`;
+  } else if (currentAuth === 'apikey') {
+    const n = document.getElementById('auth-key-name')?.value || 'X-API-Key';
+    const v = document.getElementById('auth-key-val')?.value;
+    if (v) h[n] = v;
+  }
+  return h;
+}
+
+// ── SEND ───────────────────────────────────────────────────────────────────
+async function sendRequest() {
+  const method = document.getElementById('method-sel').value;
+  let url = document.getElementById('url-input').value.trim();
+  if (!url) { toast('Enter a URL first','err'); return; }
+
+  // Append query params
+  const params = getKVRows('params-rows');
+  if (Object.keys(params).length) {
+    const u = new URL(url.startsWith('http') ? url : 'https://'+url);
+    Object.entries(params).forEach(([k,v]) => u.searchParams.set(k,v));
+    url = u.toString();
+  }
+
+  const headers = { ...getKVRows('headers-rows'), ...getAuthHeaders() };
+  if (currentBodyType === 'json' && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+
+  let body;
+  if (['POST','PUT','PATCH'].includes(method) && currentBodyType !== 'none') {
+    body = document.getElementById('body-editor').value || undefined;
+  }
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true; btn.textContent = '⏳ Sending…';
+  const t0 = Date.now();
+
+  document.getElementById('resp-status').style.display = 'none';
+  document.getElementById('resp-body').innerHTML = '<div style="padding:20px;color:var(--muted);font-family:\'Share Tech Mono\',monospace;font-size:11px">Waiting for response…</div>';
+
+  try {
+    const res = await fetch(url, { method, headers, body, mode:'cors' });
+    const ms = Date.now() - t0;
+    const text = await res.text();
+    lastResponse = { status: res.status, headers: res.headers, body: text, ms };
+    renderResponse(res, text, ms);
+    addToHistory({ method, url: document.getElementById('url-input').value, status: res.status, ms });
+  } catch (err) {
+    document.getElementById('resp-body').innerHTML = `<div style="padding:16px;font-family:'Share Tech Mono',monospace;font-size:11px"><div style="color:var(--red);margin-bottom:8px">✗ Request Failed</div><div style="color:var(--gold);word-break:break-all">${err.message}</div>${err.message.includes('CORS')||err.message.includes('fetch')?'<div style="color:var(--muted);margin-top:10px;font-size:10px">CORS error — the server must allow cross-origin requests, or use a proxy.</div>':''}</div>`;
+    toast('Request failed','err');
+  }
+  btn.disabled = false; btn.textContent = '▶ Send';
+}
+
+function renderResponse(res, text, ms) {
+  const pill = document.getElementById('resp-status-pill');
+  const status = res.status;
+  pill.textContent = `${status} ${res.statusText || ''}`;
+  pill.className = 'status-pill ' + (status < 300 ? 's2xx' : status < 400 ? 's3xx' : status < 500 ? 's4xx' : 's5xx');
+  document.getElementById('resp-time').textContent = `${ms}ms`;
+  document.getElementById('resp-size').textContent = `${(new Blob([text]).size / 1024).toFixed(1)} KB`;
+  document.getElementById('resp-status').style.display = 'flex';
+
+  // Try JSON highlight
+  const body = document.getElementById('resp-body');
+  try {
+    const j = JSON.parse(text);
+    body.innerHTML = syntaxHighlight(JSON.stringify(j, null, 2));
+  } catch {
+    body.textContent = text;
+    body.style.whiteSpace = 'pre-wrap';
+  }
+
+  // Response headers
+  const hb = document.getElementById('resp-headers-body');
+  hb.innerHTML = '';
+  res.headers.forEach((val, key) => {
+    const row = document.createElement('div');
+    row.innerHTML = `<span style="color:var(--cyan)">${key}</span>: <span style="color:var(--green)">${val}</span>`;
+    hb.appendChild(row);
+  });
+
+  toast(`${status} · ${ms}ms`, status < 400 ? 'ok' : 'err');
+}
+
+function syntaxHighlight(json) {
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+    let cls = 'json-num';
+    if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-str';
+    else if (/true|false/.test(match)) cls = 'json-bool';
+    else if (/null/.test(match)) cls = 'json-null';
+    return `<span class="${cls}">${match}</span>`;
+  });
+}
+
+function copyResponse() {
+  if (lastResponse) navigator.clipboard.writeText(lastResponse.body).then(() => toast('Copied!','ok'));
+}
+
+// ── HISTORY ────────────────────────────────────────────────────────────────
+function addToHistory(entry) {
+  history.unshift({ ...entry, ts: Date.now() });
+  if (history.length > 50) history = history.slice(0, 50);
+  localStorage.setItem('apipg-history', JSON.stringify(history));
+  renderHistory();
+}
+function renderHistory() {
+  const c = document.getElementById('history-list');
+  c.innerHTML = history.slice(0,10).map((h,i) => `
+    <div class="coll-item" onclick="loadHistory(${i})" title="${h.url}">
+      <span class="method-badge m-${h.method}">${h.method}</span>
+      <span class="coll-req-name" style="font-size:10px">${new URL(h.url.startsWith('http')?h.url:'https://'+h.url).pathname}</span>
+      <span style="margin-left:auto;font-size:9px;font-family:'Share Tech Mono',monospace;color:${h.status<400?'var(--green)':'var(--red)'}">${h.status}</span>
+    </div>`).join('');
+}
+function loadHistory(i) {
+  const h = history[i];
+  document.getElementById('method-sel').value = h.method;
+  document.getElementById('url-input').value = h.url;
+  updateMethodColor();
+}
+
+// ── COLLECTIONS ────────────────────────────────────────────────────────────
+function renderCollections(filter = '') {
+  const c = document.getElementById('collections');
+  c.innerHTML = collections.map(coll => `
+    <div class="coll-group">
+      <div class="coll-name">▾ ${coll.name}</div>
+      ${coll.reqs.filter(r => !filter || r.name.toLowerCase().includes(filter) || r.url.toLowerCase().includes(filter)).map(r => `
+        <div class="coll-item" onclick='loadRequest(${JSON.stringify(r)})'>
+          <span class="method-badge m-${r.method}">${r.method}</span>
+          <span class="coll-req-name">${r.name}</span>
+        </div>`).join('')}
+    </div>`).join('');
+}
+function filterCollections(v) { renderCollections(v.toLowerCase()); }
+function saveCollections() { localStorage.setItem('apipg-collections', JSON.stringify(collections)); }
+function loadRequest(r) {
+  document.getElementById('method-sel').value = r.method;
+  document.getElementById('url-input').value = r.url;
+  updateMethodColor();
+  if (r.body) { reqTab('body'); document.getElementById('body-editor').value = r.body; }
+  if (r.auth) setAuth(r.auth);
+}
+function newCollection() {
+  const name = prompt('Collection name:');
+  if (name) { collections.push({ id: Date.now()+'', name, reqs:[] }); saveCollections(); renderCollections(); toast('Collection created','ok'); }
+}
+function saveRequest() {
+  const name = prompt('Request name:');
+  if (!name) return;
+  const collName = prompt(`Collection: ${collections.map((c,i)=>i+'. '+c.name).join(', ')}\nEnter collection name:`) || collections[0]?.name;
+  const coll = collections.find(c => c.name === collName) || collections[0];
+  if (!coll) { toast('No collection found','err'); return; }
+  coll.reqs.push({ method: document.getElementById('method-sel').value, url: document.getElementById('url-input').value, name, body: document.getElementById('body-editor').value });
+  saveCollections(); renderCollections(); toast('Saved!','ok');
+}
+
+// ── cURL ───────────────────────────────────────────────────────────────────
+function showCurlModal() {
+  const modal = document.getElementById('curl-modal');
+  modal.style.display = 'flex';
+  exportCurl();
+}
+function exportCurl() {
+  const method = document.getElementById('method-sel').value;
+  const url = document.getElementById('url-input').value;
+  const headers = { ...getKVRows('headers-rows'), ...getAuthHeaders() };
+  const body = document.getElementById('body-editor').value;
+  let curl = `curl -X ${method} '${url}'`;
+  Object.entries(headers).forEach(([k,v]) => curl += ` \\\n  -H '${k}: ${v}'`);
+  if (body && ['POST','PUT','PATCH'].includes(method)) curl += ` \\\n  -d '${body.replace(/'/g,"'\\''")}'`;
+  document.getElementById('curl-text').value = curl;
+}
+function importCurl() {
+  const text = document.getElementById('curl-text').value.trim();
+  try {
+    const urlMatch = text.match(/curl\s+(?:-X\s+\w+\s+)?['"]?([^\s'"\\]+)['"]?/);
+    const methodMatch = text.match(/-X\s+(\w+)/);
+    const headerMatches = [...text.matchAll(/-H\s+'([^']+)'/g)];
+    const bodyMatch = text.match(/-d\s+'([^']+)'/);
+    if (urlMatch) document.getElementById('url-input').value = urlMatch[1];
+    if (methodMatch) { document.getElementById('method-sel').value = methodMatch[1]; updateMethodColor(); }
+    if (bodyMatch) { reqTab('body'); document.getElementById('body-editor').value = bodyMatch[1]; }
+    headerMatches.forEach(m => {
+      const [k,v] = m[1].split(':').map(s=>s.trim());
+      if (k.toLowerCase() === 'authorization' && v.toLowerCase().startsWith('bearer ')) {
+        setAuth('bearer');
+        setTimeout(() => { if(document.getElementById('auth-token')) document.getElementById('auth-token').value = v.slice(7); }, 50);
+      } else {
+        addKVRow('headers-rows','header',k,v);
+      }
+    });
+    document.getElementById('curl-modal').style.display = 'none';
+    toast('cURL imported','ok');
+  } catch(e) { toast('Could not parse cURL','err'); }
+}
+
+// ── AI ─────────────────────────────────────────────────────────────────────
+async function aiRequest() {
+  const q = document.getElementById('ai-input').value.trim();
+  if (!q) return;
+  try {
+    const c = JSON.parse(localStorage.getItem('sovereign_brain_cfg') || '{}');
+    if (!c.url || !c.secret) { toast('Configure kAIxU in Secrets Vault','warn'); return; }
+    const r = await fetch(`${c.url}/v1/chat`, {
+      method:'POST',
+      headers:{'Authorization':`Bearer ${c.secret}`,'Content-Type':'application/json'},
+      body: JSON.stringify({ provider:'kaixu', model:'kAIxU-Brain-2.5', messages:[{role:'user',content:`You are an API request builder. Given this request: "${q}"
+Respond with ONLY a JSON object with these fields:
+{ "method":"POST", "url":"https://example.com/api", "headers":{"Content-Type":"application/json"}, "body":"{}", "auth":"bearer" }
+No explanation. Only the JSON object.`}], max_tokens:300 })
+    });
+    const d = await r.json();
+    const parsed = JSON.parse(d.output_text?.match(/\{[\s\S]*\}/)?.[0] || '{}');
+    if (parsed.method) document.getElementById('method-sel').value = parsed.method;
+    if (parsed.url) document.getElementById('url-input').value = parsed.url;
+    if (parsed.body) { reqTab('body'); document.getElementById('body-editor').value = parsed.body; }
+    if (parsed.auth) setAuth(parsed.auth);
+    updateMethodColor();
+    document.getElementById('ai-input').value = '';
+    toast('Request built by AI','ok');
+  } catch(e) { toast('AI error: '+e.message,'err'); }
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  const s = {ok:'rgba(79,255,176,.1);border:1px solid rgba(79,255,176,.3);color:var(--green)',warn:'rgba(255,211,106,.1);border:1px solid rgba(255,211,106,.3);color:var(--gold)',err:'rgba(255,79,106,.1);border:1px solid rgba(255,79,106,.3);color:var(--red)'};
+  el.style.cssText = `background:${s[type]||s.ok};padding:.6rem 1rem;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:11px;position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;transition:all .25s;opacity:1;transform:translateY(0)`;
+  el.textContent = msg; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity='0', 2800);
+}
+</script>
+</body>
+</html>

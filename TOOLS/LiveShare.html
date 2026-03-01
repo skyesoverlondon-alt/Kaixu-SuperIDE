@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Live Share</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--bg3:#1e0040;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg0);color:var(--fg);font-family:'Inter',sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  .hdr{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid #2a0050;flex-shrink:0;}
+  .hdr-title{font-weight:700;font-size:15px;color:var(--purple-hot);}
+  .hdr-sub{color:#8060a0;font-size:11px;}
+  .hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .btn{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:all .15s;}
+  .btn-purple{background:rgba(162,67,255,.15);color:var(--purple);border:1px solid rgba(162,67,255,.3);}
+  .btn-purple:hover{background:rgba(162,67,255,.25);}
+  .btn-hot{background:rgba(209,48,255,.15);color:var(--purple-hot);border:1px solid rgba(209,48,255,.35);}
+  .btn-hot:hover{background:rgba(209,48,255,.28);box-shadow:0 0 12px rgba(209,48,255,.35);}
+  .btn-green{background:rgba(79,255,176,.15);color:var(--green);border:1px solid rgba(79,255,176,.3);}
+  .btn-green:hover{background:rgba(79,255,176,.25);}
+  .btn-red{background:rgba(255,79,106,.12);color:var(--red);border:1px solid rgba(255,79,106,.3);}
+  .btn-red:hover{background:rgba(255,79,106,.22);}
+  .btn-cyan{background:rgba(48,224,255,.12);color:var(--cyan);border:1px solid rgba(48,224,255,.3);}
+  .btn-cyan:hover{background:rgba(48,224,255,.22);}
+  .btn-gold{background:rgba(255,211,106,.12);color:var(--gold);border:1px solid rgba(255,211,106,.3);}
+  .btn-gold:hover{background:rgba(255,211,106,.22);}
+  .btn-sm{padding:3px 9px;font-size:11px;}
+  .layout{display:flex;flex:1;overflow:hidden;}
+
+  /* SESSION PANEL */
+  .session-pane{width:240px;background:var(--bg1);border-right:1px solid #2a0050;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+  .pane-sec{padding:10px 12px;border-bottom:1px solid #1a0030;}
+  .pane-sec-label{font-size:10px;font-weight:700;color:#6040a0;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+
+  /* PARTICIPANTS */
+  .participant{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #0d001a;}
+  .participant:last-child{border-bottom:none;}
+  .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;border:2px solid transparent;}
+  .p-name{flex:1;font-size:12px;font-weight:600;}
+  .p-role{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;}
+  .role-host{background:rgba(255,211,106,.12);color:var(--gold);}
+  .role-guest{background:rgba(162,67,255,.1);color:var(--purple);}
+  .role-readonly{background:rgba(128,96,160,.1);color:#8060a0;}
+  .p-cursor{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .follow-btn{padding:2px 6px;border-radius:3px;background:rgba(162,67,255,.1);color:var(--purple);border:1px solid rgba(162,67,255,.2);cursor:pointer;font-size:9px;font-family:inherit;}
+  .follow-btn:hover{background:rgba(162,67,255,.2);}
+  .follow-btn.active{background:var(--purple);color:#fff;}
+
+  /* SESSION LINK */
+  .link-box{background:var(--bg2);border-radius:4px;padding:8px;border:1px solid #2a0050;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan);word-break:break-all;line-height:1.4;cursor:pointer;}
+  .link-box:hover{border-color:var(--purple);}
+  .link-hint{font-size:9px;color:#5040a0;margin-top:4px;}
+
+  /* VOICE */
+  .voice-row{display:flex;align-items:center;gap:6px;}
+  .voice-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;}
+  .voice-dot.on{background:var(--green);animation:pulse 1.5s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .mute-btn{padding:3px 8px;border-radius:3px;background:rgba(255,79,106,.1);color:var(--red);border:1px solid rgba(255,79,106,.2);cursor:pointer;font-size:10px;font-family:inherit;}
+  .mute-btn.muted{background:rgba(128,96,160,.1);color:#8060a0;border-color:#3a0060;}
+
+  /* MAIN EDITOR AREA */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .editor-tabs{display:flex;background:var(--bg1);border-bottom:1px solid #1a0030;padding:0 8px;flex-shrink:0;overflow-x:auto;}
+  .editor-tab{padding:7px 14px;font-size:11px;cursor:pointer;border-bottom:2px solid transparent;color:#6040a0;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+  .editor-tab:hover{color:var(--fg);}
+  .editor-tab.active{color:var(--fg);border-bottom-color:var(--purple-hot);}
+  .file-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);}
+
+  /* CODE EDITOR AREA */
+  .editor-wrap{flex:1;display:flex;overflow:hidden;position:relative;}
+  .gutter{width:48px;background:var(--bg1);border-right:1px solid #1a0030;font-family:'Share Tech Mono',monospace;font-size:12px;line-height:20px;color:#3a0060;padding:10px 6px 10px 0;text-align:right;user-select:none;overflow:hidden;flex-shrink:0;}
+  .code-area{flex:1;position:relative;overflow:auto;}
+  .code-area::-webkit-scrollbar{width:6px;height:6px;}
+  .code-area::-webkit-scrollbar-thumb{background:#2a0050;}
+  .code-content{font-family:'Share Tech Mono',monospace;font-size:12px;line-height:20px;padding:10px 14px;white-space:pre;color:var(--fg);outline:none;min-height:100%;cursor:text;}
+  /* live cursors */
+  .live-cursor{position:absolute;width:2px;pointer-events:none;z-index:10;transition:top .1s,left .1s;}
+  .cursor-bar{width:2px;height:20px;}
+  .cursor-label{font-size:9px;font-weight:700;white-space:nowrap;padding:1px 4px;border-radius:2px;margin-top:2px;}
+
+  /* CHAT */
+  .chat-pane{width:220px;border-left:1px solid #2a0050;background:var(--bg1);display:flex;flex-direction:column;overflow:hidden;}
+  .chat-messages{flex:1;overflow-y:auto;padding:8px 10px;}
+  .chat-messages::-webkit-scrollbar{width:3px;}
+  .chat-messages::-webkit-scrollbar-thumb{background:#3a0060;}
+  .msg{margin-bottom:8px;}
+  .msg-name{font-size:9px;font-weight:700;margin-bottom:2px;}
+  .msg-body{font-size:11px;color:#c0b0d0;line-height:1.4;background:var(--bg2);padding:5px 8px;border-radius:4px;}
+  .msg-body.system{color:#7050a0;background:transparent;font-style:italic;font-size:10px;}
+  .msg-ts{font-size:9px;color:#4030a0;margin-top:2px;}
+  .chat-input-row{display:flex;gap:6px;padding:8px;border-top:1px solid #1a0030;flex-shrink:0;}
+  .chat-input{flex:1;background:var(--bg2);border:1px solid #3a0060;border-radius:4px;color:var(--fg);padding:5px 8px;font-family:inherit;font-size:11px;}
+  .chat-input:focus{outline:none;border-color:var(--purple);}
+  .chat-send{padding:5px 8px;border-radius:4px;background:rgba(162,67,255,.15);color:var(--purple);border:1px solid rgba(162,67,255,.3);cursor:pointer;font-family:inherit;font-size:11px;}
+
+  /* STATUS BAR */
+  .status-bar{padding:3px 14px;background:#060010;border-top:1px solid #1a0030;display:flex;gap:16px;font-size:10px;color:#5040a0;flex-shrink:0;align-items:center;}
+  .status-bar span b{color:var(--fg);}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--bg1);border:1px solid var(--purple);border-radius:10px;width:460px;padding:24px;text-align:center;}
+  .modal h3{font-size:18px;font-weight:800;color:var(--purple-hot);margin-bottom:8px;}
+  .modal p{font-size:12px;color:#8060a0;line-height:1.6;margin-bottom:16px;}
+  .modal-url{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--cyan);background:var(--bg2);padding:10px 14px;border-radius:5px;border:1px solid #2a0050;margin-bottom:14px;word-break:break-all;}
+  .modal-btns{display:flex;gap:8px;justify-content:center;}
+
+  /* SYNTAX HIGHLIGHT COLORS */
+  .kw{color:#c084fc;}.fn{color:var(--cyan);}.str{color:var(--green);}.cm{color:#5040a0;font-style:italic;}.num{color:var(--gold);}.op{color:var(--purple-hot);}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="font-size:20px;">👥</div>
+  <div>
+    <div class="hdr-title">Live Share</div>
+    <div class="hdr-sub">Real-time multiplayer editing · WebRTC cursors · Voice channel</div>
+  </div>
+  <div class="hdr-right">
+    <span id="sessionBadge" style="font-size:11px;color:var(--purple);">● Session active</span>
+    <button class="btn btn-hot btn-sm" onclick="openShareModal()">🔗 Share session</button>
+    <button class="btn btn-red btn-sm" onclick="endSession()">End session</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SESSION PANEL -->
+  <div class="session-pane">
+    <!-- PARTICIPANTS -->
+    <div class="pane-sec">
+      <div class="pane-sec-label">Participants (<span id="participantCount">0</span>)</div>
+      <div id="participantList"></div>
+    </div>
+
+    <!-- VOICE -->
+    <div class="pane-sec">
+      <div class="pane-sec-label">Voice Channel</div>
+      <div class="voice-row" style="margin-bottom:8px;">
+        <div class="voice-dot on" id="voiceDot"></div>
+        <span style="font-size:11px;" id="voiceLabel">Connected — 3 in channel</span>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🎤 Mute</button>
+        <button class="btn btn-red btn-sm" onclick="leaveVoice()">Leave</button>
+      </div>
+    </div>
+
+    <!-- SESSION INFO -->
+    <div class="pane-sec">
+      <div class="pane-sec-label">Session Link</div>
+      <div class="link-box" onclick="copySessionLink()" id="sessionLink">kaixu.app/live/abc123def456</div>
+      <div class="link-hint">Click to copy · expires in 24h</div>
+    </div>
+
+    <!-- SESSION CONTROLS -->
+    <div class="pane-sec">
+      <div class="pane-sec-label">Controls</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
+          <input type="checkbox" id="followMode" style="accent-color:var(--purple);"/> Follow host viewport
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
+          <input type="checkbox" id="readonlyMode" style="accent-color:var(--purple);"/> Read-only for guests
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;">
+          <input type="checkbox" id="sharedTerminal" checked style="accent-color:var(--purple);"/> Shared terminal
+        </label>
+      </div>
+    </div>
+
+    <!-- AI OBSERVER -->
+    <div class="pane-sec" style="flex:1;">
+      <div class="pane-sec-label">kAIxU Observer</div>
+      <div style="font-size:10px;color:#6040a0;line-height:1.5;margin-bottom:8px;">AI watches the session. Mention <span style="color:var(--purple-hot);">@kAIxU</span> in chat to ask for help.</div>
+      <button class="btn btn-hot btn-sm" style="width:100%;" onclick="askAI()">✦ Ask kAIxU</button>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="main">
+    <div class="editor-tabs" id="editorTabs">
+      <div class="editor-tab active">
+        <span class="file-dot"></span>
+        src/api/routes.ts
+      </div>
+      <div class="editor-tab">src/auth/auth.ts</div>
+      <div class="editor-tab">src/db/queries.ts</div>
+      <div class="editor-tab">+ Open</div>
+    </div>
+    <div class="editor-wrap">
+      <div class="gutter" id="gutter"></div>
+      <div class="code-area" id="codeArea">
+        <div class="code-content" id="codeContent" contenteditable="true" spellcheck="false" onkeyup="onEdit()" onmouseup="onCursorMove()"></div>
+        <!-- live cursors rendered here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-pane">
+    <div style="padding:8px 10px;border-bottom:1px solid #1a0030;font-size:10px;font-weight:700;color:#6040a0;text-transform:uppercase;letter-spacing:.08em;">Session Chat</div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" placeholder="Message… @kAIxU for AI" onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button class="chat-send" onclick="sendChat()">↑</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span>Session: <b id="sessionId">abc123def456</b></span>
+  <span>Participants: <b id="sbPart">0</b></span>
+  <span>Latency: <b id="sbLatency" style="color:var(--green);">12ms</b></span>
+  <span>Edits synced: <b id="sbEdits">0</b></span>
+  <span style="margin-left:auto;font-size:10px;color:var(--purple);" id="syncIndicator">● In sync</span>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <h3>🔗 Share Session</h3>
+    <p>Anyone with this link can join your coding session.<br/>Set them as read-only from the participants panel.</p>
+    <div class="modal-url" id="modalUrl">https://kaixu.app/live/abc123def456</div>
+    <div class="modal-btns">
+      <button class="btn btn-purple" onclick="copyModalLink()">📋 Copy Link</button>
+      <button class="btn btn-gold btn-sm" onclick="regenerateLink()">↻ New Link</button>
+      <button class="btn btn-sm" style="background:#1a0030;color:#8060a0;" onclick="closeShareModal()">Close</button>
+    </div>
+    <div style="margin-top:14px;font-size:10px;color:#5040a0;">Link expires in 24 hours · requires kAIxU account to join</div>
+  </div>
+</div>
+
+<script>
+const PARTICIPANTS=[
+  {id:'me',name:'You',initials:'YO',color:'#d130ff',role:'host',online:true,muted:false},
+  {id:'p2',name:'Alex Kim',initials:'AK',color:'#30e0ff',role:'guest',online:true,muted:false},
+  {id:'p3',name:'Sam Rivera',initials:'SR',color:'#4fffb0',role:'guest',online:true,muted:true},
+  {id:'p4',name:'Jo Chen',initials:'JC',color:'#ffd36a',role:'readonly',online:false,muted:true},
+];
+
+const DEMO_CODE=`import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { authMiddleware } from './auth/auth';
+import { db } from './db/queries';
+
+const app = new Hono();
+
+// CORS — allow kAIxU origins only
+app.use('*', cors({
+  origin: ['https://kaixu.app', 'https://kaixusi.skyesoverlondon.workers.dev'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
+
+// Health — no auth required
+app.get('/health', (c) => {
+  return c.json({ status: 'ok', brain: 'KaixuSI', version: '1.0.0', ts: new Date().toISOString() });
+});
+
+// Auth guard
+app.use('/v1/*', authMiddleware);
+
+// Chat completion
+app.post('/v1/chat', async (c) => {
+  const body = await c.req.json();
+  const { messages, max_tokens = 1024, app_id } = body;
+  
+  const result = await db.logUsage({ app_id, tokens: max_tokens });
+  const response = await callLLM({ messages, max_tokens });
+  
+  return c.json({
+    output_text: response.text,
+    usage: { output_tokens: response.tokens },
+  });
+});
+
+// Streaming
+app.post('/v1/stream', async (c) => {
+  const body = await c.req.json();
+  // Returns SSE stream
+  return streamSSE(c, body);
+});
+
+export default app;`;
+
+const DEMO_MESSAGES=[
+  {user:'System',color:null,text:'Session started — 3 participants joined',system:true,ts:'16:45'},
+  {user:'Alex Kim',color:'#30e0ff',text:'hey! looking at the stream endpoint — should we add retry logic?',ts:'16:46'},
+  {user:'You',color:'#d130ff',text:'yeah good call. i was thinking exponential backoff',ts:'16:47'},
+  {user:'Sam Rivera',color:'#4fffb0',text:'@kAIxU what\'s the best pattern for SSE retry in Hono?',ts:'16:48'},
+  {user:'kAIxU',color:'#a243ff',text:'For SSE retry in Hono, use the streamSSE helper with a retry interval. Set retry: 3000 in the initial event so clients auto-reconnect every 3s. Wrap the generator in try/catch and emit an error event before closing.',ts:'16:48'},
+];
+
+let editCount=0;
+let muted=false;
+let followingId=null;
+let sessionLink='kaixu.app/live/abc123def456';
+
+// Fake cursor positions (line, col) for demo
+let cursors={
+  p2:{line:8,col:30,name:'Alex Kim',color:'#30e0ff'},
+  p3:{line:21,col:15,name:'Sam Rivera',color:'#4fffb0'},
+};
+
+function init(){
+  renderCode();
+  renderParticipants();
+  renderChat();
+  animateCursors();
+  updateSB();
+  // simulate latency jitter
+  setInterval(()=>{
+    document.getElementById('sbLatency').textContent=`${8+Math.floor(Math.random()*20)}ms`;
+  },3000);
+  // simulate remote edits
+  setInterval(simulateRemoteEdit, 8000);
+}
+
+function renderCode(){
+  const lines=DEMO_CODE.split('\n');
+  document.getElementById('codeContent').innerHTML=lines.map(l=>highlight(l)).join('\n');
+  const gutter=document.getElementById('gutter');
+  gutter.innerHTML=lines.map((_,i)=>`${i+1}`).join('\n');
+}
+
+function highlight(line){
+  return line
+    .replace(/\b(import|from|const|let|var|async|await|return|export|default|new|if|else|use|function)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b(app|cors|authMiddleware|db|Hono|body|result|response|c|callLLM|streamSSE|logUsage)\b/g,'<span class="fn">$1</span>')
+    .replace(/'([^']*)'/g,'<span class="str">\'$1\'</span>')
+    .replace(/"([^"]*)"/g,'<span class="str">"$1"</span>')
+    .replace(/\/\/.*/g,'<span class="cm">$&</span>')
+    .replace(/\b(\d+)\b/g,'<span class="num">$1</span>');
+}
+
+function renderParticipants(){
+  const el=document.getElementById('participantList');
+  el.innerHTML=PARTICIPANTS.map(p=>`
+    <div class="participant">
+      <div class="avatar" style="background:${p.color}22;border-color:${p.color};color:${p.color};">${p.initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="p-name" style="color:${p.online?'var(--fg)':'#5040a0'}">${p.name}</div>
+        <span class="p-role ${p.role==='host'?'role-host':p.role==='guest'?'role-guest':'role-readonly'}">${p.role}</span>
+        ${p.muted?'<span style="font-size:9px;color:#5040a0;margin-left:4px;">🔇</span>':''}
+      </div>
+      <div class="p-cursor" style="background:${p.online?p.color:'#3a0060'};${p.online?`box-shadow:0 0 5px ${p.color}60;`:''}"></div>
+      ${p.id!=='me'&&p.online?`<button class="follow-btn${followingId===p.id?' active':''}" onclick="followUser('${p.id}')">👁</button>`:''}
+    </div>`).join('');
+  document.getElementById('participantCount').textContent=PARTICIPANTS.filter(p=>p.online).length;
+  document.getElementById('sbPart').textContent=PARTICIPANTS.filter(p=>p.online).length;
+}
+
+function animateCursors(){
+  // Clear old cursors
+  document.querySelectorAll('.live-cursor').forEach(e=>e.remove());
+  const area=document.getElementById('codeArea');
+  Object.entries(cursors).forEach(([id,cur])=>{
+    const el=document.createElement('div');
+    el.className='live-cursor';
+    el.id=`cursor-${id}`;
+    const top=10+cur.line*20;
+    const left=62+cur.col*7.2;
+    el.style.cssText=`top:${top}px;left:${left}px;`;
+    el.innerHTML=`<div class="cursor-bar" style="background:${cur.color};box-shadow:0 0 4px ${cur.color};"></div>
+      <div class="cursor-label" style="background:${cur.color};color:#000;">${cur.name.split(' ')[0]}</div>`;
+    area.appendChild(el);
+  });
+}
+
+function simulateRemoteEdit(){
+  // move cursor2 randomly
+  cursors.p2.line=Math.floor(3+Math.random()*25);
+  cursors.p2.col=Math.floor(Math.random()*40);
+  animateCursors();
+  // show typing indicator in chat briefly
+  showTyping('Alex Kim','#30e0ff');
+  editCount++;
+  document.getElementById('sbEdits').textContent=editCount;
+  flashSync();
+}
+
+function flashSync(){
+  const si=document.getElementById('syncIndicator');
+  si.textContent='⟳ Syncing…'; si.style.color='var(--gold)';
+  setTimeout(()=>{ si.textContent='● In sync'; si.style.color='var(--purple)'; },600);
+}
+
+function showTyping(name,color){
+  const msg=addChatMsg(name,color,'…',false,true);
+  setTimeout(()=>msg.remove(),1800);
+}
+
+function followUser(id){
+  followingId=followingId===id?null:id;
+  renderParticipants();
+  setStatus(followingId?`Following ${PARTICIPANTS.find(p=>p.id===id)?.name}`:'Follow mode off');
+}
+
+function renderChat(){
+  const el=document.getElementById('chatMessages');
+  DEMO_MESSAGES.forEach(m=>addChatMsg(m.user,m.color,m.text,m.system,false,m.ts));
+}
+
+function addChatMsg(user,color,text,system,typing,ts){
+  const el=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className='msg';
+  const time=ts||new Date().toTimeString().slice(0,5);
+  if(system){
+    div.innerHTML=`<div class="msg-body system">${text}</div>`;
+  } else {
+    div.innerHTML=`<div class="msg-name" style="color:${color||'var(--fg)'};">${user}</div>
+      <div class="msg-body${typing?' italic':''}">${text}</div>
+      <div class="msg-ts">${time}</div>`;
+  }
+  el.appendChild(div);
+  el.scrollTop=el.scrollHeight;
+  return div;
+}
+
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim(); if(!text) return;
+  input.value='';
+  addChatMsg('You','#d130ff',text,false,false);
+  // AI trigger
+  if(text.toLowerCase().includes('@kaixu')){
+    const token=getToken();
+    if(!token){ addChatMsg('kAIxU','#a243ff','No gateway token configured.',false,false); return; }
+    addChatMsg('kAIxU','#a243ff','✦ thinking…',false,true);
+    try{
+      const r=await fetch('https://kaixusi.skyesoverlondon.workers.dev/v1/chat',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+        body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:text.replace(/@kAIxU/gi,'').trim()||'How can I help?'}],max_tokens:300,app_id:'kaixu-liveshare'})
+      });
+      const d=await r.json();
+      addChatMsg('kAIxU','#a243ff',d.output_text||JSON.stringify(d),false,false);
+    }catch(e){ addChatMsg('kAIxU','#a243ff',`Error: ${e.message}`,false,false); }
+  }
+}
+
+function onEdit(){ editCount++; document.getElementById('sbEdits').textContent=editCount; flashSync(); }
+function onCursorMove(){ /* would broadcast via WebRTC */ }
+function toggleMute(){
+  muted=!muted;
+  const btn=document.getElementById('muteBtn');
+  btn.textContent=muted?'🔇 Unmute':'🎤 Mute';
+  btn.className=muted?'mute-btn muted':'mute-btn';
+  document.getElementById('voiceDot').className=muted?'voice-dot':'voice-dot on';
+}
+function leaveVoice(){ document.getElementById('voiceLabel').textContent='Not connected'; document.getElementById('voiceDot').className='voice-dot'; }
+async function askAI(){ document.getElementById('chatInput').value='@kAIxU '; document.getElementById('chatInput').focus(); }
+function openShareModal(){ document.getElementById('shareModal').classList.remove('hidden'); }
+function closeShareModal(){ document.getElementById('shareModal').classList.add('hidden'); }
+function copyModalLink(){ navigator.clipboard?.writeText('https://'+sessionLink).catch(()=>{}); setStatus('Link copied!'); }
+function copySessionLink(){ copyModalLink(); }
+function regenerateLink(){
+  sessionLink='kaixu.app/live/'+Math.random().toString(36).slice(2,14);
+  document.getElementById('sessionLink').textContent=sessionLink;
+  document.getElementById('modalUrl').textContent='https://'+sessionLink;
+  setStatus('New link generated');
+}
+function endSession(){
+  addChatMsg(null,null,'Session ended by host',true,false);
+  document.getElementById('sessionBadge').textContent='● Session ended';
+  document.getElementById('sessionBadge').style.color='var(--red)';
+  setStatus('Session ended');
+}
+function updateSB(){ document.getElementById('sbPart').textContent=PARTICIPANTS.filter(p=>p.online).length; }
+function getToken(){ try{return JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token||'';}catch(e){return '';} }
+function setStatus(msg){ /* status bar not in this layout — show in chat */ }
+
+init();
+</script>
+</body>
+</html>

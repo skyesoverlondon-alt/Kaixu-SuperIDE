@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Billing Dash</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--line:#2a0050;--purple:#a243ff;--hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0}
+*{box-sizing:border-box;margin:0;padding:0} body{font-family:Inter,sans-serif;background:var(--bg0);color:var(--fg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid var(--line)} .h h1{font-size:15px;color:var(--gold)} .h p{font-size:11px;color:#8673a8}
+.r{margin-left:auto;display:flex;gap:8px}.b{padding:5px 11px;border-radius:5px;border:1px solid #ffffff22;background:#1a0030;color:#c7b8df;font-size:12px;cursor:pointer}.b:hover{filter:brightness(1.08)}
+.b.gold{border-color:#ffd36a66;color:var(--gold);background:#ffd36a1a}.b.green{border-color:#4fffb066;color:var(--green);background:#4fffb01a}.b.purple{border-color:#a243ff66;color:var(--purple);background:#a243ff1a}
+.main{display:grid;grid-template-columns:1.3fr .9fr;gap:10px;padding:10px;flex:1;overflow:hidden} .col{overflow:auto}.col::-webkit-scrollbar{width:5px}.col::-webkit-scrollbar-thumb{background:#3a0060}
+.card{background:var(--bg1);border:1px solid #1a0030;border-radius:8px;padding:12px;margin-bottom:10px}.title{font-size:10px;color:#705f98;text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:10px;text-align:center}
+.kpi .v{font-size:22px;font-family:'Share Tech Mono',monospace;font-weight:700}.kpi .l{font-size:9px;color:#8172a5;text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.bar{height:8px;border-radius:4px;background:#1f0037;overflow:hidden}.fill{height:100%;border-radius:4px}
+.row{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin:7px 0;color:#cdbde4}
+.tbl{width:100%;border-collapse:collapse} .tbl th{font-size:10px;color:#6e5d92;text-align:left;padding:5px;border-bottom:1px solid #2a0050;text-transform:uppercase} .tbl td{padding:7px 5px;border-bottom:1px solid #120024;font-size:11px}
+.badge{font-size:10px;padding:2px 6px;border-radius:3px}.ok{background:#4fffb022;color:var(--green)}.warn{background:#ffd36a22;color:var(--gold)}.bad{background:#ff4f6a22;color:var(--red)}
+.input{width:100%;padding:7px 9px;border-radius:5px;border:1px solid #3a0060;background:var(--bg2);color:var(--fg);font-size:12px} .input:focus{outline:none;border-color:var(--purple)}
+pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;color:#d7cbe8;max-height:160px;overflow:auto}
+.f{padding:3px 12px;background:#060010;border-top:1px solid #1a0030;font-size:10px;color:#615287;display:flex;gap:14px}.f b{color:#e2d7f0}
+</style>
+</head>
+<body>
+<div class="h"><div style="font-size:18px">💳</div><div><h1>Billing Dash</h1><p>kAIxU plan usage + Stripe business metrics in one place</p></div><div class="r"><button class="b gold" onclick="upgrade()">⬆ Upgrade plan</button><button class="b green" onclick="refreshData()">↻ Refresh</button><button class="b purple" onclick="aiInsight()">✦ AI spend insight</button></div></div>
+<div class="main">
+  <section class="col">
+    <div class="card"><div class="title">Plan Snapshot</div>
+      <div class="grid">
+        <div class="kpi"><div class="v" style="color:var(--cyan)">Pro</div><div class="l">Current Plan</div></div>
+        <div class="kpi"><div class="v" style="color:var(--purple)">23</div><div class="l">Seats</div></div>
+        <div class="kpi"><div class="v" style="color:var(--gold)">74%</div><div class="l">AI Cap Used</div></div>
+        <div class="kpi"><div class="v" style="color:var(--green)">1.9TB</div><div class="l">Storage</div></div>
+      </div>
+    </div>
+
+    <div class="card"><div class="title">Usage Breakdown</div>
+      <div class="row"><span>AI Tokens</span><span>740k / 1M</span></div><div class="bar"><div class="fill" style="width:74%;background:linear-gradient(90deg,#a243ff,#d130ff)"></div></div>
+      <div class="row"><span>Storage</span><span>1.9TB / 3TB</span></div><div class="bar"><div class="fill" style="width:63%;background:linear-gradient(90deg,#30e0ff,#4fffb0)"></div></div>
+      <div class="row"><span>Build Minutes</span><span>9,420 / 12,000</span></div><div class="bar"><div class="fill" style="width:78%;background:linear-gradient(90deg,#ffd36a,#ff9f43)"></div></div>
+      <div class="row"><span>Monthly Spend</span><span>$4,860 / $6,500 budget</span></div><div class="bar"><div class="fill" style="width:75%;background:linear-gradient(90deg,#ff9f43,#ff4f6a)"></div></div>
+    </div>
+
+    <div class="card"><div class="title">Stripe Revenue</div>
+      <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi"><div class="v" style="color:var(--green)">$42.1k</div><div class="l">MRR</div></div>
+        <div class="kpi"><div class="v" style="color:var(--cyan)">31</div><div class="l">New Subs</div></div>
+        <div class="kpi"><div class="v" style="color:var(--red)">2.6%</div><div class="l">Churn</div></div>
+      </div>
+      <table class="tbl" style="margin-top:10px"><thead><tr><th>Metric</th><th>Today</th><th>7-day</th><th>30-day</th></tr></thead><tbody>
+      <tr><td>Gross revenue</td><td>$1,920</td><td>$11,480</td><td>$56,900</td></tr>
+      <tr><td>Failed payments</td><td>3</td><td>17</td><td>59</td></tr>
+      <tr><td>Refunds</td><td>1</td><td>4</td><td>12</td></tr>
+      </tbody></table>
+    </div>
+
+    <div class="card"><div class="title">Invoices</div>
+      <table class="tbl"><thead><tr><th>Invoice</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+        <tr><td>#KX-94822</td><td>2026-03-01</td><td>$4,860.00</td><td><span class="badge ok">Paid</span></td></tr>
+        <tr><td>#KX-93311</td><td>2026-02-01</td><td>$4,210.00</td><td><span class="badge ok">Paid</span></td></tr>
+        <tr><td>#KX-92108</td><td>2026-01-01</td><td>$3,980.00</td><td><span class="badge warn">Pending tax doc</span></td></tr>
+      </tbody></table>
+    </div>
+  </section>
+
+  <aside class="col">
+    <div class="card"><div class="title">Spend Alerts</div>
+      <div class="row"><span>AI usage > 80%</span><span class="badge warn">Watch</span></div>
+      <div class="row"><span>Monthly budget > 90%</span><span class="badge bad">Critical</span></div>
+      <div class="row"><span>Failed payments > 20/week</span><span class="badge warn">Watch</span></div>
+      <button class="b" style="margin-top:8px;width:100%" onclick="setAlerts()">Configure thresholds</button>
+    </div>
+
+    <div class="card"><div class="title">Billing Settings</div>
+      <label style="font-size:11px;color:#8a7aa9">Billing Email</label><input class="input" value="billing@solenterprises.org"/>
+      <label style="font-size:11px;color:#8a7aa9;margin-top:8px;display:block">Stripe Key Alias</label><input class="input" value="stripe_live_prod"/>
+      <label style="font-size:11px;color:#8a7aa9;margin-top:8px;display:block">Auto-upgrade policy</label><select class="input"><option>Ask before upgrade</option><option>Auto-upgrade at 85%</option></select>
+      <button class="b green" style="margin-top:10px;width:100%" onclick="saveSettings()">Save settings</button>
+    </div>
+
+    <div class="card"><div class="title">AI Insight</div><pre id="aiOut">No insight yet.</pre></div>
+  </aside>
+</div>
+<div class="f"><span>Status: <b id="status">Idle</b></span><span>Next invoice: <b>2026-04-01</b></span><span>Payment method: <b>Visa •••• 4421</b></span></div>
+<script>
+const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+function setStatus(s){document.getElementById('status').textContent=s}
+function refreshData(){setStatus('Data refreshed')}
+function upgrade(){setStatus('Upgrade flow opened')}
+function setAlerts(){setStatus('Alert thresholds updated')}
+function saveSettings(){setStatus('Billing settings saved')}
+async function aiInsight(){
+  const out=document.getElementById('aiOut'); out.textContent='kAIxU analyzing spend...';
+  const token=(JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token)||'';
+  if(!token){out.textContent='Missing kAIxU gate token in sovereign_brain_cfg.';return;}
+  const prompt='Analyze billing data and provide: 1) cost risks 2) quick savings 3) upgrade recommendation.';
+  try{
+    const body={provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:prompt}],max_tokens:260,app_id:'kaixu-billing-dash'};
+    const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)});
+    const d=await r.json(); out.textContent=d.output_text||'No insight returned.'; setStatus('AI insight ready');
+  }catch(e){out.textContent=`Error: ${e.message}`;setStatus('AI insight failed')}
+}
+</script>
+</body>
+</html>

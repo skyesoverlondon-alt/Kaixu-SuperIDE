@@ -1,0 +1,32 @@
+{
+  "anthropic": {
+    "claude-3-5-sonnet-20241022": {
+      "input_per_1m_usd": 3.93,
+      "output_per_1m_usd": 19.65
+    },
+    "claude-opus-4-6": {
+      "input_per_1m_usd": 6.55,
+      "output_per_1m_usd": 32.75
+    }
+  },
+  "gemini": {
+    "gemini-2.5-flash": {
+      "input_per_1m_usd": 0.393,
+      "output_per_1m_usd": 3.275
+    },
+    "gemini-embedding-001": {
+      "input_per_1m_usd": 0.10,
+      "output_per_1m_usd": 0.00
+    }
+  },
+  "openai": {
+    "gpt-4o": {
+      "input_per_1m_usd": 3.275,
+      "output_per_1m_usd": 13.1
+    },
+    "gpt-4o-mini": {
+      "input_per_1m_usd": 0.1965,
+      "output_per_1m_usd": 0.786
+    }
+  }
+}

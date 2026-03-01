@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sovereign Variables — kAIxU Secrets Vault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg0: #040008; --purple: #a243ff; --purple-hot: #d130ff;
+      --gold: #ffd36a; --cyan: #30e0ff; --green: #4fffb0; --red: #ff4f6a;
+      --glass-bg: rgba(8,4,14,0.92); --border: rgba(162,67,255,0.18);
+    }
+    *{box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:var(--bg0);color:#e2e8f0;margin:0;min-height:100vh;overflow-x:hidden}
+    .mono{font-family:'Share Tech Mono',monospace}
+    h1,h2{font-family:'Playfair Display',serif}
+    canvas{position:fixed;top:0;left:0;z-index:0;pointer-events:none}
+    .glass{background:var(--glass-bg);backdrop-filter:blur(24px);border:1px solid var(--border)}
+    #landing-view,#app-view{position:relative;z-index:10}
+    .view-hidden{display:none!important}
+    .glow-purple{color:var(--purple);text-shadow:0 0 30px rgba(162,67,255,.6)}
+    .glow-green{color:var(--green);text-shadow:0 0 20px rgba(79,255,176,.5)}
+    .scroll-panel{overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--purple) transparent}
+    .scroll-panel::-webkit-scrollbar{width:3px}
+    .scroll-panel::-webkit-scrollbar-thumb{background:var(--purple);border-radius:10px}
+    #app-view{height:100vh;display:flex;flex-direction:column;padding:1rem 1.25rem}
+    .dashboard-grid{display:grid;grid-template-columns:240px 1fr 320px;gap:1rem;flex:1;min-height:0}
+    @media(max-width:1200px){.dashboard-grid{grid-template-columns:220px 1fr}#ai-panel{display:none}}
+    @media(max-width:900px){.dashboard-grid{grid-template-columns:1fr;overflow-y:auto}#app-view{height:auto;min-height:100vh}}
+    .var-row{display:grid;grid-template-columns:180px 1fr 80px 28px 28px;gap:.5rem;align-items:center;padding:.5rem .25rem;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
+    .var-row:hover{background:rgba(162,67,255,.04);border-radius:8px}
+    .var-input{background:transparent;border:none;outline:none;color:#e2e8f0;font-family:'Share Tech Mono',monospace;font-size:11px;width:100%}
+    .var-input.key-input{color:var(--purple);font-weight:bold}
+    .var-input.val-input{color:rgba(226,232,240,.45)}
+    .var-input.val-input:focus,.var-input.val-input.revealed{color:var(--green)}
+    .tag-select{background:transparent;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;width:76px}
+    .btn-purple{background:var(--purple);color:#fff;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(162,67,255,.35)}
+    .btn-purple:hover{background:var(--purple-hot);transform:translateY(-1px);box-shadow:0 6px 28px rgba(162,67,255,.5)}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:#94a3b8;cursor:pointer;transition:all .15s}
+    .btn-ghost:hover{border-color:var(--purple);color:var(--purple)}
+    .tab-btn{padding:0 1.25rem;height:100%;font-size:10px;font-family:'Share Tech Mono',monospace;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;background:transparent;border:none;color:#64748b;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+    .tab-btn:hover{color:#94a3b8}
+    .tab-btn.active{color:var(--purple);border-bottom-color:var(--purple);background:rgba(162,67,255,.06)}
+    #ai-panel{display:flex;flex-direction:column;min-height:0}
+    .ai-msg{padding:.625rem .875rem;border-radius:12px;font-size:11.5px;line-height:1.65;max-width:100%}
+    .ai-msg.user{background:rgba(162,67,255,.15);border:1px solid rgba(162,67,255,.25);color:#e2e8f0;align-self:flex-end}
+    .ai-msg.assistant{background:rgba(79,255,176,.07);border:1px solid rgba(79,255,176,.15);color:#cbd5e1;align-self:flex-start;white-space:pre-wrap}
+    .ai-msg.system{background:rgba(48,224,255,.07);border:1px solid rgba(48,224,255,.15);color:var(--cyan);font-size:10px;font-family:'Share Tech Mono',monospace;align-self:center;text-align:center}
+    .ai-thinking{display:flex;gap:4px;padding:.5rem .75rem}
+    .ai-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:ai-pulse 1.2s ease-in-out infinite}
+    .ai-dot:nth-child(2){animation-delay:.2s}.ai-dot:nth-child(3){animation-delay:.4s}
+    @keyframes ai-pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+    .overlay.active{opacity:1;pointer-events:all}
+    .export-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:220px;z-index:100;display:none}
+    .export-menu.open{display:block}
+    .export-item{display:flex;align-items:center;gap:10px;padding:.6rem 1rem;font-size:11px;cursor:pointer;font-family:'Share Tech Mono',monospace;letter-spacing:.05em;border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s}
+    .export-item:hover{background:rgba(162,67,255,.12);color:var(--purple)}
+    .export-item:last-child{border-bottom:none}
+    #drop-zone{border:2px dashed var(--border);border-radius:12px;transition:all .2s;cursor:pointer}
+    #drop-zone.over{border-color:var(--purple);background:rgba(162,67,255,.08)}
+    .status-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:20px;font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.1em;text-transform:uppercase}
+    .status-pill.ok{background:rgba(79,255,176,.1);color:var(--green);border:1px solid rgba(79,255,176,.25)}
+    .status-pill.warn{background:rgba(255,211,106,.1);color:var(--gold);border:1px solid rgba(255,211,106,.25)}
+    .status-pill.err{background:rgba(255,79,106,.1);color:var(--red);border:1px solid rgba(255,79,106,.25)}
+    .status-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+    @keyframes orb-pulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.08);opacity:1}}
+    .orb{animation:orb-pulse 3s ease-in-out infinite}
+    @keyframes spin-slow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes spin-rev{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
+    .ring{position:absolute;border-radius:50%;border:1px solid;pointer-events:none}
+    .ring1{width:180px;height:180px;border-color:rgba(162,67,255,.35);animation:spin-slow 12s linear infinite}
+    .ring2{width:240px;height:240px;border-color:rgba(48,224,255,.2);animation:spin-rev 18s linear infinite}
+    .ring3{width:300px;height:300px;border-color:rgba(255,211,106,.15);animation:spin-slow 25s linear infinite}
+    #toast{position:fixed;bottom:2rem;right:2rem;z-index:9999;padding:.65rem 1.1rem;border-radius:10px;font-size:12px;font-family:'Share Tech Mono',monospace;transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none}
+    #toast.show{transform:translateY(0);opacity:1}
+    .ai-chip{display:inline-block;padding:3px 11px;border-radius:20px;font-size:10px;font-family:'Share Tech Mono',monospace;border:1px solid var(--border);cursor:pointer;transition:all .15s;white-space:nowrap;color:#64748b}
+    .ai-chip:hover{border-color:var(--purple);color:var(--purple);background:rgba(162,67,255,.08)}
+  </style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="toast"></div>
+
+<!-- PROMPT OVERLAY -->
+<div id="prompt-overlay" class="overlay">
+  <div class="glass p-8 rounded-3xl max-w-sm w-full mx-4">
+    <h3 id="prompt-title" class="mono text-sm font-bold mb-4 tracking-wider uppercase text-purple-400"></h3>
+    <input type="text" id="prompt-input" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-6 outline-none focus:border-purple-500 mono text-sm transition-colors">
+    <div class="flex gap-3">
+      <button onclick="closePrompt(false)" class="btn-ghost flex-1 py-2.5 rounded-xl mono text-xs uppercase tracking-widest">Cancel</button>
+      <button onclick="closePrompt(true)"  class="btn-purple flex-1 py-2.5 rounded-xl mono text-xs uppercase tracking-widest">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div id="import-modal" class="overlay">
+  <div class="glass p-8 rounded-3xl max-w-lg w-full mx-4">
+    <div class="flex justify-between items-center mb-5">
+      <h3 class="mono text-sm font-bold tracking-wider uppercase glow-purple">Import Secrets</h3>
+      <button onclick="closeImport()" class="text-slate-500 hover:text-white text-xl">×</button>
+    </div>
+    <div id="drop-zone" class="p-6 text-center mb-4 rounded-xl"
+      onclick="document.getElementById('file-picker').click()"
+      ondragover="event.preventDefault();this.classList.add('over')"
+      ondragleave="this.classList.remove('over')"
+      ondrop="handleFileDrop(event)">
+      <div class="text-3xl mb-2">📂</div>
+      <p class="mono text-xs text-slate-500 tracking-wider">Drop <span class="text-purple-400">.env</span> or <span class="text-cyan-400">.json</span> — or click to browse</p>
+    </div>
+    <input type="file" id="file-picker" accept=".env,.json,text/plain" class="hidden" onchange="handleFilePick(event)">
+    <p class="mono text-xs text-slate-600 uppercase tracking-widest mb-2">Or paste raw .env</p>
+    <textarea id="import-paste" rows="7" placeholder="DATABASE_URL=postgresql://...&#10;JWT_SECRET=abc&#10;STRIPE_KEY=sk_live_..."
+      class="w-full bg-black/40 border border-white/10 rounded-xl p-4 mono text-xs text-green-400 resize-none outline-none focus:border-purple-500 transition-colors mb-5"></textarea>
+    <div class="flex gap-3">
+      <button onclick="closeImport()" class="btn-ghost flex-1 py-2.5 rounded-xl mono text-xs uppercase tracking-widest">Cancel</button>
+      <button onclick="confirmImport()" class="btn-purple flex-1 py-2.5 rounded-xl mono text-xs uppercase tracking-widest">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div id="config-modal" class="overlay">
+  <div class="glass p-8 rounded-3xl max-w-md w-full mx-4">
+    <div class="flex justify-between items-center mb-5">
+      <div>
+        <h3 class="mono text-sm font-bold tracking-wider uppercase glow-purple">kAIxU Brain Config</h3>
+        <p class="text-xs text-slate-600 mt-1">Saved locally — never uploaded</p>
+      </div>
+      <button onclick="closeConfig()" class="text-slate-500 hover:text-white text-xl">×</button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="mono text-xs text-slate-500 uppercase tracking-widest block mb-1.5">Worker URL</label>
+        <input id="cfg-url" type="text" value="https://kaixusi.skyesoverlondon.workers.dev"
+          class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 mono text-xs outline-none focus:border-purple-500 transition-colors">
+      </div>
+      <div>
+        <label class="mono text-xs text-slate-500 uppercase tracking-widest block mb-1.5">KAIXUSI_SECRET</label>
+        <input id="cfg-secret" type="password" placeholder="e7M0NVlh…"
+          class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 mono text-xs outline-none focus:border-purple-500 transition-colors">
+      </div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button onclick="closeConfig()" class="btn-ghost flex-1 py-2.5 rounded-xl mono text-xs uppercase tracking-widest">Cancel</button>
+      <button onclick="saveConfig()"  class="btn-purple flex-1 py-2.5 rounded-xl mono text-xs uppercase tracking-widest">Save &amp; Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ LANDING ══════════ -->
+<section id="landing-view" class="flex flex-col items-center justify-center min-h-screen px-6 text-center">
+  <div class="relative inline-flex items-center justify-center mb-16">
+    <div class="ring ring1" style="top:-90px;left:-90px"></div>
+    <div class="ring ring2" style="top:-120px;left:-120px"></div>
+    <div class="ring ring3" style="top:-150px;left:-150px"></div>
+    <div class="orb w-24 h-24 rounded-full flex items-center justify-center text-4xl"
+      style="background:radial-gradient(circle at 40% 35%,rgba(162,67,255,.4),rgba(4,0,8,.9));box-shadow:0 0 60px rgba(162,67,255,.5),0 0 120px rgba(162,67,255,.2)">
+      🔐
+    </div>
+  </div>
+  <div class="max-w-3xl">
+    <p class="mono text-xs tracking-[.6em] text-purple-400 mb-6 uppercase">kAIxU SuperIDE · Secrets Vault</p>
+    <h1 class="text-6xl md:text-8xl font-bold mb-8 leading-tight">Sovereign<br><span class="italic glow-purple">Variables</span></h1>
+    <p class="text-slate-400 text-lg mb-12 max-w-xl mx-auto leading-relaxed font-light">
+      Local-first secrets manager. Import, organise, and sync env vars — with your kAIxU brain watching over everything.
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+      <button onclick="enterApp()" class="btn-purple px-10 py-4 rounded-full mono text-sm uppercase tracking-widest">Open Vault</button>
+      <button onclick="openConfig()" class="btn-ghost px-10 py-4 rounded-full mono text-sm uppercase tracking-widest">⚙ Connect Brain</button>
+    </div>
+    <div class="flex justify-center gap-4 flex-wrap">
+      <span class="status-pill ok"><span class="status-dot"></span>Local-First</span>
+      <span class="status-pill ok"><span class="status-dot"></span>Never Uploaded</span>
+      <span id="brain-status-landing" class="status-pill warn"><span class="status-dot"></span>Brain: not configured</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ APP ══════════ -->
+<section id="app-view" class="view-hidden">
+  <!-- Header -->
+  <header class="glass rounded-2xl px-5 py-3 mb-4 flex items-center justify-between gap-4 shrink-0">
+    <div class="flex items-center gap-4">
+      <button onclick="exitApp()" class="mono text-xs text-slate-500 hover:text-white transition tracking-widest">← EXIT</button>
+      <div class="w-px h-5 bg-white/10"></div>
+      <span class="mono text-xs font-bold tracking-wider text-purple-400">SOVEREIGN VARIABLES</span>
+      <span class="mono text-xs text-slate-600 hidden sm:inline">kAIxU Secrets Vault</span>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap justify-end">
+      <span id="brain-status-app" class="status-pill warn"><span class="status-dot"></span>Brain offline</span>
+      <button onclick="openConfig()" class="btn-ghost px-3 py-1.5 rounded-lg mono text-xs uppercase tracking-widest">⚙ Brain</button>
+      <button onclick="openImport()" class="btn-ghost px-3 py-1.5 rounded-lg mono text-xs uppercase tracking-widest">↑ Import</button>
+      <div class="relative">
+        <button onclick="toggleExport()" class="btn-ghost px-3 py-1.5 rounded-lg mono text-xs uppercase tracking-widest">↓ Export ▾</button>
+        <div id="export-menu" class="export-menu glass rounded-2xl overflow-hidden">
+          <div class="export-item" onclick="exportEnvFile()">      <span>📄</span>Download .env</div>
+          <div class="export-item" onclick="exportJSON()">         <span>🗂</span>Download JSON</div>
+          <div class="export-item" onclick="copyNetlifyCLI()">     <span>🟩</span>Copy Netlify CLI</div>
+          <div class="export-item" onclick="copyWranglerCmds()">   <span>☁️</span>Copy Wrangler secrets</div>
+          <div class="export-item" onclick="copyVercelCLI()">      <span>▲</span>Copy Vercel CLI</div>
+          <div class="export-item" onclick="copyDockerEnv()">      <span>🐳</span>Copy Docker --env-file</div>
+        </div>
+      </div>
+      <button onclick="addVariable()" class="btn-purple px-4 py-1.5 rounded-lg mono text-xs uppercase tracking-widest">+ Secret</button>
+    </div>
+  </header>
+
+  <div class="dashboard-grid flex-1 min-h-0">
+    <!-- Sidebar -->
+    <aside class="glass rounded-2xl p-5 flex flex-col min-h-0">
+      <p class="mono text-xs text-slate-600 uppercase tracking-widest mb-4">Projects</p>
+      <div id="project-list" class="flex-1 scroll-panel space-y-1.5"></div>
+      <button onclick="createNewProject()" class="mt-4 w-full py-3 rounded-xl border border-dashed border-white/10 mono text-xs uppercase tracking-widest text-slate-600 hover:text-purple-400 hover:border-purple-500 transition text-center">+ New Project</button>
+    </aside>
+
+    <!-- Center -->
+    <main class="flex flex-col min-h-0 gap-4">
+      <div class="glass rounded-xl flex items-center px-2 h-11 shrink-0 overflow-x-auto">
+        <div id="env-tabs" class="flex h-full items-center"></div>
+        <button onclick="createNewEnv()" class="ml-2 text-slate-600 hover:text-purple-400 text-lg px-2 transition" title="Add environment">+</button>
+      </div>
+
+      <div class="glass rounded-2xl p-6 flex flex-col flex-1 min-h-0">
+        <div class="flex items-center justify-between mb-4 shrink-0">
+          <div class="flex items-center gap-3">
+            <h2 id="env-title" class="font-bold italic text-xl glow-purple">Environment</h2>
+            <span id="env-count" class="mono text-xs text-slate-600"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="search-input" oninput="renderVariables()" placeholder="Search…"
+              class="bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 mono text-xs outline-none focus:border-purple-500 transition-colors w-36">
+            <div id="tag-filter-row" class="flex gap-1 flex-wrap"></div>
+            <button onclick="activeTagFilter=null;renderVariables()" class="mono text-xs text-slate-600 hover:text-purple-400 transition px-1" title="Clear filter">✕</button>
+          </div>
+        </div>
+
+        <div class="grid gap-2 px-1 mb-2 shrink-0 mono text-xs text-slate-600 uppercase tracking-widest"
+          style="grid-template-columns:180px 1fr 80px 28px 28px">
+          <span>Key</span><span>Value</span><span>Tag</span><span></span><span></span>
+        </div>
+
+        <div id="variable-list" class="flex-1 scroll-panel pr-1"></div>
+
+        <div class="grid grid-cols-2 gap-4 mt-4 shrink-0" style="height:110px">
+          <div class="bg-black/30 rounded-xl p-3 flex flex-col">
+            <p class="mono text-xs text-slate-600 uppercase tracking-widest mb-1">Notes</p>
+            <textarea id="env-notes" oninput="updateEnvNotes(this.value)"
+              class="flex-1 bg-transparent resize-none mono text-xs text-slate-400 outline-none placeholder-slate-700"
+              placeholder="Service links, rotation dates, deployment notes…"></textarea>
+          </div>
+          <div class="bg-black/40 rounded-xl p-3 flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between mb-1">
+              <p class="mono text-xs text-slate-600 uppercase tracking-widest">.env Preview</p>
+              <button onclick="copyEnvPreview()" class="mono text-xs text-slate-600 hover:text-green-400 transition">copy</button>
+            </div>
+            <pre id="raw-output" class="flex-1 overflow-y-auto mono text-xs text-green-400/60 leading-relaxed whitespace-pre scroll-panel"></pre>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- AI Panel -->
+    <div id="ai-panel" class="glass rounded-2xl flex flex-col min-h-0 overflow-hidden">
+      <div class="px-5 py-4 border-b border-white/5 shrink-0">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full" id="ai-dot" style="background:var(--green);box-shadow:0 0 8px var(--green)"></div>
+            <span class="mono text-xs font-bold tracking-wider text-green-400">kAIxU BRAIN</span>
+          </div>
+          <span class="mono text-xs text-slate-600">secrets advisor</span>
+        </div>
+      </div>
+      <div class="px-4 py-3 border-b border-white/5 shrink-0">
+        <p class="mono text-xs text-slate-600 uppercase tracking-widest mb-2">Quick Ask</p>
+        <div class="flex flex-wrap gap-1.5">
+          <span class="ai-chip" onclick="aiQuick('Audit my current env vars for security issues')">🔍 Audit</span>
+          <span class="ai-chip" onclick="aiQuick('What secrets does a Next.js + Neon + Stripe project typically need?')">📋 Suggest missing</span>
+          <span class="ai-chip" onclick="aiQuick('Explain what each of my secrets probably does based on their names')">📖 Explain all</span>
+          <span class="ai-chip" onclick="aiQuick('Generate cryptographically strong random values I can use for JWT_SECRET and signing keys')">🔑 Gen values</span>
+          <span class="ai-chip" onclick="aiQuickWithVars()">🧠 Analyse my vars</span>
+        </div>
+      </div>
+      <div id="ai-messages" class="flex-1 scroll-panel px-4 py-3 flex flex-col gap-3">
+        <div class="ai-msg system">Brain ready — ask anything about your secrets</div>
+      </div>
+      <div class="px-4 py-3 border-t border-white/5 shrink-0">
+        <div class="flex gap-2">
+          <input id="ai-input"
+            class="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 mono text-xs outline-none focus:border-purple-500 transition-colors"
+            placeholder="Ask about secrets, best practices…"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();sendAI();}">
+          <button onclick="sendAI()" class="btn-purple px-3 py-2 rounded-xl mono text-xs">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+// ── CONSTANTS ─────────────────────────────────────────────────
+const STORAGE_KEY = 'sovereign_vault_v2';
+const CONFIG_KEY  = 'sovereign_brain_cfg';
+const TAGS = {
+  db:     { label:'DB',     color:'#30e0ff', bg:'rgba(48,224,255,.12)'  },
+  ai:     { label:'AI',     color:'#a243ff', bg:'rgba(162,67,255,.12)' },
+  stripe: { label:'Stripe', color:'#ffd36a', bg:'rgba(255,211,106,.12)'},
+  auth:   { label:'Auth',   color:'#4fffb0', bg:'rgba(79,255,176,.12)' },
+  infra:  { label:'Infra',  color:'#ff4f6a', bg:'rgba(255,79,106,.12)' },
+  other:  { label:'Other',  color:'#94a3b8', bg:'rgba(148,163,184,.1)' },
+};
+
+// ── STATE ─────────────────────────────────────────────────────
+let state = {
+  projects: [{
+    id:'p1', name:'My Project',
+    environments:[
+      {id:'e1',name:'Production',notes:'',variables:[]},
+      {id:'e2',name:'Staging',   notes:'',variables:[]},
+      {id:'e3',name:'Local',     notes:'',variables:[]},
+    ]
+  }],
+  activeProjectId:'p1', activeEnvId:'e1',
+};
+let brainCfg = { url:'https://kaixusi.skyesoverlondon.workers.dev', secret:'' };
+let aiHistory = [];
+let activeTagFilter = null;
+
+// ── PERSIST ───────────────────────────────────────────────────
+function saveState(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){} }
+function loadState(){ try{ const s=localStorage.getItem(STORAGE_KEY); if(s) state=JSON.parse(s); }catch(e){} }
+function loadConfig(){ try{ const c=localStorage.getItem(CONFIG_KEY); if(c) brainCfg={...brainCfg,...JSON.parse(c)}; }catch(e){} }
+
+// ── HELPERS ───────────────────────────────────────────────────
+const ap = () => state.projects.find(p=>p.id===state.activeProjectId);
+const ae = () => { const p=ap(); return p?.environments.find(e=>e.id===state.activeEnvId); };
+const uid = () => '_'+Math.random().toString(36).slice(2,9);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderAll(){ renderProjects(); renderTabs(); renderVariables(); }
+
+function renderProjects(){
+  document.getElementById('project-list').innerHTML = state.projects.map(p=>`
+    <div onclick="selectProject('${p.id}')" class="p-3 rounded-xl cursor-pointer transition-all mono text-xs tracking-wide flex items-center justify-between group
+      ${p.id===state.activeProjectId?'bg-purple-600/20 border border-purple-500/30 text-purple-300':'text-slate-500 hover:bg-white/5 hover:text-slate-300'}">
+      <span class="font-bold truncate">${esc(p.name)}</span>
+      <button onclick="event.stopPropagation();deleteProject('${p.id}')"
+        class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition text-base leading-none ml-1">×</button>
+    </div>`).join('');
+}
+
+function renderTabs(){
+  const p=ap(); if(!p) return;
+  document.getElementById('env-tabs').innerHTML = p.environments.map(e=>`
+    <button class="tab-btn ${e.id===state.activeEnvId?'active':''}"
+      onclick="selectEnv('${e.id}')" ondblclick="renameEnv('${e.id}')">${esc(e.name)}</button>`).join('');
+}
+
+function renderVariables(){
+  const env=ae();
+  const list=document.getElementById('variable-list');
+  if(!env){ list.innerHTML='<p class="mono text-xs text-slate-700 italic mt-4">No environment selected</p>'; return; }
+
+  document.getElementById('env-title').textContent = env.name;
+  document.getElementById('env-notes').value = env.notes||'';
+  document.getElementById('env-count').textContent = `${env.variables.length} secret${env.variables.length!==1?'s':''}`;
+
+  const q=(document.getElementById('search-input')?.value||'').toLowerCase();
+  let vars = env.variables;
+  if(q) vars=vars.filter(v=>v.k.toLowerCase().includes(q)||(v.v||'').toLowerCase().includes(q));
+  if(activeTagFilter) vars=vars.filter(v=>v.tag===activeTagFilter);
+
+  // Tag filter chips
+  const allTags=[...new Set(env.variables.map(v=>v.tag).filter(Boolean))];
+  document.getElementById('tag-filter-row').innerHTML = allTags.map(t=>{
+    const tag=TAGS[t]||TAGS.other; const active=activeTagFilter===t;
+    return `<span onclick="setTagFilter('${t}')" style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s;border:1px solid ${tag.color}40;color:${tag.color};background:${active?tag.bg:'transparent'}">${tag.label}</span>`;
+  }).join('');
+
+  if(!vars.length){
+    list.innerHTML=`<div class="flex flex-col items-center justify-center h-32 gap-3 opacity-40"><div class="text-3xl">🔐</div><p class="mono text-xs text-slate-600 uppercase tracking-widest">${q||activeTagFilter?'No matches':'No secrets yet — click + Secret'}</p></div>`;
+  } else {
+    list.innerHTML = vars.map(v=>{
+      const realIdx=env.variables.indexOf(v);
+      const tag=TAGS[v.tag]||{color:'#475569'};
+      return `<div class="var-row">
+        <input class="var-input key-input" type="text" value="${esc(v.k)}" placeholder="SECRET_NAME"
+          oninput="updateVar(${realIdx},'k',this.value)">
+        <input class="var-input val-input" type="password" value="${esc(v.v)}" placeholder="value…"
+          oninput="updateVar(${realIdx},'v',this.value)"
+          onfocus="this.type='text';this.classList.add('revealed')"
+          onblur="this.type='password';this.classList.remove('revealed')">
+        <select class="tag-select" style="color:${tag.color}" onchange="updateVar(${realIdx},'tag',this.value)">
+          <option value="">—</option>
+          ${Object.entries(TAGS).map(([k,t])=>`<option value="${k}" ${v.tag===k?'selected':''}>${t.label}</option>`).join('')}
+        </select>
+        <button onclick="copyVar(${realIdx})" title="Copy value" class="text-slate-600 hover:text-cyan-400 transition text-sm">⎘</button>
+        <button onclick="removeVar(${realIdx})" title="Delete" class="text-slate-700 hover:text-red-400 transition text-lg leading-none">×</button>
+      </div>`;
+    }).join('');
+  }
+  updateOutput(env);
+}
+
+function updateOutput(env){
+  const lines=(env?.variables||[]).filter(v=>v.k.trim()).map(v=>`${v.k}=${v.v}`).join('\n');
+  document.getElementById('raw-output').textContent=lines||'# empty';
+}
+
+// ── NAV ───────────────────────────────────────────────────────
+function enterApp(){ document.getElementById('landing-view').classList.add('view-hidden'); document.getElementById('app-view').classList.remove('view-hidden'); renderAll(); }
+function exitApp(){  document.getElementById('app-view').classList.add('view-hidden'); document.getElementById('landing-view').classList.remove('view-hidden'); }
+function selectProject(id){ state.activeProjectId=id; const p=ap(); state.activeEnvId=p?.environments[0]?.id||null; saveState(); renderAll(); }
+function selectEnv(id){ state.activeEnvId=id; activeTagFilter=null; saveState(); renderAll(); }
+function setTagFilter(t){ activeTagFilter=activeTagFilter===t?null:t; renderVariables(); }
+
+// ── CRUD ──────────────────────────────────────────────────────
+async function createNewProject(){
+  const name=await showPrompt('Project Name','My App'); if(!name?.trim()) return;
+  const id=uid();
+  state.projects.push({id,name:name.trim(),environments:[
+    {id:uid(),name:'Production',notes:'',variables:[]},
+    {id:uid(),name:'Staging',   notes:'',variables:[]},
+    {id:uid(),name:'Local',     notes:'',variables:[]},
+  ]});
+  state.activeProjectId=id; state.activeEnvId=state.projects.at(-1).environments[0].id;
+  saveState(); renderAll();
+}
+async function deleteProject(id){
+  if(state.projects.length===1){toast('Cannot delete the only project','err');return;}
+  const name=state.projects.find(p=>p.id===id)?.name;
+  const c=await showPrompt(`Type DELETE to confirm removing "${name}"`,'' );
+  if(c!=='DELETE') return;
+  state.projects=state.projects.filter(p=>p.id!==id);
+  state.activeProjectId=state.projects[0].id; state.activeEnvId=state.projects[0].environments[0]?.id||null;
+  saveState(); renderAll();
+}
+async function createNewEnv(){
+  const p=ap(); if(!p) return;
+  const name=await showPrompt('Environment Name','Staging'); if(!name?.trim()) return;
+  const id=uid(); p.environments.push({id,name:name.trim(),notes:'',variables:[]});
+  state.activeEnvId=id; saveState(); renderAll();
+}
+async function renameEnv(id){
+  const env=ap()?.environments.find(e=>e.id===id); if(!env) return;
+  const name=await showPrompt('Rename',env.name); if(!name?.trim()) return;
+  env.name=name.trim(); saveState(); renderAll();
+}
+function addVariable(){
+  const env=ae(); if(!env){toast('Select an environment first','warn');return;}
+  env.variables.unshift({k:'',v:'',tag:''}); saveState(); renderVariables();
+  setTimeout(()=>{ document.querySelector('#variable-list .key-input')?.focus(); },30);
+}
+function updateVar(i,f,v){ const env=ae(); if(env?.variables[i]!==undefined){env.variables[i][f]=v; updateOutput(env); saveState();} }
+function removeVar(i){ const env=ae(); if(env){env.variables.splice(i,1); saveState(); renderVariables();} }
+function updateEnvNotes(v){ const env=ae(); if(env){env.notes=v; saveState();} }
+function copyVar(i){ const v=ae()?.variables[i]; if(v) navigator.clipboard.writeText(v.v).then(()=>toast(`Copied ${v.k}`,'ok')); }
+
+// ── IMPORT ────────────────────────────────────────────────────
+function openImport(){document.getElementById('import-modal').classList.add('active');}
+function closeImport(){document.getElementById('import-modal').classList.remove('active'); document.getElementById('import-paste').value='';}
+function handleFileDrop(e){ e.preventDefault(); document.getElementById('drop-zone').classList.remove('over'); const f=e.dataTransfer.files[0]; if(f) readFile(f); }
+function handleFilePick(e){ const f=e.target.files[0]; if(f) readFile(f); }
+function readFile(f){ const r=new FileReader(); r.onload=ev=>{document.getElementById('import-paste').value=ev.target.result; toast(`Loaded ${f.name}`,'ok');}; r.readAsText(f); }
+
+function parseEnvText(text){
+  return text.split('\n').reduce((acc,raw)=>{
+    const line=raw.trim();
+    if(!line||line.startsWith('#')) return acc;
+    const m=line.replace(/^export\s+/,'').match(/^([A-Z_][A-Z0-9_]*)=([\s\S]*)$/i);
+    if(!m) return acc;
+    let val=m[2];
+    if((val.startsWith('"')&&val.endsWith('"'))||(val.startsWith("'")&&val.endsWith("'"))) val=val.slice(1,-1);
+    const k=m[1].toUpperCase();
+    let tag='';
+    if(/DATABASE|POSTGRES|NEON|MONGO|REDIS|SUPABASE/.test(k)) tag='db';
+    else if(/OPENAI|ANTHROPIC|GEMINI|KAIXU|HUGGING/.test(k)) tag='ai';
+    else if(/STRIPE|PAYMENT/.test(k)) tag='stripe';
+    else if(/JWT|AUTH|SESSION|PASSWORD|SECRET|TOKEN/.test(k)) tag='auth';
+    else if(/NETLIFY|VERCEL|AWS|GCP|CF_|CLOUD/.test(k)) tag='infra';
+    acc.push({k,v:val,tag}); return acc;
+  },[]);
+}
+function parseJSON(text){ try{ const o=JSON.parse(text); if(typeof o!=='object') return null; return Object.entries(o).map(([k,v])=>({k,v:String(v),tag:''})); }catch{return null;} }
+
+function confirmImport(){
+  const raw=document.getElementById('import-paste').value.trim();
+  if(!raw){toast('Nothing to import','warn');return;}
+  const env=ae(); if(!env){toast('Select an environment first','warn');return;}
+  let parsed=parseJSON(raw); if(!parsed) parsed=parseEnvText(raw);
+  if(!parsed?.length){toast('Could not parse — use KEY=VALUE format','err');return;}
+  let added=0,updated=0;
+  for(const v of parsed){ const ex=env.variables.find(e=>e.k===v.k); if(ex){ex.v=v.v;updated++;}else{env.variables.push(v);added++;} }
+  saveState(); renderVariables(); closeImport();
+  toast(`Imported: ${added} added, ${updated} updated`,'ok');
+}
+
+// ── EXPORT ────────────────────────────────────────────────────
+function toggleExport(){ document.getElementById('export-menu').classList.toggle('open'); }
+document.addEventListener('click',e=>{ if(!e.target.closest('.relative')) document.getElementById('export-menu')?.classList.remove('open'); });
+const getVars = ()=>(ae()?.variables||[]).filter(v=>v.k.trim());
+const envLines= ()=>getVars().map(v=>`${v.k}=${v.v}`).join('\n');
+function exportEnvFile(){ const n=ae()?.name||'env'; downloadText(envLines(),`${n}.env`); toast('Downloaded .env','ok'); }
+function exportJSON(){ const o={}; getVars().forEach(v=>{o[v.k]=v.v;}); downloadText(JSON.stringify(o,null,2),`${ae()?.name||'env'}_secrets.json`); toast('Downloaded JSON','ok'); }
+function copyNetlifyCLI(){ copyText(getVars().map(v=>`netlify env:set ${v.k} "${v.v.replace(/"/g,'\\"')}"`).join('\n')); toast('Copied Netlify CLI','ok'); }
+function copyWranglerCmds(){ copyText(getVars().map(v=>`echo "${v.v.replace(/"/g,'\\"')}" | npx wrangler secret put ${v.k}`).join('\n')); toast('Copied Wrangler commands','ok'); }
+function copyVercelCLI(){ copyText(getVars().map(v=>`vercel env add ${v.k} production <<< "${v.v.replace(/"/g,'\\"')}"`).join('\n')); toast('Copied Vercel CLI','ok'); }
+function copyDockerEnv(){ copyText(envLines()); toast('Copied — use: docker run --env-file .env …','ok'); }
+function copyEnvPreview(){ copyText(document.getElementById('raw-output').textContent); toast('Copied .env','ok'); }
+function downloadText(text,name){ const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([text],{type:'text/plain'})),download:name}); a.click(); URL.revokeObjectURL(a.href); }
+function copyText(t){ navigator.clipboard.writeText(t).catch(()=>{ const el=document.createElement('textarea'); el.value=t; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove(); }); }
+
+// ── BRAIN CONFIG ──────────────────────────────────────────────
+function openConfig(){ document.getElementById('cfg-url').value=brainCfg.url; document.getElementById('cfg-secret').value=brainCfg.secret; document.getElementById('config-modal').classList.add('active'); }
+function closeConfig(){ document.getElementById('config-modal').classList.remove('active'); }
+function saveConfig(){
+  brainCfg.url=document.getElementById('cfg-url').value.trim().replace(/\/+$/,'');
+  brainCfg.secret=document.getElementById('cfg-secret').value.trim();
+  localStorage.setItem(CONFIG_KEY,JSON.stringify(brainCfg));
+  closeConfig(); checkBrainHealth(); toast('Brain config saved','ok');
+}
+
+async function checkBrainHealth(){
+  const set=(cls,label)=>{
+    ['brain-status-landing','brain-status-app'].forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      el.className=`status-pill ${cls}`;
+      el.innerHTML=`<span class="status-dot"></span>${label}`;
+    });
+    const dot=document.getElementById('ai-dot');
+    if(dot) dot.style.background=cls==='ok'?'var(--green)':cls==='warn'?'var(--gold)':'var(--red)';
+  };
+  if(!brainCfg.secret){set('warn','Brain: not configured');return;}
+  set('warn','Brain: connecting…');
+  try{
+    const r=await fetch(`${brainCfg.url}/health`);
+    const d=await r.json();
+    d.status==='ok'?set('ok',`Brain: ${d.brain||'online'}`):set('err','Brain: error');
+  }catch{ set('err','Brain: unreachable'); }
+}
+
+// ── AI ────────────────────────────────────────────────────────
+function appendMsg(role,content){
+  const box=document.getElementById('ai-messages');
+  const div=document.createElement('div');
+  div.className=`ai-msg ${role}`; div.textContent=content;
+  box.appendChild(div); box.scrollTop=box.scrollHeight;
+}
+function showThinking(){
+  const box=document.getElementById('ai-messages');
+  const d=document.createElement('div'); d.className='ai-thinking'; d.id='ai-thinking';
+  d.innerHTML='<div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div>';
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+function hideThinking(){ document.getElementById('ai-thinking')?.remove(); }
+
+async function callBrain(userMsg){
+  if(!brainCfg.secret){ appendMsg('system','⚠ Configure KAIXUSI_SECRET — click ⚙ Brain'); return; }
+  aiHistory.push({role:'user',content:userMsg});
+  appendMsg('user',userMsg); showThinking();
+  const sys=`You are the kAIxU Secrets Advisor — an expert in env var management, API key security, secret rotation, and DevSecOps. Be concise and actionable. Use bullet points. Never reproduce full secret values — mask as ***. Today: ${new Date().toDateString()}.`;
+  try{
+    const res=await fetch(`${brainCfg.url}/v1/chat`,{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${brainCfg.secret}`,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        provider:'kaixu', model:'kAIxU-Brain-2.5',
+        messages:[{role:'user',content:sys},...aiHistory],
+        max_tokens:1024, temperature:0.4,
+      }),
+    });
+    hideThinking();
+    if(!res.ok){appendMsg('system',`Error ${res.status} from brain`);return;}
+    const d=await res.json();
+    const text=d.output_text||d.error||'No response';
+    aiHistory.push({role:'assistant',content:text});
+    appendMsg('assistant',text);
+  }catch(e){ hideThinking(); appendMsg('system',`Brain unreachable: ${e.message}`); }
+}
+
+function sendAI(){ const i=document.getElementById('ai-input'); const m=i.value.trim(); if(!m) return; i.value=''; callBrain(m); }
+function aiQuick(msg){ callBrain(msg); }
+function aiQuickWithVars(){
+  const env=ae();
+  if(!env?.variables?.length){appendMsg('system','No secrets in this environment yet');return;}
+  const keys=env.variables.filter(v=>v.k).map(v=>`${v.k} [${v.tag||'untagged'}]`).join('\n');
+  callBrain(`Analyse these secrets from my "${env.name}" environment — security review + completeness check. Key names only:\n\n${keys}`);
+}
+
+// ── PROMPT ────────────────────────────────────────────────────
+let _res;
+function showPrompt(title,def=''){
+  return new Promise(r=>{ _res=r;
+    document.getElementById('prompt-title').textContent=title;
+    document.getElementById('prompt-input').value=def;
+    document.getElementById('prompt-overlay').classList.add('active');
+    setTimeout(()=>{ const i=document.getElementById('prompt-input'); i.focus(); i.select(); },50);
+  });
+}
+function closePrompt(ok){ const v=ok?document.getElementById('prompt-input').value:null; document.getElementById('prompt-overlay').classList.remove('active'); _res?.(v); }
+document.getElementById('prompt-input').addEventListener('keydown',e=>{ if(e.key==='Enter') closePrompt(true); if(e.key==='Escape') closePrompt(false); });
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  const c={ok:'rgba(79,255,176,.1) border-green-500/30 text-green-400',warn:'rgba(255,211,106,.1) border-yellow-500/30 text-yellow-400',err:'rgba(255,79,106,.1) border-red-500/30 text-red-400'};
+  el.style.cssText=`position:fixed;bottom:2rem;right:2rem;z-index:9999;padding:.65rem 1.1rem;border-radius:10px;border:1px solid;backdrop-filter:blur(12px);transition:all .3s;`;
+  const parts=c[type].split(' ');
+  el.style.background=parts[0]; el.style.borderColor=parts[1].replace('border-','').replace('/30',''); el.style.color='';
+  el.className=`glass mono text-xs ${c[type]}`;
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();addVariable();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='i'){e.preventDefault();openImport();}
+  if(e.key==='Escape'){
+    document.getElementById('import-modal').classList.remove('active');
+    document.getElementById('config-modal').classList.remove('active');
+    document.getElementById('export-menu')?.classList.remove('open');
+  }
+});
+
+// ── THREE.JS ──────────────────────────────────────────────────
+function initScene(){
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  const geo=new THREE.BufferGeometry();
+  const v=[]; for(let i=0;i<2500;i++) v.push(THREE.MathUtils.randFloatSpread(160),THREE.MathUtils.randFloatSpread(160),THREE.MathUtils.randFloatSpread(160));
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));
+  const stars=new THREE.Points(geo,new THREE.PointsMaterial({color:0xa243ff,size:0.08,transparent:true,opacity:0.22}));
+  scene.add(stars);
+
+  const mkIco=(r,col,op,pos)=>{ const m=new THREE.Mesh(new THREE.IcosahedronGeometry(r,1),new THREE.MeshBasicMaterial({color:col,wireframe:true,opacity:op,transparent:true})); m.position.set(...pos); scene.add(m); return m; };
+  const ico1=mkIco(8,0x30e0ff,0.06,[30,-10,-20]);
+  const ico2=mkIco(5,0xa243ff,0.08,[-35,15,-30]);
+
+  cam.position.z=50;
+  (function animate(){ requestAnimationFrame(animate); stars.rotation.y+=0.0003; stars.rotation.x+=0.0001; ico1.rotation.y+=0.003; ico1.rotation.x+=0.002; ico2.rotation.y-=0.004; ico2.rotation.z+=0.002; renderer.render(scene,cam); })();
+  window.addEventListener('resize',()=>{ cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load',()=>{ loadState(); loadConfig(); initScene(); checkBrainHealth(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+# ==============================================================================
+# KaixuSI -- The Brain
+# ==============================================================================
+#
+# This Cloudflare Worker IS the KaixuSI intelligence layer.
+# It is not a proxy to anyone else's service -- all AI calls go directly
+# from this worker to OpenAI / Anthropic / Gemini using YOUR keys.
+#
+# Dual role:
+#   1. Powers the kAIxU SuperIDE (Netlify functions call this worker)
+#   2. Can be called directly by any other app using KAIXUSI_SECRET
+#
+# Every request is attributed to a specific IDE user via user_id + workspace_id,
+# so you can see exactly who called what in the ai_usage_log table.
+#
+# Routes:
+#   GET  /health         -- public, no auth required
+#   POST /v1/chat        -- non-streaming chat  (Bearer KAIXUSI_SECRET)
+#   POST /v1/stream      -- SSE streaming chat  (Bearer KAIXUSI_SECRET)
+#   POST /v1/embed       -- text embeddings     (Bearer KAIXUSI_SECRET)
+#
+# Attribution (body fields take precedence over headers):
+#   X-Kaixu-User-Id       -- IDE user UUID
+#   X-Kaixu-Workspace-Id  -- workspace UUID
+#   X-Kaixu-Org-Id        -- org UUID
+#   X-Kaixu-App           -- calling app tag (e.g. "kaixu-superide")
+# ==============================================================================
+
+name               = "kaixusi"
+main               = "src/index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# -- Account -------------------------------------------------------------------
+account_id = "994dcbdf4404db05122940396a622102"
+
+# -- Workers route -------------------------------------------------------------
+# After `npx wrangler deploy`, your worker is live at:
+#   https://kaixusi.<your-cf-subdomain>.workers.dev
+#
+# Set that URL as KAIXUSI_WORKER_URL in Netlify so the IDE can reach the brain.
+#
+# Custom domain (e.g. brain.kaixu.app):
+#   [[routes]]
+#   pattern  = "brain.kaixu.app/*"
+#   zone_name = "kaixu.app"
+
+# -- Secrets (set via CLI -- NEVER hardcode here) ------------------------------
+# Run once after deploy:
+#
+#   npx wrangler secret put KAIXUSI_SECRET     # shared bearer token
+#   npx wrangler secret put OPENAI_KEY         # OpenAI API key
+#   npx wrangler secret put ANTHROPIC_KEY      # Anthropic API key
+#   npx wrangler secret put GEMINI_KEY         # Google Gemini API key
+#   npx wrangler secret put DATABASE_URL       # Neon PostgreSQL (usage logging)
+#
+# Then add to Netlify environment (Site -> Environment variables):
+#   KAIXUSI_WORKER_URL = https://kaixusi.<your-subdomain>.workers.dev
+#   KAIXUSI_SECRET     = <same value as the worker secret>
+
+# -- Dev (local) ---------------------------------------------------------------
+[dev]
+port = 8787
+local_protocol = "http"
+
+# -- Local secrets override (for `wrangler dev` -- do NOT commit .dev.vars) ----
+# Copy worker/.dev.vars.example -> worker/.dev.vars and fill in:
+#   KAIXUSI_SECRET=any-local-secret
+#   OPENAI_KEY=sk-...
+#   ANTHROPIC_KEY=sk-ant-...
+#   GEMINI_KEY=AIza...
+#   DATABASE_URL=postgresql://...
+#
+# Then: cd worker && npx wrangler dev
+# Worker listens at http://localhost:8787

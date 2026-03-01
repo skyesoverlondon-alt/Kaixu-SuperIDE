@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Test Runner</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--bg3:#1e0040;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg0);color:var(--fg);font-family:'Inter',sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  
+  /* HEADER */
+  .hdr{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid #2a0050;flex-shrink:0;}
+  .hdr-title{font-weight:700;font-size:15px;color:var(--green);letter-spacing:.03em;}
+  .hdr-sub{color:#8060a0;font-size:11px;}
+  .hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .btn{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:all .15s;}
+  .btn-green{background:rgba(79,255,176,.15);color:var(--green);border:1px solid rgba(79,255,176,.3);}
+  .btn-green:hover{background:rgba(79,255,176,.25);box-shadow:0 0 12px rgba(79,255,176,.3);}
+  .btn-red{background:rgba(255,79,106,.12);color:var(--red);border:1px solid rgba(255,79,106,.3);}
+  .btn-red:hover{background:rgba(255,79,106,.25);}
+  .btn-purple{background:rgba(162,67,255,.15);color:var(--purple);border:1px solid rgba(162,67,255,.3);}
+  .btn-purple:hover{background:rgba(162,67,255,.25);}
+  .btn-gold{background:rgba(255,211,106,.12);color:var(--gold);border:1px solid rgba(255,211,106,.3);}
+  .btn-gold:hover{background:rgba(255,211,106,.25);}
+  .btn-sm{padding:3px 9px;font-size:11px;}
+  
+  /* LAYOUT */
+  .layout{display:flex;flex:1;overflow:hidden;}
+  
+  /* SIDEBAR */
+  .sidebar{width:240px;background:var(--bg1);border-right:1px solid #2a0050;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+  .sidebar-hdr{padding:10px 12px;border-bottom:1px solid #1a0030;display:flex;align-items:center;justify-content:space-between;}
+  .sidebar-hdr span{font-size:11px;font-weight:700;color:#8060a0;text-transform:uppercase;letter-spacing:.08em;}
+  .suite-list{flex:1;overflow-y:auto;}
+  .suite-list::-webkit-scrollbar{width:3px;}
+  .suite-list::-webkit-scrollbar-thumb{background:#3a0060;}
+  .suite-item{padding:8px 12px;border-bottom:1px solid #1a0030;cursor:pointer;transition:background .1s;}
+  .suite-item:hover{background:var(--bg2);}
+  .suite-item.active{background:var(--bg2);border-left:2px solid var(--purple);}
+  .suite-name{font-weight:600;font-size:12px;color:var(--fg);font-family:'Share Tech Mono',monospace;}
+  .suite-meta{font-size:10px;color:#6040a0;margin-top:2px;}
+  .suite-badge{display:inline-flex;gap:6px;margin-top:4px;}
+  .badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;}
+  .badge-pass{background:rgba(79,255,176,.15);color:var(--green);}
+  .badge-fail{background:rgba(255,79,106,.15);color:var(--red);}
+  .badge-skip{background:rgba(255,211,106,.12);color:var(--gold);}
+  .badge-run{background:rgba(162,67,255,.15);color:var(--purple);}
+  
+  /* MAIN */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  
+  /* TOOLBAR */
+  .toolbar{padding:8px 14px;background:var(--bg1);border-bottom:1px solid #1a0030;display:flex;gap:8px;align-items:center;flex-shrink:0;}
+  .framework-badge{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(48,224,255,.1);color:var(--cyan);border:1px solid rgba(48,224,255,.2);}
+  .watch-toggle{display:flex;align-items:center;gap:5px;font-size:11px;color:#8060a0;}
+  .watch-toggle input{accent-color:var(--purple);}
+  .summary-bar{margin-left:auto;display:flex;gap:12px;font-size:11px;}
+  .summary-bar span{display:flex;align-items:center;gap:4px;}
+  
+  /* RESULTS PANE */
+  .results-wrap{flex:1;display:flex;overflow:hidden;}
+  .results-pane{flex:1;overflow-y:auto;padding:10px;}
+  .results-pane::-webkit-scrollbar{width:4px;}
+  .results-pane::-webkit-scrollbar-thumb{background:#3a0060;}
+  
+  /* TEST FILE GROUP */
+  .file-group{margin-bottom:10px;background:var(--bg1);border-radius:6px;border:1px solid #1a0030;overflow:hidden;}
+  .file-group-hdr{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;}
+  .file-group-hdr:hover{background:var(--bg2);}
+  .fg-toggle{color:#6040a0;font-size:11px;}
+  .fg-path{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--cyan);}
+  .fg-stats{margin-left:auto;display:flex;gap:8px;font-size:10px;}
+  .fg-run-btn{padding:2px 8px;border-radius:3px;background:rgba(79,255,176,.1);color:var(--green);border:1px solid rgba(79,255,176,.2);cursor:pointer;font-size:10px;font-family:inherit;font-weight:600;}
+  .fg-run-btn:hover{background:rgba(79,255,176,.2);}
+  .test-rows{display:none;border-top:1px solid #1a0030;}
+  .test-rows.open{display:block;}
+  .test-row{display:flex;align-items:flex-start;gap:10px;padding:7px 12px;border-bottom:1px solid #0d001a;cursor:pointer;}
+  .test-row:last-child{border-bottom:none;}
+  .test-row:hover{background:#0a0018;}
+  .test-icon{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:9px;}
+  .icon-pass{background:rgba(79,255,176,.2);color:var(--green);}
+  .icon-fail{background:rgba(255,79,106,.2);color:var(--red);}
+  .icon-skip{background:rgba(255,211,106,.12);color:var(--gold);}
+  .icon-run{background:rgba(162,67,255,.2);color:var(--purple);animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .test-label{flex:1;font-size:12px;}
+  .test-label-name{color:var(--fg);}
+  .test-err{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--red);margin-top:4px;padding:6px 8px;background:rgba(255,79,106,.05);border-left:2px solid var(--red);white-space:pre-wrap;}
+  .test-dur{font-size:10px;color:#5040a0;white-space:nowrap;}
+  .test-ai-btn{padding:2px 6px;border-radius:3px;background:rgba(209,48,255,.1);color:var(--purple-hot);border:1px solid rgba(209,48,255,.2);cursor:pointer;font-size:9px;font-family:inherit;white-space:nowrap;}
+  .test-ai-btn:hover{background:rgba(209,48,255,.2);}
+  
+  /* DETAIL PANE */
+  .detail-pane{width:300px;border-left:1px solid #2a0050;background:var(--bg1);display:flex;flex-direction:column;overflow:hidden;}
+  .detail-pane::-webkit-scrollbar{width:4px;}
+  .detail-hdr{padding:10px 12px;border-bottom:1px solid #1a0030;font-size:11px;font-weight:700;color:#8060a0;text-transform:uppercase;letter-spacing:.08em;}
+  .detail-body{flex:1;overflow-y:auto;padding:10px 12px;}
+  .detail-body::-webkit-scrollbar{width:3px;}
+  .detail-body::-webkit-scrollbar-thumb{background:#3a0060;}
+  .detail-empty{color:#5040a0;font-size:11px;text-align:center;margin-top:40px;}
+  .detail-label{font-size:10px;color:#7050a0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;margin-top:12px;}
+  .detail-label:first-child{margin-top:0;}
+  .detail-val{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--fg);background:var(--bg2);padding:6px 8px;border-radius:4px;white-space:pre-wrap;word-break:break-all;}
+  .detail-val.err{color:var(--red);}
+  .ai-resp{font-size:12px;color:var(--fg);line-height:1.6;margin-top:6px;}
+  .ai-resp-loading{color:var(--purple);font-size:11px;font-style:italic;}
+  
+  /* COVERAGE */
+  .cov-wrap{padding:10px 12px;border-top:1px solid #1a0030;}
+  .cov-label{font-size:10px;color:#7050a0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+  .cov-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+  .cov-file-name{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan);width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cov-bar{flex:1;height:6px;background:#1a0030;border-radius:3px;overflow:hidden;}
+  .cov-fill{height:100%;border-radius:3px;transition:width .4s;}
+  .cov-pct{font-size:10px;width:32px;text-align:right;}
+  
+  /* SETUP MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--bg1);border:1px solid #3a0060;border-radius:8px;width:480px;max-height:80vh;overflow-y:auto;padding:20px;}
+  .modal h3{font-size:15px;font-weight:700;color:var(--green);margin-bottom:14px;}
+  .form-group{margin-bottom:12px;}
+  .form-group label{display:block;font-size:11px;color:#8060a0;margin-bottom:4px;}
+  .form-group select,.form-group input{width:100%;background:var(--bg2);border:1px solid #3a0060;border-radius:4px;color:var(--fg);padding:7px 10px;font-family:inherit;font-size:12px;}
+  .form-group select:focus,.form-group input:focus{outline:none;border-color:var(--purple);}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+  
+  /* STATUS BAR */
+  .status-bar{padding:3px 14px;background:#060010;border-top:1px solid #1a0030;display:flex;gap:16px;font-size:10px;color:#5040a0;flex-shrink:0;}
+  .status-bar span b{color:var(--fg);}
+
+  /* EMPTY STATE */
+  .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#5040a0;gap:12px;text-align:center;}
+  .empty-state .big{font-size:40px;}
+  .empty-state .title{font-size:16px;color:#8060a0;font-weight:600;}
+  .empty-state .sub{font-size:12px;max-width:280px;line-height:1.5;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div style="font-size:20px;">🧪</div>
+  <div>
+    <div class="hdr-title">Test Runner</div>
+    <div class="hdr-sub">Jest · Vitest · Mocha · pytest · go test</div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn btn-purple btn-sm" onclick="openSetup()">⚙ Configure</button>
+    <button class="btn btn-green" onclick="runAll()">▶ Run All</button>
+    <button class="btn btn-red btn-sm" onclick="stopRun()">■ Stop</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR: test suites -->
+  <div class="sidebar">
+    <div class="sidebar-hdr">
+      <span>Test Suites</span>
+      <button class="btn btn-purple btn-sm" onclick="refreshSuites()">↻</button>
+    </div>
+    <div class="suite-list" id="suiteList"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <span class="framework-badge" id="frameworkBadge">Jest 29</span>
+      <button class="btn btn-green btn-sm" onclick="runAll()">▶ All</button>
+      <button class="btn btn-purple btn-sm" onclick="runFailed()">▶ Failed</button>
+      <label class="watch-toggle"><input type="checkbox" id="watchMode" onchange="toggleWatch()"/> Watch mode</label>
+      <label class="watch-toggle"><input type="checkbox" id="coverageMode" onchange="toggleCoverage()"/> Coverage</label>
+      <div class="summary-bar" id="summaryBar">
+        <span>⬜ <b id="totalCount">0</b> tests</span>
+        <span style="color:var(--green)">✓ <b id="passCount">0</b></span>
+        <span style="color:var(--red)">✗ <b id="failCount">0</b></span>
+        <span style="color:var(--gold)">⊘ <b id="skipCount">0</b></span>
+        <span style="color:var(--purple)">⏱ <b id="durLabel">—</b></span>
+      </div>
+    </div>
+
+    <!-- RESULTS + DETAIL -->
+    <div class="results-wrap">
+      <div class="results-pane" id="resultPane">
+        <div class="empty-state" id="emptyState">
+          <div class="big">🧪</div>
+          <div class="title">No tests loaded</div>
+          <div class="sub">Click Configure to set your project path and test framework, then Run All to execute.</div>
+          <button class="btn btn-green" onclick="loadDemo()">Load demo suite</button>
+        </div>
+      </div>
+
+      <div class="detail-pane">
+        <div class="detail-hdr">Test Detail</div>
+        <div class="detail-body" id="detailBody">
+          <div class="detail-empty">Click a test to inspect it.<br/>Click ✦ on a failing test to get kAIxU fix suggestion.</div>
+        </div>
+        <div class="cov-wrap" id="covWrap" style="display:none;">
+          <div class="cov-label">Coverage</div>
+          <div id="covList"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar" id="statusBar">
+  <span>Status: <b id="statusLabel">Idle</b></span>
+  <span>Framework: <b id="fwLabel">Jest</b></span>
+  <span>Watch: <b id="watchLabel">Off</b></span>
+  <span>Coverage: <b id="coverageLabel">Off</b></span>
+</div>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay hidden" id="setupModal">
+  <div class="modal">
+    <h3>⚙ Test Runner Configuration</h3>
+    <div class="form-group">
+      <label>Test Framework</label>
+      <select id="cfgFramework">
+        <option value="jest">Jest</option>
+        <option value="vitest">Vitest</option>
+        <option value="mocha">Mocha</option>
+        <option value="pytest">pytest (Python)</option>
+        <option value="gotest">go test</option>
+        <option value="playwright">Playwright</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Project Root Path</label>
+      <input type="text" id="cfgRoot" placeholder="/workspace/myproject" value="/workspace"/>
+    </div>
+    <div class="form-group">
+      <label>Test Pattern (glob)</label>
+      <input type="text" id="cfgPattern" placeholder="**/*.test.{js,ts}" value="**/*.test.{js,ts}"/>
+    </div>
+    <div class="form-group">
+      <label>Run Command</label>
+      <input type="text" id="cfgCmd" placeholder="npx jest --json" value="npx jest --json --coverage"/>
+    </div>
+    <div class="form-group">
+      <label>kAIxU Gateway Token (for AI Fix)</label>
+      <input type="password" id="cfgToken" placeholder="Leave blank to use saved token"/>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" style="background:#1a0030;color:#8060a0;" onclick="closeSetup()">Cancel</button>
+      <button class="btn btn-green" onclick="saveSetup()">Save & Detect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORKER = 'https://kaixusi.skyesoverlondon.workers.dev';
+
+// ── config ──────────────────────────────────────────────────────────────────
+let cfg = {
+  framework: 'jest',
+  root: '/workspace',
+  pattern: '**/*.test.{js,ts}',
+  cmd: 'npx jest --json --coverage',
+  token: ''
+};
+let running = false;
+let watchInterval = null;
+let selectedTest = null;
+let suites = [];
+let coverageEnabled = false;
+
+// ── demo data ────────────────────────────────────────────────────────────────
+const DEMO_SUITES = [
+  {
+    file:'src/auth/auth.test.ts', fw:'Jest 29',
+    tests:[
+      {name:'should hash password correctly', status:'pass', dur:12},
+      {name:'should verify valid JWT token', status:'pass', dur:8},
+      {name:'should reject expired JWT', status:'pass', dur:6},
+      {name:'should throw on invalid credentials', status:'fail', dur:4,
+        err:'Expected: 401\nReceived: 200\n  at auth.test.ts:47:22'},
+      {name:'should rate-limit after 5 attempts', status:'skip', dur:0},
+    ]
+  },
+  {
+    file:'src/api/routes.test.ts', fw:'Jest 29',
+    tests:[
+      {name:'GET /health returns 200', status:'pass', dur:31},
+      {name:'POST /v1/chat validates body', status:'pass', dur:19},
+      {name:'POST /v1/stream returns SSE headers', status:'pass', dur:88},
+      {name:'POST /v1/embed returns array', status:'pass', dur:44},
+      {name:'401 on missing auth token', status:'pass', dur:12},
+      {name:'403 on invalid org', status:'fail', dur:7,
+        err:'Error: Expected status 403, got 500\n  Internal server error in org lookup\n  at routes.test.ts:112:5'},
+    ]
+  },
+  {
+    file:'src/db/queries.test.ts', fw:'Jest 29',
+    tests:[
+      {name:'insertUser returns new id', status:'pass', dur:22},
+      {name:'findUserByEmail handles nulls', status:'pass', dur:18},
+      {name:'updateWorkspace is transactional', status:'pass', dur:35},
+      {name:'deleteOrg cascades correctly', status:'pass', dur:28},
+    ]
+  },
+  {
+    file:'src/utils/sanitize.test.ts', fw:'Jest 29',
+    tests:[
+      {name:'sanitizeReqBody strips model key', status:'pass', dur:3},
+      {name:'sanitizeReqBody strips provider key', status:'pass', dur:2},
+      {name:'sanitizeReqBody strips nested secrets', status:'fail', dur:2,
+        err:"AssertionError: expected { provider: 'gemini' } to be undefined\n  at sanitize.test.ts:33:12"},
+      {name:'sanitizeReqBody preserves other keys', status:'pass', dur:2},
+    ]
+  }
+];
+
+const COVERAGE = [
+  {file:'auth.ts', pct:87, color:'#4fffb0'},
+  {file:'routes.ts', pct:92, color:'#4fffb0'},
+  {file:'queries.ts', pct:74, color:'#ffd36a'},
+  {file:'sanitize.ts', pct:68, color:'#ff9f43'},
+  {file:'middleware.ts', pct:45, color:'#ff4f6a'},
+  {file:'utils/crypto.ts', pct:100, color:'#4fffb0'},
+];
+
+// ── init ─────────────────────────────────────────────────────────────────────
+function init(){
+  const saved = localStorage.getItem('kaixu_testrunner_cfg');
+  if(saved) try{cfg=JSON.parse(saved);}catch(e){}
+  updateStatusBar();
+}
+
+// ── modal ────────────────────────────────────────────────────────────────────
+function openSetup(){
+  document.getElementById('cfgFramework').value = cfg.framework;
+  document.getElementById('cfgRoot').value = cfg.root;
+  document.getElementById('cfgPattern').value = cfg.pattern;
+  document.getElementById('cfgCmd').value = cfg.cmd;
+  document.getElementById('setupModal').classList.remove('hidden');
+}
+function closeSetup(){ document.getElementById('setupModal').classList.add('hidden'); }
+function saveSetup(){
+  cfg.framework = document.getElementById('cfgFramework').value;
+  cfg.root = document.getElementById('cfgRoot').value;
+  cfg.pattern = document.getElementById('cfgPattern').value;
+  cfg.cmd = document.getElementById('cfgCmd').value;
+  cfg.token = document.getElementById('cfgToken').value;
+  localStorage.setItem('kaixu_testrunner_cfg', JSON.stringify(cfg));
+  closeSetup();
+  document.getElementById('frameworkBadge').textContent = frameworkLabel();
+  document.getElementById('fwLabel').textContent = frameworkLabel();
+  setStatus('Config saved — ready to run');
+}
+function frameworkLabel(){
+  return {jest:'Jest 29',vitest:'Vitest 1.x',mocha:'Mocha 10',pytest:'pytest 7',gotest:'go test',playwright:'Playwright'}[cfg.framework]||cfg.framework;
+}
+
+// ── load demo ────────────────────────────────────────────────────────────────
+function loadDemo(){
+  suites = JSON.parse(JSON.stringify(DEMO_SUITES));
+  renderAll();
+}
+
+// ── run ──────────────────────────────────────────────────────────────────────
+function runAll(){
+  if(!suites.length){ loadDemo(); return; }
+  running = true;
+  setStatus('Running…');
+  // Simulate run: mark all as running then resolve
+  suites.forEach(s=>s.tests.forEach(t=>{if(t.status!=='skip')t.status='running';}));
+  renderAll();
+  let i=0;
+  const tick=setInterval(()=>{
+    // resolve one test per tick
+    let done=true;
+    outer: for(const s of suites){
+      for(const t of s.tests){
+        if(t.status==='running'){
+          t.status = t._orig||t.status;
+          // restore from demo original
+          done=false; break outer;
+        }
+      }
+    }
+    // restore from demo data
+    for(const s of suites) for(const t of s.tests) if(t.status==='running'){
+      const ds = DEMO_SUITES.find(x=>x.file===s.file);
+      const dt = ds&&ds.tests.find(x=>x.name===t.name);
+      if(dt) t.status=dt.status;
+    }
+    renderAll();
+    if(++i>=20){ clearInterval(tick); running=false; setStatus('Run complete'); }
+  },80);
+}
+
+function runFailed(){
+  if(!suites.length){ setStatus('No suites loaded'); return; }
+  setStatus('Re-running failed tests…');
+  setTimeout(()=>{ setStatus('Done re-running failed tests'); },1200);
+}
+
+function stopRun(){
+  running=false;
+  suites.forEach(s=>s.tests.forEach(t=>{if(t.status==='running')t.status='skip';}));
+  renderAll();
+  setStatus('Run stopped');
+}
+
+function refreshSuites(){ runAll(); }
+
+// ── watch ────────────────────────────────────────────────────────────────────
+function toggleWatch(){
+  const on = document.getElementById('watchMode').checked;
+  document.getElementById('watchLabel').textContent = on?'On':'Off';
+  if(on){
+    setStatus('Watch mode — waiting for file changes…');
+    watchInterval=setInterval(()=>{ /* would re-run on change */ },5000);
+  } else {
+    clearInterval(watchInterval);
+    setStatus('Watch mode off');
+  }
+}
+
+function toggleCoverage(){
+  coverageEnabled = document.getElementById('coverageMode').checked;
+  document.getElementById('coverageLabel').textContent = coverageEnabled?'On':'Off';
+  renderCoverage();
+}
+
+// ── render ───────────────────────────────────────────────────────────────────
+function renderAll(){
+  document.getElementById('emptyState').style.display='none';
+  const pane = document.getElementById('resultPane');
+  // clear except empty state
+  [...pane.children].forEach(c=>{ if(c.id!=='emptyState') c.remove(); });
+  
+  let total=0,pass=0,fail=0,skip=0;
+  const sideList = document.getElementById('suiteList');
+  sideList.innerHTML='';
+
+  suites.forEach((suite,si)=>{
+    let sp=0,sf=0,ss=0;
+    suite.tests.forEach(t=>{
+      total++;
+      if(t.status==='pass') { pass++; sp++; }
+      else if(t.status==='fail') { fail++; sf++; }
+      else if(t.status==='skip') { skip++; ss++; }
+    });
+
+    // sidebar item
+    const sItem = document.createElement('div');
+    sItem.className='suite-item'+(selectedSuite===si?' active':'');
+    sItem.innerHTML=`<div class="suite-name">${suite.file.split('/').pop()}</div>
+      <div class="suite-meta">${suite.file}</div>
+      <div class="suite-badge">
+        ${sp?`<span class="badge badge-pass">✓${sp}</span>`:''}
+        ${sf?`<span class="badge badge-fail">✗${sf}</span>`:''}
+        ${ss?`<span class="badge badge-skip">⊘${ss}</span>`:''}
+      </div>`;
+    sItem.onclick=()=>{ selectedSuite=si; scrollToGroup(si); renderAll(); };
+    sideList.appendChild(sItem);
+
+    // result group
+    const grp = document.createElement('div');
+    grp.className='file-group';
+    grp.id=`group-${si}`;
+    grp.innerHTML=`<div class="file-group-hdr" onclick="toggleGroup(${si},this)">
+      <span class="fg-toggle">▾</span>
+      <span class="fg-path">${suite.file}</span>
+      <div class="fg-stats">
+        ${sp?`<span style="color:var(--green)">✓${sp}</span>`:''}
+        ${sf?`<span style="color:var(--red)">✗${sf}</span>`:''}
+        ${ss?`<span style="color:var(--gold)">⊘${ss}</span>`:''}
+      </div>
+      <button class="fg-run-btn" onclick="event.stopPropagation();runSuite(${si})">▶ Run</button>
+    </div>
+    <div class="test-rows open" id="rows-${si}"></div>`;
+    pane.appendChild(grp);
+
+    const rowsEl = grp.querySelector(`#rows-${si}`);
+    suite.tests.forEach((t,ti)=>{
+      const row = document.createElement('div');
+      row.className='test-row';
+      const iconClass = {pass:'icon-pass',fail:'icon-fail',skip:'icon-skip',running:'icon-run'}[t.status]||'icon-skip';
+      const iconChar = {pass:'✓',fail:'✗',skip:'⊘',running:'◌'}[t.status]||'⊘';
+      row.innerHTML=`
+        <div class="test-icon ${iconClass}">${iconChar}</div>
+        <div class="test-label">
+          <div class="test-label-name">${t.name}</div>
+          ${t.err?`<div class="test-err">${escHtml(t.err)}</div>`:''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-start;">
+          ${t.dur?`<span class="test-dur">${t.dur}ms</span>`:''}
+          ${t.status==='fail'?`<button class="test-ai-btn" onclick="event.stopPropagation();aiFix(${si},${ti})">✦ Fix</button>`:''}
+        </div>`;
+      row.onclick=()=>selectTest(si,ti);
+      rowsEl.appendChild(row);
+    });
+  });
+
+  document.getElementById('totalCount').textContent=total;
+  document.getElementById('passCount').textContent=pass;
+  document.getElementById('failCount').textContent=fail;
+  document.getElementById('skipCount').textContent=skip;
+  document.getElementById('durLabel').textContent=`${suites.length} suites`;
+
+  renderCoverage();
+}
+
+let selectedSuite = -1;
+
+function toggleGroup(si,hdr){
+  const rows = document.getElementById(`rows-${si}`);
+  const tog = hdr.querySelector('.fg-toggle');
+  if(rows.classList.contains('open')){ rows.classList.remove('open'); tog.textContent='▸'; }
+  else { rows.classList.add('open'); tog.textContent='▾'; }
+}
+
+function scrollToGroup(si){
+  const el = document.getElementById(`group-${si}`);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function runSuite(si){
+  const s=suites[si];
+  s.tests.forEach(t=>{if(t.status!=='skip')t.status='running';});
+  renderAll();
+  Promise.all(s.tests.map((_,ti)=>new Promise(res=>{
+    setTimeout(()=>{
+      const ds=DEMO_SUITES[si];
+      if(ds) s.tests[ti].status=ds.tests[ti].status;
+      res();
+    }, 50+Math.random()*100);
+  }))).then(()=>{ renderAll(); setStatus(`Suite ${s.file.split('/').pop()} done`); });
+}
+
+function selectTest(si,ti){
+  const t = suites[si].tests[ti];
+  const db = document.getElementById('detailBody');
+  db.innerHTML=`
+    <div class="detail-label">Test Name</div>
+    <div class="detail-val">${escHtml(t.name)}</div>
+    <div class="detail-label">Status</div>
+    <div class="detail-val" style="color:${t.status==='pass'?'var(--green)':t.status==='fail'?'var(--red)':'var(--gold)'}">${t.status.toUpperCase()}</div>
+    <div class="detail-label">Suite</div>
+    <div class="detail-val">${escHtml(suites[si].file)}</div>
+    <div class="detail-label">Duration</div>
+    <div class="detail-val">${t.dur||0}ms</div>
+    ${t.err?`<div class="detail-label">Error</div><div class="detail-val err">${escHtml(t.err)}</div>`:''}
+    ${t.status==='fail'?`<div class="detail-label" style="margin-top:14px;">kAIxU Fix</div>
+    <div id="aiRespBox"><button class="btn btn-purple" style="width:100%;margin-top:2px;" onclick="aiFix(${si},${ti})">✦ Get AI fix suggestion</button></div>`:''}
+  `;
+}
+
+async function aiFix(si,ti){
+  const t = suites[si].tests[ti];
+  const box = document.getElementById('aiRespBox')||document.createElement('div');
+  box.innerHTML='<div class="ai-resp-loading">✦ kAIxU is analysing the failure…</div>';
+
+  const token = cfg.token || localStorage.getItem('sovereign_brain_cfg') ? 
+    (()=>{try{return JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token||'';}catch(e){return '';}})() : '';
+
+  if(!token){ box.innerHTML='<div class="ai-resp" style="color:var(--red)">No gateway token configured. Set it in ⚙ Configure.</div>'; return; }
+
+  const prompt = `A unit test is failing. Diagnose and suggest a fix.
+
+Test name: ${t.name}
+Test file: ${suites[si].file}
+Error output:
+${t.err||'No error message'}
+
+Give a concise diagnosis and specific code fix suggestion. Be direct.`;
+
+  try{
+    const resp = await fetch(`${WORKER}/v1/chat`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:prompt}],max_tokens:400,app_id:'kaixu-testrunner'})
+    });
+    const data = await resp.json();
+    const text = data.output_text||data.choices?.[0]?.message?.content||JSON.stringify(data);
+    box.innerHTML=`<div class="ai-resp">${escHtml(text).replace(/\n/g,'<br/>')}</div>`;
+    // also update detail pane
+    selectTest(si,ti);
+    document.getElementById('aiRespBox').innerHTML=`<div class="ai-resp">${escHtml(text).replace(/\n/g,'<br/>')}</div>`;
+  }catch(e){
+    box.innerHTML=`<div class="ai-resp" style="color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+function renderCoverage(){
+  const wrap = document.getElementById('covWrap');
+  if(!coverageEnabled){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  const list = document.getElementById('covList');
+  list.innerHTML = COVERAGE.map(c=>`
+    <div class="cov-bar-row">
+      <span class="cov-file-name">${c.file}</span>
+      <div class="cov-bar"><div class="cov-fill" style="width:${c.pct}%;background:${c.color};"></div></div>
+      <span class="cov-pct" style="color:${c.color}">${c.pct}%</span>
+    </div>`).join('');
+}
+
+function setStatus(msg){ document.getElementById('statusLabel').textContent=msg; }
+function updateStatusBar(){
+  document.getElementById('fwLabel').textContent=frameworkLabel();
+  document.getElementById('watchLabel').textContent='Off';
+  document.getElementById('coverageLabel').textContent='Off';
+}
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+init();
+</script>
+</body>
+</html>

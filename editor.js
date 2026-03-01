@@ -482,6 +482,7 @@ function _setupAutoSave(pane) {
 }
 
 var _previewDebounce = null;
+var _autoSaveGateWarned = {};
 
 async function _doAutoSave(pane) {
   const tab = _tabsForPane(pane).find(t => t.id === activeTabId) ||
@@ -489,6 +490,21 @@ async function _doAutoSave(pane) {
   if (!tab || !tab.path) return;
   const ta = _getTextarea(pane);
   if (!ta || ta.classList.contains('hidden')) return;
+
+  // Problems gate: block auto-save when current file has lint errors.
+  if (typeof lintFile === 'function') lintFile(tab.path, ta.value);
+  const blocking = Array.isArray(window.allProblems)
+    ? window.allProblems.filter(p => p.file === tab.path && p.severity === 'error')
+    : [];
+  if (blocking.length) {
+    if (!_autoSaveGateWarned[tab.path]) {
+      _autoSaveGateWarned[tab.path] = true;
+      if (typeof toast === 'function') toast('Auto-save blocked: fix file errors first', 'error');
+    }
+    return;
+  }
+  _autoSaveGateWarned[tab.path] = false;
+
   // Format on save (before writing)
   if (IDE.formatOnSave && typeof formatDocument === 'function') {
     formatDocument(true); // silent=true, reformats ta.value in place

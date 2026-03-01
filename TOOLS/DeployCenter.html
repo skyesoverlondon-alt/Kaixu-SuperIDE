@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kAIxU — Deploy Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+<style>
+:root{--bg0:#040008;--bg1:#080012;--bg2:#0d001c;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--muted:#64748b;--ink:#e2e8f0;--border:rgba(162,67,255,.18)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100vh;background:var(--bg0);color:var(--ink);font-family:'Inter',sans-serif;font-size:13px}
+#app{display:grid;grid-template-rows:52px 1fr;height:100vh;overflow:hidden}
+header{display:flex;align-items:center;gap:10px;padding:0 16px;background:rgba(4,0,8,.95);border-bottom:1px solid var(--border)}
+.logo{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--gold);letter-spacing:.1em}
+.hspacer{flex:1}
+.hbtn{padding:5px 12px;border-radius:7px;font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;border:1px solid rgba(255,255,255,.1);color:var(--muted);background:transparent;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.hbtn:hover{border-color:var(--purple);color:var(--purple)}
+#body{display:grid;grid-template-columns:300px 1fr;height:100%;overflow:hidden}
+/* Sidebar */
+#sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.cfg-pane{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.cfg-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.cfg-input{width:100%;padding:7px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:var(--ink);font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;transition:border .15s}
+.cfg-input:focus{border-color:var(--purple)}
+.conn-btn{width:100%;padding:8px;border-radius:8px;background:var(--purple);border:none;color:#fff;font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s;font-weight:700}
+.conn-btn:hover{background:var(--purple-hot)}
+.conn-btn:disabled{opacity:.4;cursor:not-allowed}
+.sites-hdr{padding:10px 14px 6px;display:flex;align-items:center;justify-content:space-between}
+.sites-title{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.sites-count{font-size:9px;color:var(--muted);font-family:'Share Tech Mono',monospace}
+#sites-list{flex:1;overflow-y:auto;padding:0 8px 8px}
+.site-item{display:flex;align-items:center;gap:8px;padding:8px 8px;border-radius:8px;cursor:pointer;transition:all .1s;margin-bottom:2px;border:1px solid transparent}
+.site-item:hover{background:rgba(255,255,255,.04)}
+.site-item.active{background:rgba(162,67,255,.1);border-color:rgba(162,67,255,.3)}
+.site-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.site-dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
+.site-dot.building{background:var(--gold);box-shadow:0 0 6px var(--gold);animation:pulse 1s infinite}
+.site-dot.error{background:var(--red);box-shadow:0 0 6px var(--red)}
+.site-name{font-size:11px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-sub{font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--muted)}
+/* Main */
+#main{display:flex;flex-direction:column;overflow:hidden}
+.main-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0}
+.main-title{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--gold)}
+.main-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.mspacer{flex:1}
+.act-btn{padding:6px 14px;border-radius:7px;font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;border:1px solid var(--green);color:var(--green);background:transparent;transition:all .15s}
+.act-btn:hover{background:rgba(79,255,176,.1)}
+.act-btn.danger{border-color:var(--red);color:var(--red)}
+.act-btn.danger:hover{background:rgba(255,79,106,.1)}
+.act-btn.primary{background:var(--green);color:#040008;border-color:var(--green)}
+.act-btn.primary:hover{background:#3ae09d}
+.act-btn:disabled{opacity:.3;cursor:not-allowed}
+.stats-bar{display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0}
+.stat-box{padding:10px 16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:2px}
+.stat-val{font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700;color:var(--purple)}
+.stat-lbl{font-size:9px;color:var(--muted);font-family:'Share Tech Mono',monospace;text-transform:uppercase;letter-spacing:.1em}
+.deploys-section{flex:1;overflow-y:auto;padding:12px}
+.section-hdr{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);padding:4px 0 8px}
+.deploy-card{background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:border .15s}
+.deploy-card:hover{border-color:rgba(162,67,255,.35)}
+.deploy-state{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.deploy-state.ready{background:var(--green);box-shadow:0 0 6px var(--green)}
+.deploy-state.building{background:var(--gold);animation:pulse 1s infinite;box-shadow:0 0 6px var(--gold)}
+.deploy-state.error,.deploy-state.failed{background:var(--red)}
+.deploy-info{flex:1;min-width:0}
+.deploy-id{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan)}
+.deploy-msg{font-size:11px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.deploy-meta{display:flex;gap:8px;margin-top:3px;flex-wrap:wrap}
+.deploy-tag{font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--muted);background:rgba(255,255,255,.04);padding:1px 5px;border-radius:4px}
+.deploy-time{font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace;flex-shrink:0;white-space:nowrap}
+.deploy-link{font-size:10px;color:var(--purple);text-decoration:none;padding:4px 8px;border-radius:5px;border:1px solid rgba(162,67,255,.3)}
+.deploy-link:hover{background:rgba(162,67,255,.1)}
+/* Empty / loading */
+.empty{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;height:100%;color:var(--muted);font-family:'Share Tech Mono',monospace}
+.empty-icon{font-size:48px;opacity:.3}
+.empty-msg{font-size:11px;letter-spacing:.1em}
+.loading{display:flex;align-items:center;gap:8px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px;padding:20px}
+.spinner{width:12px;height:12px;border:2px solid rgba(162,67,255,.2);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* Toast */
+#toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:11px;z-index:999;display:none;max-width:360px}
+#toast.ok{background:rgba(79,255,176,.15);border:1px solid var(--green);color:var(--green)}
+#toast.err{background:rgba(255,79,106,.12);border:1px solid var(--red);color:var(--red)}
+#toast.warn{background:rgba(255,211,106,.1);border:1px solid var(--gold);color:var(--gold)}
+/* Site deploy header empty */
+#site-empty{display:flex;align-items:center;justify-content:center;flex-direction:column;height:100%;gap:14px;color:var(--muted);font-family:'Share Tech Mono',monospace}
+.site-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:9px;font-family:'Share Tech Mono',monospace;border:1px solid}
+.badge-ready{border-color:rgba(79,255,176,.4);color:var(--green);background:rgba(79,255,176,.07)}
+.badge-building{border-color:rgba(255,211,106,.4);color:var(--gold);background:rgba(255,211,106,.07)}
+.badge-error{border-color:rgba(255,79,106,.4);color:var(--red);background:rgba(255,79,106,.07)}
+.badge-new{border-color:rgba(162,67,255,.4);color:var(--purple);background:rgba(162,67,255,.07)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo">kAIxU</span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">/ Deploy Center</span>
+    <div class="hspacer"></div>
+    <a href="../homelanding.html" class="hbtn">← Home</a>
+    <a href="../index.html" class="hbtn">IDE</a>
+    <a href="GatewayLive.html" class="hbtn" style="color:var(--green);border-color:rgba(79,255,176,.35)">⚡ Gateway</a>
+  </header>
+  <div id="body">
+    <div id="sidebar">
+      <div class="cfg-pane">
+        <div>
+          <div class="cfg-label">Netlify Personal Access Token</div>
+          <input id="netlify-pat" type="password" class="cfg-input" placeholder="nfp_xxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div>
+          <div class="cfg-label">Filter (site name or ID)</div>
+          <input id="site-filter" class="cfg-input" placeholder="Leave blank for all">
+        </div>
+        <button class="conn-btn" onclick="loadSites()">⚡ Load Sites</button>
+      </div>
+      <div class="sites-hdr">
+        <span class="sites-title">Sites</span>
+        <span class="sites-count" id="sites-count">—</span>
+      </div>
+      <div id="sites-list"><div class="empty"><div class="empty-icon">🏗️</div><div class="empty-msg">Enter token above</div></div></div>
+    </div>
+    <div id="main">
+      <div id="site-empty" style="display:flex">
+        <div style="font-size:48px;opacity:.2">🚀</div>
+        <div style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em">Select a site to view deploys</div>
+      </div>
+      <div id="site-view" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+        <div class="main-hdr">
+          <div>
+            <div class="main-title" id="site-name-hdr">—</div>
+            <div class="main-sub" id="site-url-hdr">—</div>
+          </div>
+          <div class="mspacer"></div>
+          <span id="site-status-badge"></span>
+          <button class="act-btn primary" id="trigger-btn" onclick="triggerDeploy()">▶ Trigger Deploy</button>
+          <button class="act-btn" onclick="loadDeploys()">↻ Refresh</button>
+          <a id="site-ext-link" href="#" target="_blank" class="act-btn" style="text-decoration:none">↗ Open Site</a>
+        </div>
+        <div class="stats-bar">
+          <div class="stat-box"><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">Total Deploys</div></div>
+          <div class="stat-box"><div class="stat-val" id="stat-ready">—</div><div class="stat-lbl">Ready</div></div>
+          <div class="stat-box"><div class="stat-val" id="stat-failed">—</div><div class="stat-lbl">Failed</div></div>
+          <div class="stat-box"><div class="stat-val" id="stat-avg">—</div><div class="stat-lbl">Avg Build Time</div></div>
+        </div>
+        <div class="deploys-section">
+          <div class="section-hdr">Recent Deploys</div>
+          <div id="deploys-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const NETLIFY_API = 'https://api.netlify.com/api/v1';
+let selectedSiteId = null;
+let selectedSite = null;
+let pollTimer = null;
+
+function pat(){ return (document.getElementById('netlify-pat').value||'').trim(); }
+function hdr(){ return {Authorization:`Bearer ${pat()}`,'Content-Type':'application/json'}; }
+function toast(msg,type='ok'){ const el=document.getElementById('toast');el.textContent=msg;el.className=type;el.style.display='block';clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',4500); }
+
+async function loadSites(){
+  const token=pat();
+  if(!token){toast('Enter a Netlify Personal Access Token','err');return;}
+  const filter=(document.getElementById('site-filter').value||'').toLowerCase().trim();
+  const listEl=document.getElementById('sites-list');
+  listEl.innerHTML='<div class="loading"><div class="spinner"></div>Loading sites…</div>';
+  try{
+    const r=await fetch(`${NETLIFY_API}/sites?per_page=100`,{headers:hdr()});
+    if(!r.ok){const d=await r.json();toast(`Netlify error ${r.status}: ${d.message||d.error||'unknown'}` ,'err');listEl.innerHTML='<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-msg">Auth failed — check token</div></div>';return;}
+    let sites=await r.json();
+    if(filter) sites=sites.filter(s=>(s.name||'').toLowerCase().includes(filter)||(s.id||'').includes(filter));
+    document.getElementById('sites-count').textContent=sites.length;
+    if(!sites.length){listEl.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-msg">No sites found</div></div>';return;}
+    listEl.innerHTML=sites.map(s=>{
+      const state=s.published_deploy?.state||'unknown';
+      const dotClass=state==='ready'?'live':state.includes('build')?'building':state==='error'||state==='failed'?'error':'';
+      return `<div class="site-item" id="si-${s.id}" onclick="selectSite(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+        <div class="site-dot ${dotClass}"></div>
+        <div>
+          <div class="site-name">${esc(s.name||s.id)}</div>
+          <div class="site-sub">${state}</div>
+        </div>
+      </div>`;
+    }).join('');
+    toast(`Loaded ${sites.length} site(s)`);
+  }catch(e){toast('Fetch error: '+e.message,'err');listEl.innerHTML='<div class="empty"><div class="empty-icon">💥</div><div class="empty-msg">'+esc(e.message)+'</div></div>';}
+}
+
+function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function selectSite(site){
+  selectedSite=site; selectedSiteId=site.id;
+  document.querySelectorAll('.site-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('si-'+site.id);
+  if(el) el.classList.add('active');
+  document.getElementById('site-empty').style.display='none';
+  document.getElementById('site-view').style.display='flex';
+  document.getElementById('site-name-hdr').textContent=site.name||site.id;
+  const url=site.ssl_url||site.url||'';
+  const urlHdr=document.getElementById('site-url-hdr');
+  urlHdr.textContent=url;
+  const extLink=document.getElementById('site-ext-link');
+  extLink.href=url;
+  const state=site.published_deploy?.state||'unknown';
+  updateSiteStatusBadge(state);
+  clearInterval(pollTimer);
+  loadDeploys();
+}
+
+function updateSiteStatusBadge(state){
+  const el=document.getElementById('site-status-badge');
+  const cls=state==='ready'?'badge-ready':state.includes('build')?'badge-building':state==='error'||state==='failed'?'badge-error':'badge-new';
+  el.innerHTML=`<span class="site-badge ${cls}"><span>●</span> ${esc(state)}</span>`;
+}
+
+async function loadDeploys(){
+  if(!selectedSiteId) return;
+  const listEl=document.getElementById('deploys-list');
+  listEl.innerHTML='<div class="loading"><div class="spinner"></div>Loading deploys…</div>';
+  try{
+    const r=await fetch(`${NETLIFY_API}/sites/${selectedSiteId}/deploys?per_page=25`,{headers:hdr()});
+    if(!r.ok){toast('Failed to load deploys','err');return;}
+    const deploys=await r.json();
+    // Compute stats
+    const total=deploys.length;
+    const ready=deploys.filter(d=>d.state==='ready').length;
+    const failed=deploys.filter(d=>d.state==='error'||d.state==='failed').length;
+    const buildTimes=deploys.filter(d=>d.deploy_time).map(d=>d.deploy_time);
+    const avg=buildTimes.length?Math.round(buildTimes.reduce((a,b)=>a+b,0)/buildTimes.length):null;
+    document.getElementById('stat-total').textContent=total;
+    document.getElementById('stat-ready').textContent=ready;
+    document.getElementById('stat-failed').textContent=failed;
+    document.getElementById('stat-avg').textContent=avg!=null?avg+'s':'—';
+
+    if(!deploys.length){listEl.innerHTML='<div class="empty" style="height:200px"><div class="empty-icon">📭</div><div class="empty-msg">No deploys yet</div></div>';return;}
+
+    // Check if any are building — start poll
+    const hasBuilding=deploys.some(d=>d.state==='building'||d.state==='enqueued'||d.state==='processing'||d.state==='uploading');
+    if(hasBuilding){ clearInterval(pollTimer); pollTimer=setInterval(loadDeploys,4000); }
+    else clearInterval(pollTimer);
+
+    listEl.innerHTML=deploys.map(d=>{
+      const state=d.state||'unknown';
+      const stateClass=state==='ready'?'ready':state==='building'||state==='processing'||state==='enqueued'||state==='uploading'?'building':state==='error'||state==='failed'?'error':'';
+      const msg=d.title||d.branch||'(no message)';
+      const buildT=d.deploy_time?`${d.deploy_time}s`:'—';
+      const when=d.created_at?relTime(d.created_at):'—';
+      const badges=[
+        `<span class="deploy-tag">${esc(d.branch||'—')}</span>`,
+        `<span class="deploy-tag">${esc(state)}</span>`,
+        buildT!=='—'?`<span class="deploy-tag">⏱ ${buildT}</span>`:'',
+        d.context?`<span class="deploy-tag">${esc(d.context)}</span>`:'',
+      ].filter(Boolean).join('');
+      return `<div class="deploy-card">
+        <div class="deploy-state ${stateClass}"></div>
+        <div class="deploy-info">
+          <div class="deploy-id">${esc((d.id||'').slice(0,12))}…</div>
+          <div class="deploy-msg">${esc(msg)}</div>
+          <div class="deploy-meta">${badges}</div>
+        </div>
+        <div class="deploy-time">${when}</div>
+        ${d.deploy_url?`<a class="deploy-link" href="${esc(d.deploy_url)}" target="_blank">View ↗</a>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){toast('Fetch error: '+e.message,'err');}
+}
+
+async function triggerDeploy(){
+  if(!selectedSiteId){toast('No site selected','warn');return;}
+  const btn=document.getElementById('trigger-btn');
+  btn.disabled=true; btn.textContent='⏳ Triggering…';
+  try{
+    const r=await fetch(`${NETLIFY_API}/sites/${selectedSiteId}/builds`,{method:'POST',headers:hdr(),body:JSON.stringify({clear_cache:false})});
+    if(r.ok){
+      toast('Deploy triggered! 🚀');
+      updateSiteStatusBadge('building');
+      setTimeout(loadDeploys, 2000);
+      clearInterval(pollTimer); pollTimer=setInterval(loadDeploys,4000);
+    } else {
+      const d=await r.json();
+      toast(`Trigger failed ${r.status}: ${d.message||d.error||'unknown'}` ,'err');
+    }
+  }catch(e){toast('Error: '+e.message,'err');}
+  finally{btn.disabled=false;btn.textContent='▶ Trigger Deploy';}
+}
+
+function relTime(iso){
+  const diff=Date.now()-new Date(iso).getTime();
+  const s=Math.floor(diff/1000);
+  if(s<60) return `${s}s ago`;
+  if(s<3600) return `${Math.floor(s/60)}m ago`;
+  if(s<86400) return `${Math.floor(s/3600)}h ago`;
+  return `${Math.floor(s/86400)}d ago`;
+}
+
+// Persist token
+document.getElementById('netlify-pat').addEventListener('change',function(){
+  localStorage.setItem('dc_netlify_pat',this.value);
+});
+const savedPat=localStorage.getItem('dc_netlify_pat');
+if(savedPat) document.getElementById('netlify-pat').value=savedPat;
+</script>
+</body>
+</html>

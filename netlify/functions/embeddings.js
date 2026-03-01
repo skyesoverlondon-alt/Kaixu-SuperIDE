@@ -1,5 +1,5 @@
 // embeddings.js — RAG: sync file embeddings and perform semantic search
-// Requires env: KAIXU_VIRTUAL_KEY, DATABASE_URL
+// Requires env: KAIXUSI_WORKER_URL, KAIXUSI_SECRET, DATABASE_URL
 //
 // POST { action: 'sync', workspaceId, files: [{path, content}] }
 //   → embeds each file (chunked) and upserts into file_embeddings
@@ -7,26 +7,23 @@
 // GET ?workspaceId=&q=&limit=5
 //   → returns top-k semantically similar file chunks
 //
-// NOTE: embeddings route through the XnthGateway (skyesol.netlify.app).
-// Gate endpoint: POST /.netlify/functions/gateway-embed
-// Gate response:  { embeddings: [[float, ...], ...], dimensions: 1536 }
+// NOTE: embeddings route through the KaixuSI Cloudflare Worker.
+// Worker endpoint: POST /v1/embed
+// Worker response:  { embeddings: [[float, ...], ...], dimensions: 1536, kaixusi: true }
 // Provider: gemini / model: gemini-embedding-001 / outputDimensionality: 1536
 
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
-const https            = require('https');
 const { checkRateLimit } = require('./_lib/ratelimit');
 const logger           = require('./_lib/logger')('embeddings');
 
-const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
-
-// ── Embedding via Kaixu Gateway (kAIxU-embed) ─────────────────────────────
+// ── Embedding via KaixuSI Worker ─────────────────────────────────────────
 // taskType: 'RETRIEVAL_DOCUMENT' for indexing, 'RETRIEVAL_QUERY' for search
-async function embed(texts, taskType = 'RETRIEVAL_DOCUMENT') {
-  const token = process.env.KAIXU_GATE_TOKEN;
-  if (!token) throw new Error('KAIXU_GATE_TOKEN not configured');
-  const base = (process.env.KAIXU_GATE_BASE || DEFAULT_GATE_BASE).replace(/\/+$/, '');
-  const gateUrl = new URL(`${base}/v1/embeddings`);
+async function embed(texts, taskType = 'RETRIEVAL_DOCUMENT', { userId, workspaceId } = {}) {
+  const secret = process.env.KAIXUSI_SECRET;
+  if (!secret) throw new Error('KAIXUSI_SECRET not configured');
+  const base = (process.env.KAIXUSI_WORKER_URL || '').replace(/\/+$/, '');
+  if (!base) throw new Error('KAIXUSI_WORKER_URL not configured');
 
   // batch in groups of 100
   const batches = [];
@@ -34,32 +31,28 @@ async function embed(texts, taskType = 'RETRIEVAL_DOCUMENT') {
 
   const allVectors = [];
   for (const batch of batches) {
-    const body = JSON.stringify({ content: batch, taskType });
-    const result = await new Promise((resolve, reject) => {
-      const opts = {
-        hostname: gateUrl.hostname,
-        path: gateUrl.pathname,
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type':  'application/json',
-          'Content-Length': Buffer.byteLength(body),
-        },
-      };
-      const req = https.request(opts, (res) => {
-        let data = '';
-        res.on('data', (c) => (data += c));
-        res.on('end', () => {
-          try { resolve(JSON.parse(data)); }
-          catch { reject(new Error('Gateway parse error')); }
-        });
-      });
-      req.on('error', reject);
-      req.write(body);
-      req.end();
+    const res = await fetch(`${base}/v1/embed`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${secret}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        provider:             'gemini',
+        model:                'gemini-embedding-001',
+        input:                batch,
+        taskType,
+        outputDimensionality: 1536,
+        user_id:              userId      || null,
+        workspace_id:         workspaceId || null,
+        app_id:               'kaixu-superide',
+      }),
     });
-    if (!result.ok) throw new Error(`Gateway error: ${result.error || JSON.stringify(result)}`);
-    allVectors.push(...result.embeddings.map(e => e.values));
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(`Worker error (${res.status}): ${result.error || JSON.stringify(result)}`);
+    // Worker returns: { embeddings: [[float,...], ...], dimensions, provider, latency_ms, kaixusi }
+    // Each entry is already a plain float array — no .values wrapping needed.
+    allVectors.push(...(result.embeddings || []));
   }
   return allVectors;
 }
@@ -107,7 +100,7 @@ exports.handler = async (event) => {
       return { statusCode: 403, body: 'No access' };
 
     try {
-      const [queryVec] = await embed([q], 'RETRIEVAL_QUERY');
+      const [queryVec] = await embed([q], 'RETRIEVAL_QUERY', { userId: user.sub, workspaceId });
       const k = Math.min(parseInt(limit) || 5, 20);
       const { rows } = await db.query(
         `SELECT file_path, chunk_index, chunk_text,
@@ -169,7 +162,7 @@ exports.handler = async (event) => {
 
     try {
       const texts   = allChunks.map(c => c.text);
-      const vectors = await embed(texts, 'RETRIEVAL_DOCUMENT');
+      const vectors = await embed(texts, 'RETRIEVAL_DOCUMENT', { userId: user.sub, workspaceId });
 
       // Upsert in batches of 50
       let synced = 0;

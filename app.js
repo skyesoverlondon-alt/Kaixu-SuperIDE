@@ -274,6 +274,22 @@ async function exportClientBundle() {
   …
 */
 function _parsePastedText(text) {
+  // Format A: kAIxU context blobs
+  // FILE: path/to/file.ext
+  //
+  // <content>
+  //
+  // ---
+  const fileBlockRe = /^FILE:\s*(.+?)\s*\n\n([\s\S]*?)(?:\n\n---\n\n|$)/gm;
+  const fromBlocks = {};
+  let blockMatch;
+  while ((blockMatch = fileBlockRe.exec(text)) !== null) {
+    const path = (blockMatch[1] || '').trim();
+    if (!path) continue;
+    fromBlocks[path] = (blockMatch[2] || '').replace(/\s+$/g, '');
+  }
+  if (Object.keys(fromBlocks).length) return fromBlocks;
+
   const files = {};
   const delimRe = /^={3,}\s*(.+?)\s*={3,}\s*$/m;
   const lines = text.split('\n');
@@ -310,7 +326,7 @@ async function commitPasteImport() {
   const files = _parsePastedText(raw);
   const count = Object.keys(files).length;
   if (!count) {
-    toast('No file delimiters found. Use: === filename.js ===', 'error');
+    toast('No import blocks found. Use === filename.js === or FILE: path blocks', 'error');
     return;
   }
   for (const [path, content] of Object.entries(files)) {
@@ -1663,7 +1679,7 @@ function bindEvents() {
     COMMANDS.push(
       { id: 'export-zip', label: 'Export Workspace ZIP', category: 'File', keybinding: '', action: exportWorkspaceZip },
       { id: 'export-selected-zip', label: 'Export Selected Files ZIP', category: 'File', keybinding: '', action: exportSelectedZip },
-      { id: 'paste-import', label: 'Import from Pasted Text…', category: 'File', keybinding: '', action: openPasteModal },
+      { id: 'paste-import', label: 'Import from Pasted Text…', category: 'File', keybinding: 'Ctrl+Shift+V', kb: 'Ctrl+Shift+V', action: openPasteModal },
       { id: 'apply-patch', label: 'Apply Patch…', category: 'File', keybinding: '', action: openApplyPatchModal },
     );
   }
@@ -2463,6 +2479,7 @@ async function init() {
   if (typeof initScm === 'function')    initScm();    // scm.js — branches, stash, blame
   if (typeof initAdmin === 'function')  initAdmin();  // admin.js — admin panel
   if (typeof initCollab === 'function') initCollab(); // collab.js — presence, activity, share
+  if (typeof checkKeybindingConflicts === 'function') checkKeybindingConflicts();
   initSecretsScanner();      // app.js — secrets pattern watcher
   bindSettingsModal();       // ui.js — settings modal bindings
   bindEvents();              // app.js — auth, chat, uploads, preview, commits

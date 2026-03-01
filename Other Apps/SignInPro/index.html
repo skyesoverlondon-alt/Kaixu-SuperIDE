@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>SignInPro Executive Edition by Skyes Over London LC</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Animations -->
+    <style>
+      @keyframes progress { from { width: 100%; } to { width: 0%; } }
+      @keyframes fall {
+        to { transform: translateY(100vh) rotate(720deg); }
+      }
+      .animate-fall { animation-name: fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+      
+      /* Hide scrollbar for clean kiosk look */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+
+    <!-- Import Map for React Modules -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.292.0"
+      }
+    }
+    </script>
+    
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- PWA -->
+  <meta name="theme-color" content="#581c87" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SignInPro Executive Edition" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+
+</head>
+<body class="bg-purple-50 text-slate-900 font-sans selection:bg-yellow-300 selection:text-purple-900">
+    
+    <!-- App Root -->
+    <div id="root"></div>
+
+    <!-- Application Logic -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useRef } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { User, Mail, CheckCircle, ChevronRight, Settings, Download, X, Search, Users, Upload, Image as ImageIcon, CreditCard, Tag, Eye, Send, Shield, KeyRound, RotateCcw, BarChart3, QrCode, Volume2 } from 'lucide-react';
+
+        /**
+         * SignInPro by Skyes Over London LC
+         * Version 5.3 (Single HTML Edition)
+         */
+
+        // --- 1. Safe Sub-Components ---
+
+        const Confetti = () => (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute animate-fall"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `-20px`,
+                  backgroundColor: Math.random() > 0.5 ? '#EAB308' : '#581C87',
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '2px',
+                  animationDuration: `${Math.random() * 2 + 2}s`,
+                  animationDelay: `${Math.random() * 0.5}s`,
+                  transform: `rotate(${Math.random() * 360}deg)`
+                }}
+              />
+            ))}
+          </div>
+        );
+
+        const BadgeCard = ({ data, logo, eventName, label, isPreview = false }) => {
+          if (!data) return null;
+
+          return (
+            <div className={`w-full max-w-sm bg-white rounded-xl shadow-2xl overflow-hidden border border-purple-100 flex flex-col ${!isPreview ? 'transform hover:scale-[1.02] transition-transform duration-300' : ''}`}>
+              {/* Badge Header */}
+              <div className="bg-purple-900 h-24 flex items-center justify-center p-4 relative shrink-0">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(255,255,255,0.1),transparent)]"></div>
+                  {logo ? (
+                    <img src={logo} alt="Logo" className="h-full object-contain invert brightness-0 saturate-100 filter drop-shadow-md opacity-90" style={{filter: 'none'}} />
+                  ) : (
+                    <span className="text-white font-bold tracking-widest text-lg uppercase opacity-90">{eventName}</span>
+                  )}
+              </div>
+              
+              {/* Badge Body */}
+              <div className="p-8 pb-8 text-center space-y-2 relative flex-1 flex flex-col items-center">
+                {/* Punch Hole Graphic */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-purple-100 rounded-full flex justify-center items-center">
+                  <div className="w-8 h-1.5 bg-purple-300 rounded-full"></div>
+                </div>
+                
+                <h2 className="text-3xl font-black text-purple-900 tracking-tight leading-none break-words w-full">
+                  {data.badgeName || data.name}
+                </h2>
+                {data.company && (
+                  <p className="text-md font-medium text-slate-500 uppercase tracking-wide">
+                    {data.company}
+                  </p>
+                )}
+
+                {/* QR Code (Graceful Fallback) */}
+                <div className="mt-6 mb-2 p-2 bg-white border border-slate-100 rounded-lg shadow-sm">
+                   <img 
+                     src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${data.eventId}&color=581c87`} 
+                     alt="QR Code" 
+                     className="w-24 h-24 object-contain"
+                     onError={(e) => { e.target.style.display = 'none'; }} 
+                   />
+                </div>
+
+                <div className="pt-4 border-t border-purple-100 w-full">
+                    <span className="text-[10px] font-bold text-purple-400 uppercase tracking-[0.2em] mb-1 block">
+                      {label}
+                    </span>
+                    <span className="font-mono text-xl font-bold text-yellow-600 tracking-widest">
+                      {data.eventId}
+                    </span>
+                </div>
+              </div>
+              
+              <div className="bg-purple-50 p-3 text-center border-t border-purple-100 shrink-0">
+                <p className="text-[10px] text-purple-400 font-mono">AUTHORIZED ACCESS</p>
+              </div>
+            </div>
+          );
+        };
+
+        // --- 2. Main Application ---
+
+        const App = () => {
+          // --- Constants ---
+          const DEFAULT_SETTINGS = {
+            logo: './icons/icon-192.png',
+            eventName: 'Welcome',
+            idLabel: 'Event ID',
+            enableSound: true,
+          };
+
+          const DEFAULT_SECURITY = {
+            password: 'admin',
+            fallbacks: ['', ''],
+            resetKey: '',
+            isSetup: false
+          };
+
+          // --- State ---
+          const [view, setView] = useState('check-in'); // 'check-in', 'success', 'admin'
+          const [attendees, setAttendees] = useState([]);
+          const [currentBadge, setCurrentBadge] = useState(null);
+          
+          const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+          const [security, setSecurity] = useState(DEFAULT_SECURITY);
+
+          const [isAdminAuth, setIsAdminAuth] = useState(false);
+          const [showSetup, setShowSetup] = useState(false);
+          const [adminPasswordInput, setAdminPasswordInput] = useState('');
+          const [adminTab, setAdminTab] = useState('dashboard');
+          const [searchQuery, setSearchQuery] = useState('');
+          const [selectedAttendee, setSelectedAttendee] = useState(null);
+
+          const [setupForm, setSetupForm] = useState({ newPassword: '', fallback1: '', fallback2: '', resetKey: '' });
+          const [formData, setFormData] = useState({ name: '', nickname: '', email: '', company: '' });
+          const [errors, setErrors] = useState({});
+          
+          const timerRef = useRef(null);
+
+          // --- Persistence & Initialization ---
+          
+          useEffect(() => {
+            // Load data only on client mount
+            if (typeof window !== 'undefined') {
+              try {
+                const savedAttendees = localStorage.getItem('event_attendees');
+                const savedSettings = localStorage.getItem('event_settings');
+                const savedSecurity = localStorage.getItem('event_security');
+                
+                if (savedAttendees) setAttendees(JSON.parse(savedAttendees));
+                if (savedSettings) setSettings(JSON.parse(savedSettings));
+                if (savedSecurity) setSecurity(JSON.parse(savedSecurity));
+              } catch (e) {
+                console.error("Failed to load local storage data:", e);
+              }
+            }
+          }, []);
+
+          // Save effects with Quota guards
+          useEffect(() => {
+            try {
+              localStorage.setItem('event_attendees', JSON.stringify(attendees));
+            } catch (e) {
+              console.error("Storage Full:", e);
+              alert("Warning: Local Storage is full. New attendees may not be saved if you refresh.");
+            }
+          }, [attendees]);
+
+          useEffect(() => {
+            try {
+                localStorage.setItem('event_settings', JSON.stringify(settings));
+            } catch (e) {
+                console.error("Storage Full (Settings):", e);
+                alert("Warning: Settings could not be saved. The image might still be too complex.");
+            }
+          }, [settings]);
+
+          useEffect(() => {
+            localStorage.setItem('event_security', JSON.stringify(security));
+          }, [security]);
+
+          // --- Core Logic ---
+
+          const generateId = () => {
+            const chars = '0123456789ABCDEF';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+              result += chars[Math.floor(Math.random() * chars.length)];
+              if (i === 2) result += '-';
+            }
+            return result;
+          };
+
+          const playSuccessSound = () => {
+            if (settings.enableSound && typeof window !== 'undefined') {
+              try {
+                const AudioCtor = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtor) return;
+                
+                const ctx = new AudioCtor();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+                osc.frequency.exponentialRampToValueAtTime(1046.5, ctx.currentTime + 0.1); // C6
+                
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+                
+                // Critical: Close context to prevent memory leaks
+                osc.onended = () => {
+                  ctx.close().catch(e => console.error("Audio cleanup error", e));
+                };
+              } catch (e) {
+                console.warn("Audio playback failed (likely restricted by browser):", e);
+              }
+            }
+          };
+
+          const handleInputChange = (e) => {
+            const { name, value } = e.target;
+            setFormData(prev => ({ ...prev, [name]: value }));
+            if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+          };
+
+          const validate = () => {
+            const newErrors = {};
+            if (!formData.name.trim()) newErrors.name = 'Full name is required';
+            if (!formData.email.trim()) {
+              newErrors.email = 'Email is required';
+            } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+              newErrors.email = 'Please enter a valid email';
+            }
+            return newErrors;
+          };
+
+          const handleSubmit = (e) => {
+            e.preventDefault();
+            const validationErrors = validate();
+            if (Object.keys(validationErrors).length > 0) {
+              setErrors(validationErrors);
+              return;
+            }
+
+            const newAttendee = {
+              id: crypto.randomUUID(),
+              eventId: generateId(),
+              ...formData,
+              badgeName: formData.nickname.trim() || formData.name,
+              timestamp: new Date().toISOString(),
+            };
+
+            setAttendees(prev => [newAttendee, ...prev]);
+            setCurrentBadge(newAttendee);
+            playSuccessSound();
+            setView('success');
+            
+            if (timerRef.current) clearTimeout(timerRef.current);
+            timerRef.current = setTimeout(resetForm, 6000); 
+          };
+
+          const resetForm = () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+            setFormData({ name: '', nickname: '', email: '', company: '' });
+            setErrors({});
+            setCurrentBadge(null);
+            setView('check-in');
+          };
+
+          // --- Admin Logic ---
+
+          const handleAdminLogin = (e) => {
+            e.preventDefault();
+            const input = adminPasswordInput.trim();
+
+            // Check Master Reset Key
+            if (security.isSetup && input === security.resetKey) {
+                if (window.confirm("⚠️ FACTORY RESET WARNING ⚠️\n\nThis will reset settings, branding & passwords.\nGuest data will be PRESERVED.\n\nContinue?")) {
+                    performFactoryReset();
+                }
+                return;
+            }
+
+            // First Time Setup
+            if (!security.isSetup) {
+                if (input === 'admin') {
+                    setShowSetup(true);
+                    setAdminPasswordInput('');
+                } else {
+                     alert('Welcome! Use default password: admin');
+                }
+                return;
+            }
+
+            // Normal Login
+            if (input === security.password || security.fallbacks.includes(input)) {
+                setIsAdminAuth(true);
+                setAdminPasswordInput('');
+            } else {
+                alert('Incorrect password.');
+            }
+          };
+
+          const handleSecuritySave = (e) => {
+            e.preventDefault();
+            if (!setupForm.newPassword || !setupForm.resetKey) {
+              alert("Main password and Reset Key are required.");
+              return;
+            }
+            setSecurity({
+              password: setupForm.newPassword,
+              fallbacks: [setupForm.fallback1, setupForm.fallback2],
+              resetKey: setupForm.resetKey,
+              isSetup: true
+            });
+            setShowSetup(false);
+            setIsAdminAuth(true);
+            alert("Security enabled.");
+          };
+
+          const performFactoryReset = () => {
+            setSettings(DEFAULT_SETTINGS);
+            setSecurity(DEFAULT_SECURITY);
+            setIsAdminAuth(false);
+            setShowSetup(false);
+            setAdminPasswordInput('');
+            setView('check-in');
+            alert("Reset Complete. System is now using default 'admin' password.");
+          };
+
+          const handleLogoUpload = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                  const canvas = document.createElement('canvas');
+                  let width = img.width;
+                  let height = img.height;
+                  const MAX_SIZE = 500; // Auto-resize to 500px max dimension
+
+                  if (width > height) {
+                    if (width > MAX_SIZE) {
+                      height *= MAX_SIZE / width;
+                      width = MAX_SIZE;
+                    }
+                  } else {
+                    if (height > MAX_SIZE) {
+                      width *= MAX_SIZE / height;
+                      height = MAX_SIZE;
+                    }
+                  }
+
+                  canvas.width = width;
+                  canvas.height = height;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, 0, 0, width, height);
+                  
+                  const dataUrl = canvas.toDataURL('image/png');
+                  setSettings(prev => ({ ...prev, logo: dataUrl }));
+                };
+                img.src = event.target.result;
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+
+          const exportCSV = () => {
+            const headers = [`Name,Preferred Name,Email,Company,${settings.idLabel},Check-In Time\n`];
+            const rows = attendees.map(a => 
+              `"${a.name}","${a.nickname}","${a.email}","${a.company || ''}","${a.eventId}","${new Date(a.timestamp).toLocaleString()}"`
+            );
+            const csvContent = "data:text/csv;charset=utf-8," + headers.join('') + rows.join('\n');
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", `guest_list_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          const filteredAttendees = attendees.filter(a => 
+            a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            a.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            a.eventId.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+
+          const handleEmailBadge = (attendee) => {
+            const subject = encodeURIComponent(`Badge: ${settings.eventName}`);
+            const body = encodeURIComponent(`Here is your badge for ${settings.eventName}.\n\nName: ${attendee.badgeName}\nID: ${attendee.eventId}\n\nPlease save this code.`);
+            window.location.href = `mailto:${attendee.email}?subject=${subject}&body=${body}`;
+          };
+
+          // --- Render ---
+          return (
+            <div className="min-h-screen bg-purple-50 flex flex-col items-center justify-center p-4">
+              
+              <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-purple-100 relative transition-all duration-300 flex flex-col max-h-[90vh]">
+                
+                {/* Brand Header */}
+                {view !== 'admin' && (
+                  <div className="bg-purple-900 p-6 text-white text-center relative overflow-hidden shrink-0">
+                    {settings.logo ? (
+                      <img src={settings.logo} alt="Event Logo" className="h-12 mx-auto object-contain relative z-10" />
+                    ) : (
+                      <h1 className="text-xl font-bold relative z-10 tracking-wider uppercase">{settings.eventName}</h1>
+                    )}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-800 rounded-full opacity-50 blur-3xl"></div>
+                  </div>
+                )}
+
+                {/* View: Check-In */}
+                {view === 'check-in' && (
+                  <div className="p-8 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-y-auto">
+                    <header className="mb-6 text-center">
+                      <h2 className="text-2xl font-bold text-purple-900">Sign In</h2>
+                      <p className="text-purple-600/70 text-sm">Please enter your details.</p>
+                    </header>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-purple-800 uppercase tracking-wider">Name <span className="text-red-500">*</span></label>
+                        <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="Jane Doe" className={`w-full px-4 py-3 rounded-lg border ${errors.name ? 'border-red-300 bg-red-50' : 'border-purple-200'} focus:ring-2 focus:ring-yellow-500 outline-none`} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-purple-800 uppercase tracking-wider">Badge Name</label>
+                        <input type="text" name="nickname" value={formData.nickname} onChange={handleInputChange} placeholder="Optional" className="w-full px-4 py-3 rounded-lg border border-purple-200 focus:ring-2 focus:ring-yellow-500 outline-none" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-purple-800 uppercase tracking-wider">Email <span className="text-red-500">*</span></label>
+                        <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="jane@example.com" className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-300 bg-red-50' : 'border-purple-200'} focus:ring-2 focus:ring-yellow-500 outline-none`} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-purple-800 uppercase tracking-wider">Company</label>
+                        <input type="text" name="company" value={formData.company} onChange={handleInputChange} placeholder="Optional" className="w-full px-4 py-3 rounded-lg border border-purple-200 focus:ring-2 focus:ring-yellow-500 outline-none" />
+                      </div>
+                      <button type="submit" className="w-full bg-purple-900 hover:bg-purple-800 text-white font-bold py-4 rounded-xl shadow-lg mt-4 transition-all active:scale-[0.98]">
+                        Create Badge
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                {/* View: Success */}
+                {view === 'success' && currentBadge && (
+                  <div className="p-8 text-center flex flex-col items-center justify-center animate-in zoom-in-95 duration-500 relative overflow-hidden h-full">
+                    <Confetti />
+                    <div className="flex items-center gap-2 text-yellow-600 mb-6 font-medium bg-yellow-50 px-4 py-2 rounded-full border border-yellow-100 relative z-10">
+                      <CheckCircle size={18} /> Check-In Complete
+                    </div>
+                    
+                    <div className="relative z-10 scale-90 origin-center">
+                        <BadgeCard 
+                          data={currentBadge} 
+                          logo={settings.logo} 
+                          eventName={settings.eventName} 
+                          label={settings.idLabel} 
+                        />
+                    </div>
+
+                    <div className="w-full max-w-sm mt-8 relative z-10">
+                      <div className="w-full h-1 bg-purple-100 rounded-full overflow-hidden mb-2">
+                        <div className="h-full bg-yellow-500 animate-[progress_6s_linear_forwards] origin-left"></div>
+                      </div>
+                      <button onClick={resetForm} className="text-xs font-medium text-purple-400 hover:text-purple-600 uppercase tracking-wider">
+                        Resetting Kiosk...
+                      </button>
+                    </div>
+                    <style>{`@keyframes progress { from { width: 100%; } to { width: 0%; } }`}</style>
+                  </div>
+                )}
+
+                {/* View: Admin Panel */}
+                {view === 'admin' && (
+                  <div className="flex flex-col h-[600px] animate-in fade-in duration-300 bg-purple-50">
+                    <div className="p-4 bg-white border-b border-purple-100 flex items-center justify-between sticky top-0 z-10">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-purple-900 text-white p-1.5 rounded-lg"><Settings size={18} /></div>
+                        <h2 className="font-bold text-purple-900">SignInPro Admin</h2>
+                      </div>
+                      <button onClick={() => setView('check-in')} className="p-2 hover:bg-purple-100 rounded-full transition-colors text-purple-400"><X size={20} /></button>
+                    </div>
+
+                    {showSetup ? (
+                      <div className="flex-1 overflow-y-auto p-6 bg-purple-50">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-purple-100 space-y-6">
+                          <h3 className="text-xl font-bold text-purple-900 text-center">Security Setup</h3>
+                          <form onSubmit={handleSecuritySave} className="space-y-4">
+                            <input type="text" required value={setupForm.newPassword} onChange={(e) => setSetupForm({...setupForm, newPassword: e.target.value})} className="w-full px-4 py-2 border border-purple-200 rounded-lg text-sm outline-none" placeholder="Admin Password" />
+                            <input type="text" value={setupForm.fallback1} onChange={(e) => setSetupForm({...setupForm, fallback1: e.target.value})} className="w-full px-4 py-2 border border-purple-200 rounded-lg text-sm outline-none" placeholder="Fallback 1" />
+                            <input type="text" value={setupForm.fallback2} onChange={(e) => setSetupForm({...setupForm, fallback2: e.target.value})} className="w-full px-4 py-2 border border-purple-200 rounded-lg text-sm outline-none" placeholder="Fallback 2" />
+                            <input type="text" required value={setupForm.resetKey} onChange={(e) => setSetupForm({...setupForm, resetKey: e.target.value})} className="w-full px-4 py-2 border border-red-200 bg-red-50 rounded-lg text-sm outline-none text-red-900" placeholder="Master Reset Key" />
+                            <button type="submit" className="w-full bg-purple-900 text-white py-3 rounded-xl font-bold mt-2">Save</button>
+                          </form>
+                        </div>
+                      </div>
+                    ) : !isAdminAuth ? (
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-6">
+                         <div className="text-center">
+                            <h3 className="text-xl font-bold text-purple-900">Admin Access</h3>
+                            <p className="text-purple-500 text-sm mt-1">{!security.isSetup ? "First time? Enter 'admin'" : "Enter password"}</p>
+                         </div>
+                         <form onSubmit={handleAdminLogin} className="w-full max-w-xs space-y-3">
+                           <input type="password" value={adminPasswordInput} onChange={(e) => setAdminPasswordInput(e.target.value)} className="w-full px-4 py-3 text-center rounded-xl border border-purple-200 focus:ring-2 focus:ring-yellow-500 outline-none" />
+                           <button type="submit" className="w-full bg-purple-900 text-white py-3 rounded-xl font-bold">Unlock</button>
+                         </form>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex p-2 gap-2 bg-white border-b border-purple-100 overflow-x-auto">
+                          <button onClick={() => setAdminTab('dashboard')} className={`flex-1 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg flex items-center justify-center gap-2 ${adminTab === 'dashboard' ? 'bg-purple-100 text-purple-900' : 'text-purple-500'}`}><BarChart3 size={16} /> Overview</button>
+                          <button onClick={() => setAdminTab('attendees')} className={`flex-1 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg flex items-center justify-center gap-2 ${adminTab === 'attendees' ? 'bg-purple-100 text-purple-900' : 'text-purple-500'}`}><Users size={16} /> Guests</button>
+                          <button onClick={() => setAdminTab('settings')} className={`flex-1 py-2 px-3 text-xs sm:text-sm font-medium rounded-lg flex items-center justify-center gap-2 ${adminTab === 'settings' ? 'bg-purple-100 text-purple-900' : 'text-purple-500'}`}><Tag size={16} /> Settings</button>
+                        </div>
+
+                        {/* Dashboard */}
+                        {adminTab === 'dashboard' && (
+                          <div className="p-6 space-y-6 overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-4">
+                              {/* Stat 1 */}
+                              <div className="bg-white p-4 rounded-xl border border-purple-50 shadow-sm flex items-center gap-4">
+                                <div className="p-3 rounded-lg bg-purple-900"><Users size={24} className="text-white" /></div>
+                                <div><p className="text-xs font-bold text-slate-400 uppercase">Guests</p><p className="text-2xl font-black text-purple-900">{attendees.length}</p></div>
+                              </div>
+                              {/* Stat 2 */}
+                              <div className="bg-white p-4 rounded-xl border border-purple-50 shadow-sm flex items-center gap-4">
+                                <div className="p-3 rounded-lg bg-yellow-500"><CheckCircle size={24} className="text-white" /></div>
+                                <div><p className="text-xs font-bold text-slate-400 uppercase">Today</p><p className="text-2xl font-black text-purple-900">{attendees.filter(a => new Date(a.timestamp).toDateString() === new Date().toDateString()).length}</p></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Settings */}
+                        {adminTab === 'settings' && (
+                          <div className="p-6 space-y-6 overflow-y-auto">
+                            <div className="bg-white p-6 rounded-xl border border-purple-100 shadow-sm space-y-4">
+                              <h3 className="font-bold text-purple-900 flex items-center gap-2"><ImageIcon size={18} /> Branding</h3>
+                              <div className="flex items-center gap-4">
+                                 <div className="w-16 h-16 bg-purple-50 rounded-lg border border-purple-100 flex items-center justify-center overflow-hidden">
+                                    {settings.logo ? <img src={settings.logo} className="w-full h-full object-contain" alt="Logo" /> : <ImageIcon size={24} className="text-purple-300" />}
+                                 </div>
+                                 <label className="cursor-pointer px-4 py-2 bg-white border border-purple-200 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50">
+                                   <Upload size={16} className="inline mr-2" /> Upload Logo
+                                   <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                                 </label>
+                              </div>
+                              <input type="text" value={settings.eventName} onChange={(e) => setSettings({...settings, eventName: e.target.value})} className="w-full px-3 py-2 border border-purple-200 rounded-lg text-sm" placeholder="Event Name" />
+                            </div>
+                            
+                            <div className="bg-white p-6 rounded-xl border border-purple-100 shadow-sm space-y-4">
+                               <h3 className="font-bold text-purple-900 flex items-center gap-2"><Volume2 size={18} /> Experience</h3>
+                               <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-purple-700">Sound Effects</span>
+                                  <button onClick={() => setSettings(s => ({...s, enableSound: !s.enableSound}))} className={`w-12 h-6 rounded-full transition-colors flex items-center px-1 ${settings.enableSound ? 'bg-green-500 justify-end' : 'bg-slate-200 justify-start'}`}><div className="w-4 h-4 bg-white rounded-full shadow-sm"></div></button>
+                               </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Guest List */}
+                        {adminTab === 'attendees' && !selectedAttendee && (
+                          <div className="flex-1 flex flex-col overflow-hidden">
+                            <div className="px-4 py-3 bg-purple-50 border-b border-purple-100 space-y-3">
+                               <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full px-4 py-2 rounded-lg border border-purple-200 text-sm outline-none" />
+                               <button onClick={exportCSV} disabled={attendees.length === 0} className="w-full py-2 bg-green-600 text-white rounded-lg text-xs font-bold disabled:opacity-50">Export CSV</button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto">
+                              {filteredAttendees.length === 0 ? <p className="text-center text-purple-400 p-8">No guests found.</p> : (
+                                <table className="w-full text-left text-sm">
+                                  <tbody className="divide-y divide-purple-100 bg-white">
+                                    {filteredAttendees.map((attendee) => (
+                                      <tr key={attendee.id} onClick={() => setSelectedAttendee(attendee)} className="hover:bg-purple-50 cursor-pointer">
+                                        <td className="px-4 py-3">
+                                          <div className="font-bold text-purple-900">{attendee.name}</div>
+                                          <div className="text-xs text-purple-500">{attendee.email}</div>
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                          <div className="font-mono font-bold text-xs text-purple-700 bg-purple-100 inline-block px-1.5 py-0.5 rounded">{attendee.eventId}</div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Badge Detail */}
+                        {adminTab === 'attendees' && selectedAttendee && (
+                          <div className="flex-1 flex flex-col bg-purple-50 overflow-hidden">
+                             <div className="p-4 bg-white border-b border-purple-200 flex items-center gap-2">
+                                <button onClick={() => setSelectedAttendee(null)} className="p-1 hover:bg-purple-100 rounded-full text-purple-600"><ChevronRight size={20} className="rotate-180" /></button>
+                                <span className="font-bold text-purple-900">Archive</span>
+                             </div>
+                             <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center">
+                                <div className="scale-90 origin-top">
+                                  <BadgeCard data={selectedAttendee} logo={settings.logo} eventName={settings.eventName} label={settings.idLabel} isPreview={true} />
+                                </div>
+                                <button onClick={() => handleEmailBadge(selectedAttendee)} className="w-full bg-purple-900 text-white py-3 rounded-xl font-bold mt-4 flex items-center justify-center gap-2"><Send size={16} /> Email Badge</button>
+                             </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Footer Nav */}
+                <div className="mt-8 flex gap-4">
+                  {view !== 'admin' && <button onClick={() => setView('admin')} className="text-xs font-bold text-white bg-purple-900 px-4 py-2 rounded-lg uppercase tracking-widest flex items-center gap-2"><Settings size={14} /> Admin</button>}
+                  {view !== 'check-in' && view !== 'success' && <button onClick={() => setView('check-in')} className="text-xs font-bold text-purple-500 uppercase tracking-widest">Return to Kiosk</button>}
+                </div>
+
+              </div>
+              
+              {/* Branding Footer with Links */}
+              <div className="mt-8 text-center text-purple-400/50 text-xs space-y-2">
+                 <div>
+                    <p className="font-bold text-purple-900/60">SignInPro Executive Edition</p>
+                    <p>by Skyes Over London LC</p>
+                 </div>
+                 <div className="flex justify-center gap-4 text-[10px] uppercase tracking-wider font-medium">
+                    <a href="https://solenterprises.org/pages/solehub" target="_blank" rel="noreferrer" className="hover:text-purple-600 transition-colors">SOL Enterprises</a>
+                    <span className="opacity-30">•</span>
+                    <a href="https://skyesoverlondon.netlify.app/" target="_blank" rel="noreferrer" className="hover:text-purple-600 transition-colors">Skyes Over London</a>
+                    <span className="opacity-30">•</span>
+                    <a href="https://13thsole.netlify.app/pages/contact-hub" target="_blank" rel="noreferrer" className="hover:text-purple-600 transition-colors">Contact Hub</a>
+                 </div>
+              </div>
+
+            </div>
+          );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+  <script>
+    // PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(()=>{});
+      });
+    }
+  </script>
+
+</body>
+</html>

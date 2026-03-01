@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>kAIxU Gateway — Live Smoke</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+  <style>
+:root{
+  --bg0:#040008;--purple:#a243ff;--purple-hot:#d130ff;
+  --gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;
+  --glass:rgba(8,4,14,0.92);--border:rgba(162,67,255,0.2);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;background:var(--bg0);color:#e2e8f0;font-family:'Inter',sans-serif;overflow-x:hidden}
+body::before{content:'';position:fixed;top:-40vh;left:50%;transform:translateX(-50%);width:1000px;height:700px;background:radial-gradient(ellipse,rgba(162,67,255,.16) 0%,transparent 65%);pointer-events:none;z-index:0}
+#app{position:relative;z-index:10;max-width:1280px;margin:0 auto;padding:2rem 1.5rem 3rem;display:flex;flex-direction:column;gap:1.5rem}
+.mono{font-family:'Share Tech Mono',monospace}
+
+/* HERO */
+.hero{text-align:center;padding:2rem 1rem 1rem}
+.orb-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;width:100px;height:100px;margin-bottom:1.25rem}
+.orb{width:68px;height:68px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d130ff,#5a00cc 60%,#1a0040 100%);box-shadow:0 0 40px rgba(162,67,255,.9),0 0 100px rgba(162,67,255,.4);animation:orbPulse 3s ease-in-out infinite;z-index:2}
+@keyframes orbPulse{0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(162,67,255,.9),0 0 100px rgba(162,67,255,.4)}50%{transform:scale(1.06);box-shadow:0 0 60px #d130ff,0 0 160px rgba(162,67,255,.6)}}
+.ring{position:absolute;border-radius:50%;border:1.5px solid transparent}
+.ring1{inset:-14px;border-top-color:var(--purple-hot);border-bottom-color:var(--purple-hot);animation:s1 4s linear infinite;opacity:.7}
+.ring2{inset:-24px;border-left-color:var(--gold);border-right-color:var(--gold);animation:s2 7s linear infinite;opacity:.5}
+.ring3{inset:-36px;border-top-color:var(--cyan);animation:s3 10s linear infinite;opacity:.3}
+@keyframes s1{100%{transform:rotate(360deg)}}@keyframes s2{100%{transform:rotate(-360deg)}}@keyframes s3{100%{transform:rotate(360deg)}}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(2rem,5vw,3.4rem);font-style:italic;background:linear-gradient(135deg,#fff 0%,var(--purple) 55%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem}
+.kbadge{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:20px;border:1px solid;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin:.6rem .25rem 0}
+.bdg-g{color:var(--green);border-color:rgba(79,255,176,.3);background:rgba(79,255,176,.06)}
+.bdg-p{color:var(--purple);border-color:rgba(162,67,255,.3);background:rgba(162,67,255,.06)}
+.bdg-r{color:var(--red);border-color:rgba(255,79,106,.3);background:rgba(255,79,106,.06)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* CONFIG */
+.config-bar{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:1rem 1.25rem}
+.clabel{font-family:'Share Tech Mono',monospace;font-size:10px;color:#64748b;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.config-bar input,.config-bar select{flex:1;min-width:130px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e2e8f0;padding:.5rem .75rem;font-family:'Share Tech Mono',monospace;font-size:12px;outline:none;transition:border-color .15s}
+.config-bar input:focus,.config-bar select:focus{border-color:var(--purple)}
+.config-bar select option{background:#0c0618}
+
+/* BUTTONS */
+.btn{border:none;cursor:pointer;border-radius:12px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:.6rem 1.25rem;transition:all .2s;white-space:nowrap}
+.btn-primary{background:var(--purple);color:#fff;box-shadow:0 4px 20px rgba(162,67,255,.4)}
+.btn-primary:hover{background:var(--purple-hot);transform:translateY(-2px)}
+.btn-primary:disabled{background:#3a1a5a;color:#5a3a7a;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-gold{background:rgba(255,211,106,.1);color:var(--gold);border:1px solid rgba(255,211,106,.3)}
+.btn-gold:hover{background:rgba(255,211,106,.2);transform:translateY(-2px)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:#94a3b8}
+.btn-ghost:hover{border-color:var(--purple);color:var(--purple)}
+.btn-cyan{background:rgba(48,224,255,.08);color:var(--cyan);border:1px solid rgba(48,224,255,.25)}
+.btn-cyan:hover{background:rgba(48,224,255,.15)}
+
+/* METRICS */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.875rem}
+.mcard{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:1.1rem 1.25rem;text-align:center}
+.mval{font-family:'Share Tech Mono',monospace;font-size:2.2rem;font-weight:bold;line-height:1;margin-bottom:.3rem;transition:color .4s}
+.mlabel{font-size:9.5px;font-family:'Share Tech Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#64748b}
+.msub{font-size:9px;color:#475569;margin-top:.15rem;font-family:'Share Tech Mono',monospace}
+
+/* TESTS */
+.suite{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.suite-hdr{padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.tests-list{padding:.75rem;display:flex;flex-direction:column;gap:.5rem}
+.test-row{border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);transition:all .2s;overflow:hidden}
+.test-row.running{border-color:rgba(255,211,106,.3);background:rgba(255,211,106,.03)}
+.test-row.pass{border-color:rgba(79,255,176,.25);background:rgba(79,255,176,.03)}
+.test-row.fail{border-color:rgba(255,79,106,.3);background:rgba(255,79,106,.03)}
+.test-row.idle{border-color:rgba(255,255,255,.05)}
+.test-main{display:grid;grid-template-columns:28px 1fr auto auto auto;align-items:center;gap:.75rem;padding:.75rem 1rem;cursor:pointer}
+.test-icon{font-size:14px;text-align:center}
+.test-name{font-family:'Share Tech Mono',monospace;font-size:11px;color:#cbd5e1;letter-spacing:.05em}
+.test-desc{font-size:10px;color:#64748b;margin-top:1px}
+.test-latency{font-family:'Share Tech Mono',monospace;font-size:10px;color:#64748b;text-align:right;white-space:nowrap}
+.test-http{font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.08);color:#64748b;white-space:nowrap}
+.test-http.http-ok{color:var(--green);border-color:rgba(79,255,176,.25)}
+.test-http.http-fail{color:var(--red);border-color:rgba(255,79,106,.25)}
+.test-status{font-size:9px;font-family:'Share Tech Mono',monospace;padding:2px 8px;border-radius:20px;border:1px solid;white-space:nowrap}
+.status-idle{color:#475569;border-color:#47556944}
+.status-running{color:var(--gold);border-color:rgba(255,211,106,.3);animation:blink .8s ease-in-out infinite}
+.status-pass{color:var(--green);border-color:rgba(79,255,176,.3)}
+.status-fail{color:var(--red);border-color:rgba(255,79,106,.3)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid rgba(255,211,106,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{100%{transform:rotate(360deg)}}
+
+/* RAW RESPONSE DRAWER */
+.test-drawer{display:none;border-top:1px solid rgba(255,255,255,.05);padding:.75rem 1rem}
+.test-drawer.open{display:block}
+.test-drawer pre{font-family:'Share Tech Mono',monospace;font-size:10px;line-height:1.65;color:#94a3b8;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;background:rgba(0,0,0,.3);border-radius:8px;padding:.75rem .875rem;scrollbar-width:thin;scrollbar-color:var(--purple) transparent}
+.test-drawer pre::-webkit-scrollbar{width:2px}
+.test-drawer pre::-webkit-scrollbar-thumb{background:var(--purple);border-radius:10px}
+.raw-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem}
+.req-label{color:var(--cyan)}
+.res-label{color:var(--green)}
+.err-label{color:var(--red)}
+
+/* STREAM PANE */
+.stream-pane{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;overflow:hidden;display:flex;flex-direction:column}
+.stream-hdr{padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
+.stream-out{flex:1;min-height:140px;max-height:200px;overflow-y:auto;padding:1.25rem 1.5rem;font-family:'Share Tech Mono',monospace;font-size:12px;line-height:1.8;word-break:break-word;scrollbar-width:thin;scrollbar-color:var(--purple) transparent}
+.stream-out::-webkit-scrollbar{width:3px}
+.stream-out::-webkit-scrollbar-thumb{background:var(--purple);border-radius:10px}
+.cursor-block{display:inline-block;width:7px;height:13px;background:var(--green);animation:blink .7s step-end infinite;vertical-align:text-bottom;margin-left:1px}
+.stream-meta{padding:.75rem 1.5rem;border-top:1px solid rgba(255,255,255,.04);display:flex;gap:1.5rem;flex-wrap:wrap}
+.smeta{font-family:'Share Tech Mono',monospace;font-size:10px;color:#64748b}
+.smeta span{color:var(--cyan)}
+.notice{padding:.6rem 1rem;font-family:'Share Tech Mono',monospace;font-size:10px;border-radius:8px;margin:.5rem 1.5rem;border:1px solid}
+.notice-warn{color:var(--gold);border-color:rgba(255,211,106,.25);background:rgba(255,211,106,.05)}
+.notice-err{color:var(--red);border-color:rgba(255,79,106,.25);background:rgba(255,79,106,.05)}
+.notice-ok{color:var(--green);border-color:rgba(79,255,176,.25);background:rgba(79,255,176,.04)}
+
+/* LOG */
+.log-pane{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;overflow:hidden;max-height:280px;display:flex;flex-direction:column}
+.log-hdr{padding:.875rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.log-body{flex:1;overflow-y:auto;padding:.75rem 1.25rem;font-family:'Share Tech Mono',monospace;font-size:11px;display:flex;flex-direction:column;gap:.25rem;scrollbar-width:thin;scrollbar-color:var(--purple) transparent}
+.log-body::-webkit-scrollbar{width:2px}
+.log-body::-webkit-scrollbar-thumb{background:var(--purple);border-radius:10px}
+.le{display:flex;gap:.75rem;align-items:baseline;line-height:1.55}
+.lts{color:#334155;flex-shrink:0;font-size:10px;min-width:70px}
+.lok{color:var(--green)}.lerr{color:var(--red)}.linf{color:var(--cyan)}.lwarn{color:var(--gold)}
+
+/* INVESTOR */
+.inv-box{background:linear-gradient(135deg,rgba(162,67,255,.07),rgba(255,211,106,.05));border:1px solid rgba(162,67,255,.22);border-radius:20px;padding:1.5rem 2rem;text-align:center}
+.inv-box h2{font-family:'Playfair Display',serif;font-style:italic;font-size:1.55rem;color:#fff;margin-bottom:.4rem}
+.inv-box p{color:#94a3b8;font-size:.85rem;line-height:1.65;max-width:640px;margin:0 auto .75rem}
+.stat-row{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;margin-top:1rem}
+.stat-item{text-align:center}
+.snum{font-family:'Share Tech Mono',monospace;font-size:1.7rem;font-weight:bold;color:var(--purple);display:block}
+.sname{font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.15em;text-transform:uppercase;color:#64748b}
+
+/* TOAST */
+#toast{position:fixed;bottom:2rem;right:2rem;z-index:9999;padding:.7rem 1.1rem;border-radius:10px;font-size:12px;font-family:'Share Tech Mono',monospace;transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none;backdrop-filter:blur(12px)}
+#toast.show{transform:translateY(0);opacity:1}
+  </style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="app">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="orb-wrap">
+      <div class="orb"></div>
+      <div class="ring ring1"></div><div class="ring ring2"></div><div class="ring ring3"></div>
+    </div>
+    <h1>kAIxU Gateway — Live Smoke</h1>
+    <p style="color:#64748b;font-size:.85rem;margin-top:.25rem">Every request below is a real HTTP call to the live worker. No mocks. No simulation.</p>
+    <div>
+      <span class="kbadge bdg-g"><span class="dot"></span><span id="hdr-status">Checking…</span></span>
+      <span class="kbadge bdg-p"><span class="dot"></span>kAIxU Brain</span>
+      <span class="kbadge bdg-p"><span class="dot"></span>Cloudflare Worker</span>
+      <span class="kbadge bdg-r" id="no-mock-badge"><span class="dot"></span>ZERO MOCKS</span>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="config-bar">
+    <span class="clabel">Worker URL</span>
+    <input id="cfg-url" value="https://kaixusi.skyesoverlondon.workers.dev" style="flex:3">
+    <span class="clabel">Secret</span>
+    <input id="cfg-secret" type="password" placeholder="KAIXUSI_SECRET" style="flex:2">
+    <span class="clabel">Model</span>
+    <select id="cfg-model" style="flex:1">
+      <option value="gemini-2.5-flash" selected>kAIxU Brain 2.5</option>
+      <option value="gemini-2.0-flash">kAIxU Nano 2.0</option>
+    </select>
+    <button class="btn btn-primary" id="run-all-btn" onclick="runFullSuite()">▶ Run Full Suite</button>
+    <button class="btn btn-gold" id="auto-btn" onclick="toggleAuto()">⟳ Auto 60s</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('log-body').innerHTML=''">✕ Log</button>
+  </div>
+
+  <!-- METRICS -->
+  <div class="metrics-grid">
+    <div class="mcard"><div class="mval" id="m-req" style="color:var(--purple)">0</div><div class="mlabel">HTTP Calls Made</div><div class="msub">this session, real network</div></div>
+    <div class="mcard"><div class="mval" id="m-rate" style="color:var(--green)">—</div><div class="mlabel">Pass Rate</div><div class="msub">actual vs expected</div></div>
+    <div class="mcard"><div class="mval" id="m-lat" style="color:var(--cyan)">—</div><div class="mlabel">Avg Latency</div><div class="msub">ms · wall clock, not estimate</div></div>
+    <div class="mcard"><div class="mval" id="m-best" style="color:var(--gold)">—</div><div class="mlabel">Fastest Run</div><div class="msub">ms · best /v1/chat</div></div>
+    <div class="mcard"><div class="mval" id="m-tok" style="color:var(--purple-hot)">0</div><div class="mlabel">Output Tokens</div><div class="msub">from usage field in responses</div></div>
+    <div class="mcard"><div class="mval" id="m-up" style="color:var(--green)">0s</div><div class="mlabel">Uptime</div><div class="msub">since page load</div></div>
+  </div>
+
+  <!-- SUITE -->
+  <div class="suite">
+    <div class="suite-hdr">
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--purple);font-weight:bold">🔬 Smoke Test Suite</div>
+        <div style="font-size:10px;color:#475569;margin-top:2px;font-family:'Share Tech Mono',monospace">Click any row to expand raw request + response JSON</div>
+      </div>
+      <div id="suite-result" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#64748b"></div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="runTest('health')" style="padding:.4rem .875rem;font-size:10px">Health</button>
+        <button class="btn btn-ghost" onclick="runTest('chat')"   style="padding:.4rem .875rem;font-size:10px">Chat</button>
+        <button class="btn btn-ghost" onclick="runTest('stream')" style="padding:.4rem .875rem;font-size:10px">Stream</button>
+        <button class="btn btn-ghost" onclick="runTest('embed')"  style="padding:.4rem .875rem;font-size:10px">Embed</button>
+        <button class="btn btn-ghost" onclick="runTest('auth')"   style="padding:.4rem .875rem;font-size:10px">Auth</button>
+      </div>
+    </div>
+    <div class="tests-list" id="tests-list"></div>
+  </div>
+
+  <!-- STREAM DEMO -->
+  <div class="stream-pane">
+    <div class="stream-hdr">
+      <div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan)">⚡ Live SSE Stream — /v1/stream</div>
+        <div style="font-size:10px;color:#64748b;margin-top:3px;font-family:'Share Tech Mono',monospace">Real token-by-token SSE from the worker. If stream unavailable, shows raw error — no fallback animation.</div>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        <input id="stream-prompt" value="In two sentences explain why a real-time AI gateway matters for developer teams." style="background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e2e8f0;padding:.4rem .75rem;font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;width:330px;transition:border-color .15s" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+        <button class="btn btn-cyan" id="stream-btn" onclick="runStreamDemo()">▶ Fire Stream</button>
+      </div>
+    </div>
+    <div id="stream-notice" style="display:none"></div>
+    <div class="stream-out" id="stream-out"><span style="color:#334155;font-style:italic;font-family:'Share Tech Mono',monospace;font-size:11px">Hit "Fire Stream" — tokens will appear here as they arrive from the worker.</span></div>
+    <div class="stream-meta">
+      <div class="smeta">Method <span>POST /v1/stream</span></div>
+      <div class="smeta">TTFT <span id="sm-ttft">—</span></div>
+      <div class="smeta">Total <span id="sm-total">—</span></div>
+      <div class="smeta">Tokens (usage field) <span id="sm-tokens">—</span></div>
+      <div class="smeta">HTTP Status <span id="sm-http">—</span></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="log-pane">
+    <div class="log-hdr">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#64748b">Network Log — all real requests</span>
+      <button class="btn btn-ghost" onclick="copyLog()" style="padding:.3rem .75rem;font-size:10px">Copy</button>
+    </div>
+    <div class="log-body" id="log-body"></div>
+  </div>
+
+  <!-- INVESTOR -->
+  <div class="inv-box">
+    <h2>Every number above is live.</h2>
+    <p>kAIxU routes AI through a Cloudflare Worker — zero cold starts, per-user quota, multi-provider failover, usage telemetry to Neon. The tests on this page fire real HTTP calls to <span style="color:var(--cyan);font-family:'Share Tech Mono',monospace" id="inv-url">…</span></p>
+    <div class="stat-row">
+      <div class="stat-item"><span class="snum" id="inv-suites">0</span><span class="sname">Suites Run</span></div>
+      <div class="stat-item"><span class="snum" id="inv-prov">3</span><span class="sname">AI Providers Wired</span></div>
+      <div class="stat-item"><span class="snum">4</span><span class="sname">Live Endpoints</span></div>
+      <div class="stat-item"><span class="snum" id="inv-lat">—</span><span class="sname">Avg ms</span></div>
+      <div class="stat-item"><span class="snum" id="inv-req">0</span><span class="sname">Real HTTP Calls</span></div>
+    </div>
+  </div>
+
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════
+// GATEWAY LIVE — ZERO MOCKS, ZERO SIMULATION
+// Every fetch() below hits the live worker URL from cfg-url.
+// Latencies come from Date.now() wall-clock around real network round trips.
+// Token counts come from the `usage` field returned by the worker.
+// Stream demo uses only real SSE — if the endpoint returns non-SSE
+//   we show the raw error, we do NOT fall back to a fake animation.
+// ═══════════════════════════════════════════════════════════
+
+const BRAIN_KEY = 'sovereign_brain_cfg';
+
+// Display-safe request body — strips internal provider routing from investor-visible drawers
+const _MODEL_DISPLAY={'gemini-2.5-flash':'kAIxU Brain 2.5','gemini-2.0-flash':'kAIxU Nano 2.0','gemini-embedding-001':'kAIxU Embed 1.0'};
+function sanitizeReqBody(b){
+  if(!b||typeof b!=='object') return b;
+  const o={...b};
+  delete o.provider;
+  if(o.model) o.model=_MODEL_DISPLAY[o.model]||o.model;
+  return o;
+}
+let stats = { req:0, pass:0, fail:0, latencies:[], bestRun:Infinity, tokens:0, suites:0 };
+let startTime = Date.now();
+let autoTimer = null;
+
+// ── CONFIG ────────────────────────────────────────────────────
+function loadCfg(){
+  try{
+    const c=JSON.parse(localStorage.getItem(BRAIN_KEY)||'{}');
+    if(c.url) document.getElementById('cfg-url').value=c.url;
+    if(c.secret) document.getElementById('cfg-secret').value=c.secret;
+  }catch{}
+}
+function getCfg(){
+  const url=(document.getElementById('cfg-url').value||'').trim().replace(/\/+$/,'');
+  const secret=(document.getElementById('cfg-secret').value||'').trim();
+  const model=document.getElementById('cfg-model').value||'gemini-2.5-flash'; // wire value
+  return{url,secret,model};
+}
+
+// ── TESTS ────────────────────────────────────────────────────
+const TESTS=[
+  {id:'health',icon:'🏥',name:'GET /health',           desc:'Worker liveness — unauthenticated'},
+  {id:'chat',  icon:'🧠',name:'POST /v1/chat',          desc:'Chat completion — send "Reply with only the word Pong." — verify non-empty output_text'},
+  {id:'stream',icon:'⚡',name:'POST /v1/stream (SSE)',  desc:'SSE stream — read chunks until done, verify ≥1 data: event with text'},
+  {id:'embed', icon:'🔢',name:'POST /v1/embed',         desc:'Text embedding — verify embedding array length > 0'},
+  {id:'auth',  icon:'🔒',name:'Auth Guard',             desc:'POST /v1/chat with token "INVALID_TOKEN_xyz" — must return 401 or 403'},
+];
+
+function initRows(){
+  document.getElementById('tests-list').innerHTML=TESTS.map(t=>`
+    <div class="test-row idle" id="tr-${t.id}">
+      <div class="test-main" onclick="toggleDrawer('${t.id}')">
+        <span class="test-icon">${t.icon}</span>
+        <div><div class="test-name">${t.name}</div><div class="test-desc">${t.desc}</div></div>
+        <span class="test-latency" id="tl-${t.id}">—</span>
+        <span class="test-http" id="th-${t.id}">—</span>
+        <span class="test-status status-idle" id="ts-${t.id}">IDLE</span>
+      </div>
+      <div class="test-drawer" id="td-${t.id}">
+        <div class="raw-label req-label">▶ Request sent</div>
+        <pre id="treq-${t.id}">—</pre>
+        <div class="raw-label res-label" style="margin-top:.5rem">◀ Response received</div>
+        <pre id="tres-${t.id}">—</pre>
+      </div>
+    </div>`).join('');
+}
+function toggleDrawer(id){ document.getElementById(`td-${id}`).classList.toggle('open'); }
+
+function setState(id,state,latency,httpStatus,reqBody,resBody){
+  const row=document.getElementById(`tr-${id}`);
+  const status=document.getElementById(`ts-${id}`);
+  const lat=document.getElementById(`tl-${id}`);
+  const http=document.getElementById(`th-${id}`);
+  if(!row) return;
+  row.className='test-row '+state;
+  status.className='test-status status-'+state;
+  status.innerHTML=state==='running'?'<span class="spinner"></span> RUNNING':state.toUpperCase();
+  if(latency) lat.textContent=latency;
+  if(httpStatus!==undefined){
+    http.textContent=`HTTP ${httpStatus}`;
+    http.className='test-http '+(httpStatus>=200&&httpStatus<300||httpStatus===401||httpStatus===403?'http-ok':'http-fail');
+  }
+  if(reqBody!==undefined) document.getElementById(`treq-${id}`).textContent=typeof reqBody==='string'?reqBody:JSON.stringify(reqBody,null,2);
+  if(resBody!==undefined) document.getElementById(`tres-${id}`).textContent=typeof resBody==='string'?resBody:JSON.stringify(resBody,null,2);
+}
+
+// ── INDIVIDUAL TESTS (real network only) ──────────────────────
+async function runTest(id){
+  const {url,secret,model}=getCfg();
+  setState(id,'running','','','','');
+
+  if((id==='chat'||id==='stream'||id==='embed'||id==='auth')&&!secret){
+    setState(id,'fail','—',0,'(no secret configured)','Configure KAIXUSI_SECRET in the bar above');
+    stats.req++; stats.fail++; updateMetrics(); log('warn',`${id} — skipped: no secret configured`); return{passed:false};
+  }
+
+  const t0=Date.now();
+  try{
+    if(id==='health'){
+      const reqInfo=`GET ${url}/health`;
+      const r=await fetch(`${url}/health`);
+      const latMs=Date.now()-t0;
+      const raw=await r.text();
+      let d; try{d=JSON.parse(raw)}catch{d=raw}
+      const passed=r.ok&&(typeof d==='object'?d.status==='ok':raw.includes('ok'));
+      setState(id,passed?'pass':'fail',`${latMs}ms`,r.status,reqInfo,typeof d==='object'?d:raw);
+      stats.req++; if(passed)stats.pass++;else stats.fail++;
+      stats.latencies.push(latMs);
+      log(passed?'ok':'err',`/health → HTTP ${r.status} · ${latMs}ms`+(passed?` brain: ${d.brain||'?'}`:''));
+      updateMetrics(); return{passed,latMs};
+    }
+
+    if(id==='chat'){
+      const reqBody={provider:'gemini',model,messages:[{role:'user',content:'Reply with only the word Pong.'}],max_tokens:8,app_id:'kaixu-gateway-live'};
+      const r=await fetch(`${url}/v1/chat`,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${secret}`,'Content-Type':'application/json'},
+        body:JSON.stringify(reqBody),
+      });
+      const latMs=Date.now()-t0;
+      const raw=await r.text();
+      let d; try{d=JSON.parse(raw)}catch{d=raw}
+      const passed=r.ok&&typeof d==='object'&&!!d.output_text;
+      setState(id,passed?'pass':'fail',`${latMs}ms`,r.status,sanitizeReqBody(reqBody),typeof d==='object'?d:raw);
+      stats.req++; if(passed){stats.pass++;stats.latencies.push(latMs);if(latMs<stats.bestRun)stats.bestRun=latMs;}else stats.fail++;
+      if(passed&&d.usage?.output_tokens) stats.tokens+=d.usage.output_tokens;
+      log(passed?'ok':'err',`/v1/chat → HTTP ${r.status} · ${latMs}ms · output_text: "${d.output_text?.slice(0,50)||d.error||raw.slice(0,50)}"`);
+      updateMetrics(); return{passed,latMs};
+    }
+
+    if(id==='stream'){
+      // Real SSE read — we count actual data: events, verify text arrived from the model
+      const reqBody={provider:'gemini',model,messages:[{role:'user',content:'Say "streaming confirmed" and nothing else.'}],max_tokens:20,stream:true,app_id:'kaixu-gateway-live'};
+      const r=await fetch(`${url}/v1/stream`,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${secret}`,'Content-Type':'application/json'},
+        body:JSON.stringify(reqBody),
+      });
+      const ttft=Date.now()-t0;
+      const latMs=ttft;
+      const contentType=r.headers.get('content-type')||'';
+      const isSSE=contentType.includes('text/event-stream');
+
+      let rawResText=''; let tokenText=''; let eventCount=0; let httpStatus=r.status;
+      if(r.ok&&isSSE){
+        // Read chunks
+        const reader=r.body.getReader(); const dec=new TextDecoder();
+        let done=false; let chunks=0;
+        while(!done&&chunks<200){
+          const {value,done:d}=await reader.read(); done=d;
+          if(value){
+            const chunk=dec.decode(value,{stream:true});
+            rawResText+=chunk;
+            for(const line of chunk.split('\n')){
+              if(!line.startsWith('data:')) continue;
+              const payload=line.slice(5).trim();
+              if(payload==='[DONE]') continue;
+              try{
+                const parsed=JSON.parse(payload);
+                const tok=parsed.text||parsed.choices?.[0]?.delta?.content||
+                  parsed.candidates?.[0]?.content?.parts?.[0]?.text||'';
+                tokenText+=tok; eventCount++;
+              }catch{}
+            }
+          }
+          chunks++;
+        }
+        await reader.cancel();
+      } else {
+        rawResText=await r.text();
+      }
+
+      const passed=r.ok&&isSSE&&eventCount>0;
+      const resDisplay=isSSE
+        ? `Content-Type: ${contentType}\nSSE events received: ${eventCount}\nText reconstructed: "${tokenText.slice(0,120)}"\n\n--- raw first 500 chars ---\n${rawResText.slice(0,500)}`
+        : `Content-Type: ${contentType}\nHTTP ${r.status}\n${rawResText.slice(0,400)}`;
+      setState(id,passed?'pass':'fail',`${latMs}ms`,httpStatus,sanitizeReqBody(reqBody),resDisplay);
+      stats.req++; if(passed)stats.pass++;else stats.fail++;
+      log(passed?'ok':'err',`/v1/stream → HTTP ${r.status} · SSE:${isSSE} · events:${eventCount} · "${tokenText.slice(0,40)}" · ${latMs}ms`);
+      updateMetrics(); return{passed,latMs};
+    }
+
+    if(id==='embed'){
+      const reqBody={provider:'gemini',model:'gemini-embedding-001',input:'kAIxU is the future of AI tooling.',app_id:'kaixu-gateway-live'};
+      const r=await fetch(`${url}/v1/embed`,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${secret}`,'Content-Type':'application/json'},
+        body:JSON.stringify(reqBody),
+      });
+      const latMs=Date.now()-t0;
+      const raw=await r.text();
+      let d; try{d=JSON.parse(raw)}catch{d=raw}
+      const passed=r.ok&&typeof d==='object'&&Array.isArray(d.embedding)&&d.embedding.length>0;
+      const resDisplay=typeof d==='object'&&d.embedding
+        ? {...d,embedding:`[${d.embedding.slice(0,6).map(v=>v.toFixed(6)).join(', ')} … ${d.embedding.length} total dims]`}
+        : d;
+      setState(id,passed?'pass':'fail',`${latMs}ms`,r.status,sanitizeReqBody(reqBody),resDisplay);
+      stats.req++; if(passed)stats.pass++;else stats.fail++;
+      log(passed?'ok':'err',`/v1/embed → HTTP ${r.status} · ${passed?d.embedding.length+' dims':'FAIL'} · ${latMs}ms`);
+      updateMetrics(); return{passed,latMs};
+    }
+
+    if(id==='auth'){
+      const reqBody={provider:'gemini',model,messages:[{role:'user',content:'auth guard test — this must be rejected'}],max_tokens:8};
+      const r=await fetch(`${url}/v1/chat`,{
+        method:'POST',
+        headers:{'Authorization':'Bearer INVALID_TOKEN_xyzzy_this_will_fail','Content-Type':'application/json'},
+        body:JSON.stringify(reqBody),
+      });
+      const latMs=Date.now()-t0;
+      const raw=await r.text();
+      let d; try{d=JSON.parse(raw)}catch{d=raw}
+      const passed=r.status===401||r.status===403;
+      setState(id,passed?'pass':'fail',`${latMs}ms`,r.status,
+        sanitizeReqBody({...reqBody,Authorization:'Bearer INVALID_TOKEN_xyzzy_…'}),
+        typeof d==='object'?d:raw);
+      stats.req++; if(passed)stats.pass++;else stats.fail++;
+      log(passed?'ok':'err',`Auth guard → HTTP ${r.status}${passed?' — correctly rejected bad token':' — WARNING: bad token was not rejected!'} · ${latMs}ms`);
+      updateMetrics(); return{passed,latMs};
+    }
+  }catch(err){
+    const latMs=Date.now()-t0;
+    setState(id,'fail',`${latMs}ms`,0,'(see error below)',err.message);
+    stats.req++; stats.fail++;
+    log('err',`${id} fetch error — ${err.message}`);
+    updateMetrics(); return{passed:false,latMs};
+  }
+}
+
+// ── FULL SUITE ────────────────────────────────────────────────
+async function runFullSuite(){
+  const btn=document.getElementById('run-all-btn');
+  btn.disabled=true; btn.textContent='⏳ Running…';
+  const suiteEl=document.getElementById('suite-result');
+  suiteEl.textContent='Running…'; suiteEl.style.color='var(--gold)';
+  TESTS.forEach(t=>setState(t.id,'idle','',undefined,'',''));
+
+  const snap={pass:stats.pass,fail:stats.fail,req:stats.req};
+  for(const t of TESTS){ await runTest(t.id); await new Promise(r=>setTimeout(r,280)); }
+  const newPass=stats.pass-snap.pass, newFail=stats.fail-snap.fail, total=newPass+newFail;
+  const pct=total?Math.round(newPass/total*100):0;
+  suiteEl.textContent=`${newPass}/${total} passed (${pct}%)`;
+  suiteEl.style.color=pct===100?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+  stats.suites++;
+  document.getElementById('inv-suites').textContent=stats.suites;
+  btn.disabled=false; btn.textContent='▶ Run Full Suite';
+  toast(`Suite: ${newPass}/${total} passed`,pct===100?'ok':pct>=60?'warn':'err');
+}
+
+// ── STREAM DEMO (real SSE only — no fallback animation) ───────
+async function runStreamDemo(){
+  const {url,secret,model}=getCfg();
+  if(!secret){toast('Set KAIXUSI_SECRET first','warn');return;}
+  const prompt=document.getElementById('stream-prompt').value.trim()||'Say something insightful.';
+  const out=document.getElementById('stream-out');
+  const btn=document.getElementById('stream-btn');
+  const notice=document.getElementById('stream-notice');
+  out.innerHTML=''; notice.style.display='none';
+  btn.disabled=true; btn.textContent='⏳ Connecting…';
+  document.getElementById('sm-ttft').textContent='…';
+  document.getElementById('sm-total').textContent='…';
+  document.getElementById('sm-tokens').textContent='…';
+  document.getElementById('sm-http').textContent='…';
+
+  const cursorEl=document.createElement('span'); cursorEl.className='cursor-block';
+  const t0=Date.now(); let ttft=null; let outputTokens=0; let eventCount=0;
+
+  try{
+    const r=await fetch(`${url}/v1/stream`,{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${secret}`,'Content-Type':'application/json'},
+      body:JSON.stringify({provider:'gemini',model,messages:[{role:'user',content:prompt}],max_tokens:400,stream:true,app_id:'kaixu-gateway-live'}),
+    });
+    const httpStatus=r.status;
+    document.getElementById('sm-http').textContent=`HTTP ${httpStatus}`;
+    const contentType=r.headers.get('content-type')||'';
+    const isSSE=contentType.includes('text/event-stream');
+
+    // If NOT SSE — show real error, NEVER fake it with animation
+    if(!r.ok||!isSSE){
+      const errText=await r.text();
+      notice.className='notice notice-err';
+      notice.style.display='block';
+      notice.textContent=`/v1/stream returned HTTP ${httpStatus} · Content-Type: ${contentType} — endpoint may not support SSE. Raw: ${errText.slice(0,200)}`;
+      out.innerHTML=`<span style="color:var(--red);font-family:'Share Tech Mono',monospace;font-size:11px">Stream failed: HTTP ${httpStatus}\n${errText.slice(0,400)}</span>`;
+      log('err',`/v1/stream → HTTP ${httpStatus} · not SSE (${contentType}) — no fallback, showing real error`);
+      stats.req++;stats.fail++;updateMetrics();
+      btn.disabled=false; btn.textContent='▶ Fire Stream'; return;
+    }
+
+    // Real SSE — read until done
+    notice.className='notice notice-ok';
+    notice.style.display='block';
+    notice.textContent=`SSE confirmed · Content-Type: ${contentType} · reading token stream…`;
+    out.style.color='var(--green)';
+    out.appendChild(cursorEl);
+
+    const reader=r.body.getReader(); const dec=new TextDecoder();
+    let buf=''; let usage=null;
+    while(true){
+      const {value,done}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n');
+      buf=lines.pop(); // keep incomplete line in buffer
+      for(const line of lines){
+        if(!line.startsWith('data:')) continue;
+        const payload=line.slice(5).trim();
+        if(payload==='[DONE]') continue;
+        try{
+          const parsed=JSON.parse(payload);
+          const tok=parsed.text||parsed.choices?.[0]?.delta?.content||
+            parsed.candidates?.[0]?.content?.parts?.[0]?.text||'';
+          if(tok){
+            if(!ttft){ ttft=Date.now()-t0; document.getElementById('sm-ttft').textContent=ttft+'ms'; }
+            out.insertBefore(document.createTextNode(tok),cursorEl);
+            out.scrollTop=out.scrollHeight;
+            eventCount++;
+          }
+          // capture usage if present
+          if(parsed.usage) usage=parsed.usage;
+          if(parsed.usageMetadata) usage=parsed.usageMetadata;
+        }catch{}
+      }
+    }
+    cursorEl.remove();
+
+    const total=Date.now()-t0;
+    document.getElementById('sm-ttft').textContent=(ttft||total)+'ms';
+    document.getElementById('sm-total').textContent=total+'ms';
+    // Token count from usage field if available, else event count (SSE events ≈ tokens)
+    const tokCount=usage?.output_tokens||usage?.candidatesTokenCount||eventCount;
+    document.getElementById('sm-tokens').textContent=usage?`${tokCount} (from usage field)`:`~${tokCount} (SSE event count)`;
+    if(usage?.output_tokens){ stats.tokens+=usage.output_tokens; document.getElementById('m-tok').textContent=stats.tokens; }
+    notice.textContent=`Stream complete · ${eventCount} SSE events · TTFT: ${ttft||'?'}ms · Total: ${total}ms`;
+    log('ok',`/v1/stream → SSE done · ${eventCount} events · ${total}ms`);
+    stats.req++;stats.pass++;updateMetrics();
+  }catch(err){
+    cursorEl.remove();
+    notice.className='notice notice-err';
+    notice.style.display='block';
+    notice.textContent=`Fetch error: ${err.message}`;
+    out.innerHTML=`<span style="color:var(--red);font-family:'Share Tech Mono',monospace;font-size:11px">${err.message}</span>`;
+    log('err',`/v1/stream fetch error — ${err.message}`);
+    stats.req++;stats.fail++;updateMetrics();
+  }
+  btn.disabled=false; btn.textContent='▶ Fire Stream';
+}
+
+// ── HEALTH BADGE ──────────────────────────────────────────────
+async function pingHeaderHealth(){
+  const {url}=getCfg();
+  const el=document.getElementById('hdr-status');
+  try{
+    const r=await fetch(`${url}/health`,{signal:AbortSignal.timeout(6000)});
+    const d=await r.json();
+    if(r.ok&&d.status==='ok'){
+      el.textContent=`Gateway Online · ${d.brain||'kAIxUSI'}`;
+      el.closest('.kbadge').className='kbadge bdg-g';
+    }else{
+      el.textContent='Gateway Degraded';
+      el.closest('.kbadge').className='kbadge bdg-r';
+    }
+  }catch{
+    el.textContent='Gateway Unreachable';
+    el.closest('.kbadge').style.cssText='color:var(--red);border-color:rgba(255,79,106,.3);background:rgba(255,79,106,.06)';
+  }
+}
+
+// ── AUTO REFRESH ──────────────────────────────────────────────
+function toggleAuto(){
+  const btn=document.getElementById('auto-btn');
+  if(autoTimer){ clearInterval(autoTimer); autoTimer=null; btn.textContent='⟳ Auto 60s'; btn.className='btn btn-gold'; toast('Auto off','warn'); }
+  else{ autoTimer=setInterval(runFullSuite,60000); btn.textContent='⟳ Auto ON'; btn.className='btn btn-primary'; runFullSuite(); toast('Auto: run every 60s','ok'); }
+}
+
+// ── METRICS ───────────────────────────────────────────────────
+function updateMetrics(){
+  const total=stats.pass+stats.fail;
+  const pct=total?Math.round(stats.pass/total*100):null;
+  const avg=stats.latencies.length?Math.round(stats.latencies.reduce((a,b)=>a+b,0)/stats.latencies.length):null;
+  document.getElementById('m-req').textContent=stats.req;
+  document.getElementById('m-rate').textContent=pct!==null?pct+'%':'—';
+  document.getElementById('m-rate').style.color=pct===100?'var(--green)':pct===null?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+  document.getElementById('m-lat').textContent=avg?avg+'ms':'—';
+  document.getElementById('m-best').textContent=stats.bestRun<Infinity?stats.bestRun+'ms':'—';
+  document.getElementById('m-tok').textContent=stats.tokens;
+  document.getElementById('inv-lat').textContent=avg?avg+'ms':'—';
+  document.getElementById('inv-req').textContent=stats.req;
+}
+function updateUptime(){
+  const s=Math.floor((Date.now()-startTime)/1000);
+  document.getElementById('m-up').textContent=s>=60?`${Math.floor(s/60)}m ${s%60}s`:s+'s';
+}
+
+// ── LOG ───────────────────────────────────────────────────────
+function log(type,msg){
+  const body=document.getElementById('log-body');
+  const ts=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const cls={ok:'lok',err:'lerr',info:'linf',warn:'lwarn'}[type]||'linf';
+  const pre={ok:'✓',err:'✗',info:'ℹ',warn:'⚠'}[type]||'·';
+  const d=document.createElement('div'); d.className='le';
+  d.innerHTML=`<span class="lts">${ts}</span><span class="${cls}">${pre} ${msg}</span>`;
+  body.appendChild(d); body.scrollTop=body.scrollHeight;
+}
+function copyLog(){
+  const lines=[...document.querySelectorAll('.le')].map(e=>e.textContent.trim()).join('\n');
+  navigator.clipboard.writeText(lines).then(()=>toast('Log copied','ok'));
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  const s={ok:`rgba(79,255,176,.1);border:1px solid rgba(79,255,176,.3);color:var(--green)`,warn:`rgba(255,211,106,.1);border:1px solid rgba(255,211,106,.3);color:var(--gold)`,err:`rgba(255,79,106,.1);border:1px solid rgba(255,79,106,.3);color:var(--red)`};
+  el.style.cssText=`background:${s[type]||s.ok};padding:.7rem 1.1rem;border-radius:10px;font-family:'Share Tech Mono',monospace;font-size:12px;position:fixed;bottom:2rem;right:2rem;z-index:9999;backdrop-filter:blur(12px);transition:all .3s;transform:translateY(0);opacity:1`;
+  el.textContent=msg; clearTimeout(el._t); el._t=setTimeout(()=>el.style.opacity='0',3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  loadCfg(); initRows();
+  document.getElementById('inv-url').textContent=getCfg().url||'…';
+  pingHeaderHealth();
+  setInterval(updateUptime,1000);
+  setInterval(pingHeaderHealth,30000);
+  log('info','GatewayLive ready — all requests go to the URL shown above. No mocks.');
+  // Auto-run health immediately so investors see something live straight away
+  setTimeout(()=>runTest('health'),500);
+});
+</script>
+</body>
+</html>

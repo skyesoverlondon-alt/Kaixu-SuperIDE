@@ -1,0 +1,24 @@
+{
+  "name": "kaixusi-worker",
+  "version": "1.0.0",
+  "description": "KaixuSI — Cloudflare Worker AI Brain",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev":    "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail":   "wrangler tail",
+    "secret:kaixusi":   "wrangler secret put KAIXUSI_SECRET",
+    "secret:gemini":    "wrangler secret put GEMINI_KEY",
+    "secret:openai":    "wrangler secret put OPENAI_KEY",
+    "secret:anthropic": "wrangler secret put ANTHROPIC_KEY",
+    "secret:db":        "wrangler secret put DATABASE_URL",
+    "secrets:list":     "wrangler secret list"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.4"
+  },
+  "devDependencies": {
+    "wrangler": "^4.69.0"
+  }
+}

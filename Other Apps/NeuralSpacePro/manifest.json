@@ -1,0 +1,22 @@
+{
+  "name": "kAIxu Neural Space Pro",
+  "short_name": "kAIxu Pro",
+  "description": "An advanced neural workspace utilizing AI capabilities, complex data analysis tools (PDF, Excel), and robust rendering for markdown, mathematics (KaTeX), code highlighting (Prism), and diagrams (Mermaid).",
+  "theme_color": "#3b82f6",
+  "background_color": "#050505",
+  "display": "standalone",
+  "start_url": "./index.html",
+  "iconUrl": "blob:https://factorypwa.netlify.app/6351c83b-587e-4133-9d8e-40192faaf3c1",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

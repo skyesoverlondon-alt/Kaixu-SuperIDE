@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Extension Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--line:#2a0050;--purple:#a243ff;--hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--fg:#e8e0f0}
+*{box-sizing:border-box;margin:0;padding:0} body{font-family:Inter,sans-serif;background:var(--bg0);color:var(--fg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid var(--line)} .h h1{font-size:15px;color:var(--cyan)} .h p{font-size:11px;color:#8574aa}
+.r{margin-left:auto;display:flex;gap:8px}.b{padding:5px 11px;border-radius:5px;border:1px solid #ffffff24;background:#1a0030;color:#cabce3;font-size:12px;cursor:pointer}.b:hover{filter:brightness(1.08)}
+.b.c{border-color:#30e0ff66;color:var(--cyan);background:#30e0ff1a}.b.p{border-color:#a243ff66;color:var(--purple);background:#a243ff1a}.b.g{border-color:#4fffb066;color:var(--green);background:#4fffb01a}
+.layout{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;flex:1;padding:10px;overflow:hidden}.col{overflow:auto}.col::-webkit-scrollbar{width:5px}.col::-webkit-scrollbar-thumb{background:#3a0060}
+.card{background:var(--bg1);border:1px solid #1a0030;border-radius:8px;padding:12px;margin-bottom:10px}.t{font-size:10px;color:#72639a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:8px}.in{flex:1;background:var(--bg2);border:1px solid #3a0060;border-radius:5px;padding:7px 9px;color:var(--fg);font-size:12px}.in:focus{outline:none;border-color:var(--purple)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.ext{background:var(--bg2);border:1px solid #2a0050;border-radius:7px;padding:10px;display:flex;flex-direction:column;gap:7px}
+.name{font-size:12px;font-weight:700;color:var(--cyan)} .meta{font-size:10px;color:#8779a9} .desc{font-size:11px;color:#cdbfe4;line-height:1.45;min-height:34px}
+.tags{display:flex;gap:6px;flex-wrap:wrap}.tag{font-size:9px;padding:2px 5px;border-radius:3px;background:#ffffff12;color:#bfaeda;border:1px solid #ffffff1e}
+.row{display:flex;justify-content:space-between;align-items:center}
+.small{font-size:10px;color:#9c8eb9}
+.tbl{width:100%;border-collapse:collapse}.tbl th{font-size:10px;color:#6e5d94;text-align:left;padding:6px;border-bottom:1px solid #2a0050;text-transform:uppercase}.tbl td{font-size:11px;padding:7px 6px;border-bottom:1px solid #120024}
+.badge{font-size:10px;padding:2px 6px;border-radius:3px}.ok{background:#4fffb022;color:var(--green)}.warn{background:#ffd36a22;color:var(--gold)}
+.f{padding:3px 12px;background:#060010;border-top:1px solid #1a0030;font-size:10px;color:#625289;display:flex;gap:14px}.f b{color:#e2d8f0}
+</style>
+</head>
+<body>
+<div class="h"><div style="font-size:18px">🧩</div><div><h1>Extension Store</h1><p>Install, publish, and manage kAIxU extensions with sandboxed permissions</p></div><div class="r"><button class="b c" onclick="refreshStore()">↻ Refresh</button><button class="b p" onclick="openPublish()">＋ Publish</button><button class="b g" onclick="installFeatured()">⭐ Install featured</button></div></div>
+<div class="layout">
+  <section class="col">
+    <div class="card"><div class="t">Marketplace</div>
+      <div class="toolbar"><input id="q" class="in" placeholder="Search extensions, capabilities, publisher..." oninput="render()"/><select id="cat" class="in" style="max-width:160px" onchange="render()"><option value="all">All categories</option><option>Sidebar</option><option>Editor</option><option>AI Plugin</option><option>Theme</option></select></div>
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div class="card"><div class="t">Installed Extensions</div>
+      <table class="tbl" id="installedTbl"><thead><tr><th>Name</th><th>Version</th><th>Permissions</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <aside class="col">
+    <div class="card"><div class="t">Publish Extension</div>
+      <label class="small">Name</label><input id="pubName" class="in" placeholder="my-awesome-extension"/>
+      <label class="small" style="margin-top:7px;display:block">Type</label><select id="pubType" class="in"><option>Sidebar</option><option>Editor</option><option>AI Plugin</option><option>Theme</option></select>
+      <label class="small" style="margin-top:7px;display:block">Permissions</label><select id="pubPerm" class="in"><option>workspace.read</option><option>editor.commands</option><option>ai.context</option><option>theme.register</option></select>
+      <label class="small" style="margin-top:7px;display:block">Description</label><textarea id="pubDesc" class="in" style="min-height:90px"></textarea>
+      <button class="b p" style="width:100%;margin-top:10px" onclick="publish()">Publish to Store</button>
+      <div style="margin-top:8px;font-size:10px;color:#8f81b0">Revenue split: <b style="color:var(--green)">80%</b> creator / <b style="color:var(--purple)">20%</b> kAIxU.</div>
+    </div>
+
+    <div class="card"><div class="t">Sandbox Policy</div>
+      <div class="small" style="line-height:1.55">Extensions run in isolated iframes. No cross-workspace data access. Permissions are explicit and revocable per extension.</div>
+      <div style="margin-top:8px" class="tags"><span class="tag">CSP locked</span><span class="tag">No eval</span><span class="tag">Scoped APIs</span><span class="tag">Audit logs</span></div>
+    </div>
+  </aside>
+</div>
+<div class="f"><span>Total: <b id="tCount">0</b></span><span>Installed: <b id="iCount">0</b></span><span>Status: <b id="status">Idle</b></span></div>
+<script>
+let exts=[
+{id:'a',name:'Deploy Pulse',ver:'1.2.0',type:'Sidebar',publisher:'sol-labs',perm:'workspace.read',desc:'Deploy insights panel with rollback shortcuts.',inst:true,featured:true},
+{id:'b',name:'PR Autofill',ver:'0.9.4',type:'Editor',publisher:'team-kx',perm:'editor.commands',desc:'Generates PR title/body from staged diff context.',inst:true,featured:false},
+{id:'c',name:'Design Tokens Pro',ver:'2.0.1',type:'Theme',publisher:'orbital-ui',perm:'theme.register',desc:'Team theme pack with token validation.',inst:false,featured:true},
+{id:'d',name:'Schema Navigator',ver:'1.4.2',type:'Sidebar',publisher:'db-tools',perm:'workspace.read',desc:'Jump from SQL to model definitions instantly.',inst:false,featured:false},
+{id:'e',name:'kAIxU Test Coach',ver:'1.1.0',type:'AI Plugin',publisher:'kaixu',perm:'ai.context',desc:'Advises on failing tests and coverage gaps.',inst:false,featured:true},
+{id:'f',name:'Command Macros',ver:'0.7.3',type:'Editor',publisher:'opsflow',perm:'editor.commands',desc:'Bundle repetitive command sequences into one action.',inst:false,featured:false}
+];
+function setStatus(s){document.getElementById('status').textContent=s}
+function render(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const cat=document.getElementById('cat').value;
+  const list=exts.filter(e=>(cat==='all'||e.type===cat) && `${e.name} ${e.publisher} ${e.desc}`.toLowerCase().includes(q));
+  document.getElementById('grid').innerHTML=list.map(e=>`<article class='ext'><div class='row'><div class='name'>${e.name}</div><span class='badge ${e.inst?'ok':'warn'}'>${e.inst?'Installed':'Available'}</span></div><div class='meta'>${e.type} · ${e.publisher} · v${e.ver}</div><div class='desc'>${e.desc}</div><div class='tags'><span class='tag'>${e.perm}</span>${e.featured?'<span class="tag">featured</span>':''}</div><div class='row'><span class='small'>Rating 4.${Math.floor(Math.random()*9)} / 5</span><button class='b ${e.inst?'':'g'}' onclick="toggleInstall('${e.id}')">${e.inst?'Uninstall':'Install'}</button></div></article>`).join('');
+  renderInstalled();
+  document.getElementById('tCount').textContent=exts.length;
+  document.getElementById('iCount').textContent=exts.filter(e=>e.inst).length;
+}
+function renderInstalled(){
+  const rows=exts.filter(e=>e.inst).map(e=>`<tr><td>${e.name}</td><td>${e.ver}</td><td>${e.perm}</td><td><span class='badge ok'>active</span></td><td><button class='b' onclick="toggleInstall('${e.id}')">Remove</button></td></tr>`).join('')||'<tr><td colspan="5" style="color:#8b7aac">No installed extensions.</td></tr>';
+  document.querySelector('#installedTbl tbody').innerHTML=rows;
+}
+function toggleInstall(id){const e=exts.find(x=>x.id===id);e.inst=!e.inst;render();setStatus(`${e.inst?'Installed':'Uninstalled'} ${e.name}`)}
+function refreshStore(){render();setStatus('Store refreshed')}
+function installFeatured(){exts.forEach(e=>{if(e.featured)e.inst=true});render();setStatus('Featured extensions installed')}
+function openPublish(){document.getElementById('pubName').focus();setStatus('Publish form ready')}
+function publish(){
+  const name=document.getElementById('pubName').value.trim();
+  const type=document.getElementById('pubType').value;
+  const perm=document.getElementById('pubPerm').value;
+  const desc=document.getElementById('pubDesc').value.trim()||'No description';
+  if(!name){setStatus('Name is required');return;}
+  exts.unshift({id:Date.now().toString(),name,ver:'0.1.0',type,publisher:'you',perm,desc,inst:true,featured:false});
+  document.getElementById('pubName').value='';document.getElementById('pubDesc').value='';
+  render();setStatus(`Published ${name} to store`);
+}
+render();
+</script>
+</body>
+</html>

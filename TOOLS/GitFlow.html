@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kAIxU — Git Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg0:#040008;--bg1:#080012;--bg2:#0d001c;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--muted:#64748b;--ink:#e2e8f0;--border:rgba(162,67,255,.18)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100vh;background:var(--bg0);color:var(--ink);font-family:'Inter',sans-serif;font-size:13px;overflow:hidden}
+#app{display:grid;grid-template-rows:52px 1fr;height:100vh}
+header{display:flex;align-items:center;gap:10px;padding:0 16px;background:rgba(4,0,8,.95);border-bottom:1px solid var(--border)}
+.logo{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--gold);letter-spacing:.1em}
+.hspacer{flex:1}
+.hbtn{padding:5px 12px;border-radius:7px;font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;border:1px solid rgba(255,255,255,.1);color:var(--muted);background:transparent;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.hbtn:hover{border-color:var(--purple);color:var(--purple)}
+/* Layout */
+#body{display:grid;grid-template-columns:300px 1fr;height:100%;overflow:hidden}
+/* Sidebar */
+#sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-cfg{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:7px}
+.sb-label{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+.sb-input{width:100%;padding:6px 9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;color:var(--ink);font-family:'Share Tech Mono',monospace;font-size:10px;outline:none;transition:border .15s}
+.sb-input:focus{border-color:var(--purple)}
+.sb-btn{width:100%;padding:7px;border-radius:7px;background:var(--purple);border:none;color:#fff;font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s;font-weight:700;letter-spacing:.05em}
+.sb-btn:hover{background:var(--purple-hot)}
+.sb-btn:disabled{opacity:.35;cursor:not-allowed}
+.repo-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px 4px}
+.repo-hdr-title{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.create-btn{font-size:10px;color:var(--gold);background:transparent;border:none;cursor:pointer;font-family:'Share Tech Mono',monospace;padding:2px 6px;border-radius:5px;transition:all .1s}
+.create-btn:hover{background:rgba(255,211,106,.1)}
+#repos-list{flex:1;overflow-y:auto;padding:0 8px 8px}
+.repo-item{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;transition:all .1s;margin-bottom:1px;border:1px solid transparent}
+.repo-item:hover{background:rgba(255,255,255,.03)}
+.repo-item.active{background:rgba(162,67,255,.1);border-color:rgba(162,67,255,.3)}
+.repo-icon{font-size:12px;margin-top:1px;flex-shrink:0}
+.repo-name{font-size:11px;font-weight:600;color:var(--ink)}
+.repo-sub{font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--muted);margin-top:1px}
+.repo-priv{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;font-family:'Share Tech Mono',monospace;background:rgba(255,159,67,.1);border:1px solid rgba(255,159,67,.3);color:var(--orange)}
+/* Main */
+#main{display:flex;flex-direction:column;overflow:hidden}
+.main-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg1);flex-shrink:0}
+.tab{padding:12px 18px;font-size:11px;font-family:'Share Tech Mono',monospace;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:var(--ink)}
+.tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.tab-panel{flex:1;overflow-y:auto;padding:16px;display:none}
+.tab-panel.active{display:block}
+/* Push panel */
+.push-section{background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
+.push-section-title{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-field{display:flex;flex-direction:column;gap:4px}
+.field-label{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.field-input{padding:7px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;color:var(--ink);font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;transition:border .15s}
+.field-input:focus{border-color:var(--purple)}
+.drop-zone{border:2px dashed rgba(162,67,255,.3);border-radius:10px;padding:30px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:10px;position:relative}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--purple);background:rgba(162,67,255,.05)}
+.drop-icon{font-size:32px;margin-bottom:8px;opacity:.4}
+.drop-text{font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace}
+.drop-text b{color:var(--purple)}
+.drop-input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.file-list{margin-bottom:10px;max-height:120px;overflow-y:auto}
+.file-item{display:flex;align-items:center;justify-content:space-between;padding:3px 8px;border-radius:5px;font-family:'Share Tech Mono',monospace;font-size:10px}
+.file-item:nth-child(odd){background:rgba(255,255,255,.02)}
+.file-name{color:var(--cyan);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-size{color:var(--muted);flex-shrink:0;margin-left:8px}
+.push-btn{width:100%;padding:10px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--purple-hot));border:none;color:#fff;font-family:'Share Tech Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.05em}
+.push-btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(162,67,255,.4)}
+.push-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+/* Progress */
+.progress-wrap{margin-top:10px;display:none}
+.progress-bar-bg{height:6px;background:rgba(255,255,255,.08);border-radius:3px}
+.progress-bar-fg{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width .3s;width:0%}
+.progress-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);margin-top:5px}
+/* Job cards */
+.job-card{background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.job-hdr{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.job-state{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.job-state.completed{background:var(--green);box-shadow:0 0 6px var(--green)}
+.job-state.failed,.job-state.error{background:var(--red)}
+.job-state.uploading,.job-state.processing,.job-state.pending{background:var(--gold);animation:pulse 1s infinite}
+.job-state.retry_wait{background:var(--orange)}
+.job-id{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan)}
+.job-repo{font-size:11px;color:var(--ink);font-weight:600}
+.job-status-badge{font-family:'Share Tech Mono',monospace;font-size:8px;padding:1px 6px;border-radius:4px;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1)}
+.job-meta{display:flex;gap:10px;flex-wrap:wrap}
+.job-tag{font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--muted)}
+/* Repo view */
+.repo-stat-row{display:flex;gap:0;border-bottom:1px solid var(--border);margin:-16px -16px 16px;background:var(--bg1)}
+.rstat{padding:10px 16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:2px}
+.rstat-val{font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700;color:var(--gold)}
+.rstat-lbl{font-size:8px;color:var(--muted);font-family:'Share Tech Mono',monospace;text-transform:uppercase;letter-spacing:.1em}
+/* Create repo modal */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center}
+#modal-overlay.show{display:flex}
+.modal{background:var(--bg1);border:1px solid var(--border);border-radius:14px;padding:24px;width:420px;display:flex;flex-direction:column;gap:14px}
+.modal-title{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--gold);letter-spacing:.05em}
+.modal-actions{display:flex;gap:8px;margin-top:4px}
+.modal-btn{flex:1;padding:8px;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;border:1px solid;transition:all .15s}
+.modal-btn.confirm{background:var(--purple);border-color:var(--purple);color:#fff}
+.modal-btn.confirm:hover{background:var(--purple-hot)}
+.modal-btn.cancel{background:transparent;border-color:rgba(255,255,255,.1);color:var(--muted)}
+.modal-btn.cancel:hover{border-color:var(--muted);color:var(--ink)}
+/* Empty */
+.empty{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;min-height:200px;color:var(--muted);font-family:'Share Tech Mono',monospace}
+.empty-icon{font-size:36px;opacity:.25}
+/* Toast */
+#toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:11px;z-index:200;display:none;max-width:360px}
+#toast.ok{background:rgba(79,255,176,.15);border:1px solid var(--green);color:var(--green)}
+#toast.err{background:rgba(255,79,106,.12);border:1px solid var(--red);color:var(--red)}
+#toast.warn{background:rgba(255,211,106,.1);border:1px solid var(--gold);color:var(--gold)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:10px;height:10px;border:2px solid rgba(162,67,255,.2);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo">kAIxU</span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">/ Git Flow</span>
+    <div class="hspacer"></div>
+    <a href="../homelanding.html" class="hbtn">← Home</a>
+    <a href="../index.html" class="hbtn">IDE</a>
+    <a href="DeployCenter.html" class="hbtn">🏗️ Deploy</a>
+    <a href="GatewayLive.html" class="hbtn" style="color:var(--green);border-color:rgba(79,255,176,.35)">⚡ Gateway</a>
+  </header>
+  <div id="body">
+    <div id="sidebar">
+      <div class="sb-cfg">
+        <div>
+          <label class="sb-label">XnthGateway Base URL</label>
+          <input id="gw-url" class="sb-input" placeholder="https://your-site.netlify.app">
+        </div>
+        <div>
+          <label class="sb-label">kAIxU API Key (Bearer)</label>
+          <input id="gw-key" type="password" class="sb-input" placeholder="kxsi_••••">
+        </div>
+        <button class="sb-btn" onclick="loadRepos()">⚡ Connect &amp; Load Repos</button>
+        <div style="font-size:9px;color:var(--muted);font-family:'Share Tech Mono',monospace;line-height:1.4">
+          Requires a kAIxU customer key with <span style="color:var(--cyan)">deployer</span> or <span style="color:var(--cyan)">admin</span> role, and a GitHub token configured in XnthGateway.
+        </div>
+      </div>
+      <div class="repo-hdr">
+        <span class="repo-hdr-title">Repositories</span>
+        <button class="create-btn" onclick="showCreateModal()">+ New Repo</button>
+      </div>
+      <div id="repos-list"><div class="empty" style="min-height:120px"><div class="empty-icon">📂</div><div style="font-size:9px">Connect to load repos</div></div></div>
+    </div>
+
+    <div id="main">
+      <div class="main-tabs">
+        <div class="tab active" onclick="switchTab('push')">Push Files</div>
+        <div class="tab" onclick="switchTab('jobs')">Job History</div>
+        <div class="tab" onclick="switchTab('repo')">Repo Info</div>
+      </div>
+
+      <!-- PUSH TAB -->
+      <div class="tab-panel active" id="tab-push">
+        <div class="push-section">
+          <div class="push-section-title">Target Repository</div>
+          <div class="form-row">
+            <div class="form-field">
+              <span class="field-label">Owner / Repo</span>
+              <input id="push-repo" class="field-input" placeholder="e.g. myorg/myrepo" style="font-size:12px">
+            </div>
+            <div class="form-field">
+              <span class="field-label">Branch</span>
+              <input id="push-branch" class="field-input" value="main" style="font-size:12px">
+            </div>
+          </div>
+          <div class="form-field" style="margin-bottom:10px">
+            <span class="field-label">Commit Message</span>
+            <input id="push-message" class="field-input" placeholder="feat: update from kAIxU IDE" style="font-size:12px">
+          </div>
+        </div>
+
+        <div class="push-section">
+          <div class="push-section-title">Files to Push</div>
+          <div class="drop-zone" id="drop-zone">
+            <input type="file" class="drop-input" id="file-input" multiple onchange="handleFiles(this.files)">
+            <div class="drop-icon">📁</div>
+            <div class="drop-text">Drop files here or <b>click to browse</b></div>
+            <div class="drop-text" style="font-size:9px;margin-top:4px">All selected files will be zipped and pushed as a single commit</div>
+          </div>
+          <div class="file-list" id="file-list" style="display:none"></div>
+          <button class="push-btn" id="push-btn" onclick="doPush()" disabled>
+            🚀 Push to GitHub
+          </button>
+          <div class="progress-wrap" id="progress-wrap">
+            <div class="progress-bar-bg"><div class="progress-bar-fg" id="progress-bar"></div></div>
+            <div class="progress-label" id="progress-label">Starting…</div>
+          </div>
+        </div>
+
+        <!-- Job result inline -->
+        <div id="push-result" style="display:none"></div>
+      </div>
+
+      <!-- JOBS TAB -->
+      <div class="tab-panel" id="tab-jobs">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Push Job History</span>
+          <button onclick="loadJobs()" style="padding:5px 12px;border-radius:6px;background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer">↻ Refresh</button>
+        </div>
+        <div id="jobs-list"><div class="empty"><div class="empty-icon">🗂️</div><div style="font-size:9px">Connect and push to see job history</div></div></div>
+      </div>
+
+      <!-- REPO TAB -->
+      <div class="tab-panel" id="tab-repo">
+        <div id="repo-view">
+          <div class="empty"><div class="empty-icon">🗃️</div><div style="font-size:9px">Select a repository from the sidebar</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Repo Modal -->
+<div id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Create New Repository</div>
+    <div class="form-field">
+      <span class="field-label">Repository Name</span>
+      <input id="new-repo-name" class="field-input" placeholder="my-awesome-project">
+    </div>
+    <div class="form-field">
+      <span class="field-label">Description (optional)</span>
+      <input id="new-repo-desc" class="field-input" placeholder="What is this repo for?">
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="new-repo-private" style="accent-color:var(--purple)">
+      <label for="new-repo-private" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted)">Private repository</label>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="hideCreateModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="createRepo()">Create Repo</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+// ── State ──────────────────────────────────────────────────
+let selectedRepo = null;
+let selectedFiles = [];
+let activeJobId = null;
+let jobPollTimer = null;
+
+// ── Helpers ──────────────────────────────────────────────────
+function gw(){ return (document.getElementById('gw-url').value||'').trim().replace(/\/+$/,''); }
+function key(){ return (document.getElementById('gw-key').value||'').trim(); }
+function hdr(){ return {'Authorization':`Bearer ${key()}`,'Content-Type':'application/json'}; }
+function toast(msg,type='ok'){ const el=document.getElementById('toast');el.textContent=msg;el.className=type;el.style.display='block';clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',5000); }
+function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtBytes(n){ const u=['B','KB','MB','GB'];let i=0;let x=Number(n||0);while(x>=1024&&i<3){x/=1024;i++;}return x.toFixed(i?1:0)+' '+u[i]; }
+function relTime(iso){ const diff=Date.now()-new Date(iso).getTime();const s=Math.floor(diff/1000);if(s<60)return s+'s ago';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'; }
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(el=>el.classList.remove('active'));
+  const tabs=['push','jobs','repo'];
+  const idx=tabs.indexOf(tab);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='jobs') loadJobs();
+}
+
+// ── Repos ──────────────────────────────────────────────────
+async function loadRepos(){
+  const base=gw(); const k=key();
+  if(!base||!k){toast('Enter gateway URL and API key','err');return;}
+  const listEl=document.getElementById('repos-list');
+  listEl.innerHTML='<div class="empty" style="min-height:80px"><div class="spinner"></div></div>';
+  try{
+    const r=await fetch(`${base}/.netlify/functions/github-repos`,{headers:hdr()});
+    const d=await r.json();
+    if(!r.ok){toast(`Error ${r.status}: ${d.error||'unknown'}`,'err');listEl.innerHTML='<div class="empty" style="min-height:80px"><div class="empty-icon">⚠️</div><div style="font-size:9px">'+(d.code==='NO_GITHUB_TOKEN'?'No GitHub token configured for this key':'Auth failed')+'</div></div>';return;}
+    const repos=d.repos||[];
+    if(!repos.length){listEl.innerHTML='<div class="empty" style="min-height:80px"><div class="empty-icon">📭</div><div style="font-size:9px">No repos found</div></div>';return;}
+    listEl.innerHTML=repos.map(r=>`
+      <div class="repo-item" id="ri-${r.id}" onclick="selectRepo(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+        <div class="repo-icon">${r.private?'🔒':'📦'}</div>
+        <div style="min-width:0">
+          <div class="repo-name">${esc(r.full_name)}</div>
+          <div class="repo-sub">${esc(r.default_branch||'main')} · ${r.pushed_at?relTime(r.pushed_at):'—'}</div>
+          ${r.private?'<span class="repo-priv">PRIVATE</span>':''}
+        </div>
+      </div>
+    `).join('');
+    toast(`${repos.length} repo(s) loaded`);
+  }catch(e){toast('Fetch error: '+e.message,'err');listEl.innerHTML='<div class="empty" style="min-height:80px"><div class="empty-icon">💥</div><div style="font-size:9px">'+esc(e.message)+'</div></div>';}
+}
+
+function selectRepo(repo){
+  selectedRepo=repo;
+  document.querySelectorAll('.repo-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('ri-'+repo.id);
+  if(el) el.classList.add('active');
+  // Set push target
+  document.getElementById('push-repo').value=repo.full_name;
+  document.getElementById('push-branch').value=repo.default_branch||'main';
+  // Update repo view
+  document.getElementById('repo-view').innerHTML=`
+    <div class="repo-stat-row">
+      <div class="rstat"><div class="rstat-val">${esc(repo.default_branch||'main')}</div><div class="rstat-lbl">Default Branch</div></div>
+      <div class="rstat"><div class="rstat-val" style="color:${repo.private?'var(--orange)':'var(--green)'}">${repo.private?'Private':'Public'}</div><div class="rstat-lbl">Visibility</div></div>
+      <div class="rstat"><div class="rstat-val" style="color:var(--cyan)">${repo.pushed_at?relTime(repo.pushed_at):'—'}</div><div class="rstat-lbl">Last Push</div></div>
+    </div>
+    <div class="push-section">
+      <div class="push-section-title">Repository Details</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;display:flex;flex-direction:column;gap:6px">
+        <div><span style="color:var(--muted)">Full name: </span><span style="color:var(--cyan)">${esc(repo.full_name)}</span></div>
+        <div><span style="color:var(--muted)">HTML URL: </span><a href="${esc(repo.html_url)}" target="_blank" style="color:var(--purple);text-decoration:none">${esc(repo.html_url)}</a></div>
+      </div>
+    </div>
+  `;
+  toast(`Selected: ${repo.full_name}`);
+}
+
+// ── File handling ──────────────────────────────────────────────────
+function handleFiles(files){
+  selectedFiles=Array.from(files);
+  updateFileList();
+}
+
+function updateFileList(){
+  const listEl=document.getElementById('file-list');
+  const pushBtn=document.getElementById('push-btn');
+  if(!selectedFiles.length){listEl.style.display='none';pushBtn.disabled=true;return;}
+  listEl.style.display='block';
+  listEl.innerHTML=selectedFiles.map(f=>`
+    <div class="file-item">
+      <span class="file-name">${esc(f.name)}</span>
+      <span class="file-size">${fmtBytes(f.size)}</span>
+    </div>
+  `).join('')+(selectedFiles.length>10?`<div class="file-item"><span class="file-name" style="color:var(--muted)">… and ${selectedFiles.length-10} more</span></div>`:'');
+  pushBtn.disabled=false;
+}
+
+// Drag & drop
+const dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault(); dz.classList.remove('drag');
+  const files=e.dataTransfer?.files;
+  if(files&&files.length){ selectedFiles=Array.from(files); updateFileList(); }
+});
+
+// ── Push flow ──────────────────────────────────────────────────
+function setProgress(pct,label){
+  document.getElementById('progress-wrap').style.display='block';
+  document.getElementById('progress-bar').style.width=pct+'%';
+  document.getElementById('progress-label').textContent=label;
+}
+
+async function doPush(){
+  const base=gw(); const k=key();
+  if(!base||!k){toast('Configure gateway URL and API key','err');return;}
+  if(!selectedFiles.length){toast('No files selected','warn');return;}
+  const repoFull=(document.getElementById('push-repo').value||'').trim();
+  const branch=(document.getElementById('push-branch').value||'main').trim();
+  const message=(document.getElementById('push-message').value||'Update from kAIxU Git Flow').trim();
+  if(!repoFull.includes('/')){toast('Repo must be owner/repo format','err');return;}
+  const [owner,repo]=repoFull.split('/');
+
+  const btn=document.getElementById('push-btn');
+  btn.disabled=true; btn.textContent='⏳ Pushing…';
+  const resultEl=document.getElementById('push-result');
+  resultEl.style.display='none';
+
+  try{
+    // Step 1: Build ZIP
+    setProgress(5,'Zipping files…');
+    const zip=new JSZip();
+    for(const f of selectedFiles){
+      const buf=await f.arrayBuffer();
+      zip.file(f.name,buf);
+    }
+    const zipBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}},
+      meta=>setProgress(5+Math.round(meta.percent*0.25),'Compressing: '+Math.round(meta.percent)+'%')
+    );
+    const zipSize=zipBlob.size;
+    setProgress(30,'ZIP created: '+fmtBytes(zipSize));
+    await delay(300);
+
+    // Step 2: Init push job
+    setProgress(35,'Initialising push job…');
+    const initR=await fetch(`${base}/.netlify/functions/gh-push-init`,{
+      method:'POST', headers:hdr(),
+      body:JSON.stringify({owner,repo,branch,message})
+    });
+    const initD=await initR.json();
+    if(!initR.ok){toast(`Init failed: ${initD.error||initR.status}`,'err');setProgress(0,'Init failed');btn.disabled=false;btn.textContent='🚀 Push to GitHub';return;}
+    const jobId=initD.jobId;
+    activeJobId=jobId;
+    setProgress(40,`Job created: ${jobId}`);
+
+    // Step 3: Upload zip in chunks (256KB each)
+    const CHUNK=256*1024;
+    const zipAB=await zipBlob.arrayBuffer();
+    const parts=Math.ceil(zipAB.byteLength/CHUNK);
+    setProgress(40,`Uploading ${parts} chunk(s)…`);
+
+    for(let i=0;i<parts;i++){
+      const chunk=zipAB.slice(i*CHUNK,(i+1)*CHUNK);
+      const chunkBlob=new Blob([chunk]);
+      const cr=await fetch(`${base}/.netlify/functions/gh-push-upload-chunk?jobId=${encodeURIComponent(jobId)}&part=${i}&parts=${parts}`,{
+        method:'PUT',
+        headers:{'Authorization':`Bearer ${k}`,'Content-Type':'application/octet-stream'},
+        body:chunkBlob
+      });
+      if(!cr.ok){const d=await cr.json().catch(()=>({}));toast(`Chunk ${i} upload failed: ${d.error||cr.status}`,'err');setProgress(0,'Upload failed');btn.disabled=false;btn.textContent='🚀 Push to GitHub';return;}
+      setProgress(40+Math.round((i+1)/parts*30),`Uploaded chunk ${i+1}/${parts}`);
+      await delay(50);
+    }
+
+    // Step 4: Complete upload
+    setProgress(72,'Completing upload…');
+    const compR=await fetch(`${base}/.netlify/functions/gh-push-upload-complete`,{
+      method:'POST', headers:hdr(), body:JSON.stringify({jobId})
+    });
+    const compD=await compR.json();
+    if(!compR.ok){toast(`Complete failed: ${compD.error||compR.status}`,'err');setProgress(0,'Complete failed');btn.disabled=false;btn.textContent='🚀 Push to GitHub';return;}
+    setProgress(78,'Upload complete — waiting for GitHub push…');
+
+    // Step 5: Poll status
+    await pollJobStatus(base,jobId,btn,resultEl);
+
+  }catch(e){
+    toast('Push error: '+e.message,'err');
+    setProgress(0,'Error: '+e.message);
+    btn.disabled=false; btn.textContent='🚀 Push to GitHub';
+  }
+}
+
+async function pollJobStatus(base,jobId,btn,resultEl){
+  for(let attempt=0;attempt<40;attempt++){
+    await delay(2000);
+    try{
+      const r=await fetch(`${base}/.netlify/functions/gh-push-status?jobId=${encodeURIComponent(jobId)}`,{headers:{'Authorization':`Bearer ${key()}`}});
+      const d=await r.json();
+      const status=d.status||d.job?.status||'unknown';
+      const pct=75+Math.min(attempt*0.8,20);
+      setProgress(pct,`Status: ${status} (poll ${attempt+1})`);
+
+      if(status==='completed'){
+        setProgress(100,'✅ Push to GitHub complete!');
+        toast('Pushed to GitHub! 🚀');
+        resultEl.style.display='block';
+        resultEl.innerHTML=`<div class="job-card" style="border-color:rgba(79,255,176,.3)">
+          <div class="job-hdr">
+            <div class="job-state completed"></div>
+            <div class="job-id">${esc(jobId)}</div>
+            <div class="job-status-badge" style="color:var(--green);border-color:rgba(79,255,176,.3)">COMPLETED</div>
+          </div>
+          <div class="job-meta">
+            <div class="job-tag">repo: ${esc(document.getElementById('push-repo').value)}</div>
+            <div class="job-tag">branch: ${esc(document.getElementById('push-branch').value)}</div>
+            ${d.sha?`<div class="job-tag">sha: ${esc(d.sha.slice(0,8))}</div>`:''}
+            ${d.html_url?`<div class="job-tag"><a href="${esc(d.html_url)}" target="_blank" style="color:var(--purple)">View on GitHub ↗</a></div>`:''}
+          </div>
+        </div>`;
+        btn.disabled=false; btn.textContent='🚀 Push to GitHub';
+        return;
+      }
+      if(status==='failed'||status==='error'){
+        setProgress(0,'Push failed');
+        toast(`Push failed: ${d.error||d.job?.error_message||'unknown'}`,'err');
+        resultEl.style.display='block';
+        resultEl.innerHTML=`<div class="job-card" style="border-color:rgba(255,79,106,.3)">
+          <div class="job-hdr"><div class="job-state failed"></div><div class="job-id">${esc(jobId)}</div><div class="job-status-badge" style="color:var(--red)">FAILED</div></div>
+          <div class="job-meta"><div class="job-tag" style="color:var(--red)">${esc(d.error||d.job?.error_message||'Unknown error')}</div></div>
+        </div>`;
+        btn.disabled=false; btn.textContent='🚀 Push to GitHub';
+        return;
+      }
+    }catch(e){}
+  }
+  toast('Push timed out — check job history','warn');
+  setProgress(90,'Timed out — check Job History tab');
+  btn.disabled=false; btn.textContent='🚀 Push to GitHub';
+}
+
+// ── Jobs ──────────────────────────────────────────────────
+async function loadJobs(){
+  const base=gw(); const k=key();
+  if(!base||!k){return;}
+  const listEl=document.getElementById('jobs-list');
+  listEl.innerHTML='<div class="empty" style="min-height:80px"><div class="spinner"></div></div>';
+  try{
+    const r=await fetch(`${base}/.netlify/functions/gh-push-status?list=1&limit=20`,{headers:{'Authorization':`Bearer ${k}`}});
+    if(!r.ok){const d=await r.json().catch(()=>({}));listEl.innerHTML='<div class="empty" style="min-height:80px"><div class="empty-icon">⚠️</div></div>';return;}
+    const d=await r.json();
+    const jobs=d.jobs||[d].filter(x=>x.job_id||x.jobId);
+    if(!jobs.length){listEl.innerHTML='<div class="empty" style="min-height:80px"><div class="empty-icon">📭</div><div style="font-size:9px">No jobs yet</div></div>';return;}
+    listEl.innerHTML=jobs.map(j=>{
+      const id=j.job_id||j.jobId||'?';
+      const status=j.status||'?';
+      const stateClass=status==='completed'?'completed':status==='failed'||status==='error'?'failed':status==='retry_wait'?'retry_wait':'uploading';
+      return `<div class="job-card">
+        <div class="job-hdr">
+          <div class="job-state ${stateClass}"></div>
+          <div class="job-id">${esc(id)}</div>
+          <div class="job-status-badge">${esc(status)}</div>
+        </div>
+        <div class="job-meta">
+          ${j.owner&&j.repo?`<div class="job-tag">${esc(j.owner)}/${esc(j.repo)}</div>`:''}
+          ${j.branch?`<div class="job-tag">branch: ${esc(j.branch)}</div>`:''}
+          ${j.created_at?`<div class="job-tag">${relTime(j.created_at)}</div>`:''}
+          ${j.commit_sha?`<div class="job-tag">sha: ${esc(j.commit_sha.slice(0,8))}</div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){listEl.innerHTML='<div class="empty" style="min-height:80px"><div class="empty-icon">💥</div><div style="font-size:9px">'+esc(e.message)+'</div></div>';}
+}
+
+// ── Create Repo ──────────────────────────────────────────────────
+function showCreateModal(){ document.getElementById('modal-overlay').classList.add('show'); }
+function hideCreateModal(){ document.getElementById('modal-overlay').classList.remove('show'); }
+async function createRepo(){
+  const base=gw(); const k=key();
+  if(!base||!k){toast('Configure gateway + key first','err');return;}
+  const name=(document.getElementById('new-repo-name').value||'').trim();
+  if(!name){toast('Enter a repo name','err');return;}
+  const desc=document.getElementById('new-repo-desc').value||'';
+  const priv=document.getElementById('new-repo-private').checked;
+  try{
+    const r=await fetch(`${base}/.netlify/functions/github-create-repo`,{
+      method:'POST', headers:hdr(),
+      body:JSON.stringify({name,description:desc,private:priv,auto_init:true})
+    });
+    const d=await r.json();
+    if(!r.ok){toast(`Create failed: ${d.error||r.status}`,'err');return;}
+    toast(`Repo created: ${d.repo?.full_name||name} 🚀`);
+    hideCreateModal();
+    document.getElementById('new-repo-name').value='';
+    document.getElementById('new-repo-desc').value='';
+    setTimeout(loadRepos,1000);
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+// Close modal on overlay click
+document.getElementById('modal-overlay').addEventListener('click',function(e){ if(e.target===this)hideCreateModal(); });
+
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ── Persist config ──────────────────────────────────────────────────
+['gw-url','gw-key'].forEach(id=>{
+  const el=document.getElementById(id);
+  const saved=localStorage.getItem('gf_'+id);
+  if(saved) el.value=saved;
+  el.addEventListener('change',()=>localStorage.setItem('gf_'+id,el.value));
+});
+</script>
+</body>
+</html>

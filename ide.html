@@ -242,6 +242,7 @@
             <div id="problems-list"></div>
           </div>
         </aside>
+        <div id="sidebar-resize-handle" class="panel-resize-handle" title="Drag to resize sidebar"></div>
         <section id="editor-section">
           <!-- Email verification banner -->
           <div id="email-verify-banner" class="email-verify-banner hidden">
@@ -305,6 +306,7 @@
             <span class="status-right" id="status-autosave"></span>
           </div>
         </section>
+        <div id="preview-resize-handle" class="panel-resize-handle" title="Drag to resize preview"></div>
         <section id="preview-section" class="pane hidden">
           <div id="preview-toolbar">
             <select id="preview-entry" title="Preview entrypoint"></select>
@@ -1012,6 +1014,60 @@
     </div>
 
     <script src="jszip.min.js"></script>
+
+    <!-- Panel resize logic -->
+    <script>
+    (function(){
+      function makePanelResizer(handleId, prevEl, nextEl, opts){
+        const handle = document.getElementById(handleId);
+        if(!handle) return;
+        const MIN = opts.min||80, MAX = opts.max||2000;
+        let dragging=false, startX=0, prevStart=0, nextStart=0;
+        handle.addEventListener('mousedown',e=>{
+          e.preventDefault();
+          dragging=true;
+          startX=e.clientX;
+          prevStart=prevEl.getBoundingClientRect().width;
+          nextStart=nextEl.getBoundingClientRect().width;
+          document.body.style.cursor='col-resize';
+          document.body.style.userSelect='none';
+        });
+        document.addEventListener('mousemove',e=>{
+          if(!dragging) return;
+          const delta=e.clientX-startX;
+          const newPrev=Math.max(MIN,Math.min(MAX,prevStart+delta));
+          const newNext=Math.max(MIN,Math.min(MAX,nextStart-delta));
+          prevEl.style.width=newPrev+'px';
+          prevEl.style.flex='none';
+          nextEl.style.width=newNext+'px';
+          nextEl.style.flex='none';
+        });
+        document.addEventListener('mouseup',()=>{
+          if(dragging){
+            dragging=false;
+            document.body.style.cursor='';
+            document.body.style.userSelect='';
+          }
+        });
+        handle.addEventListener('dblclick',()=>{
+          prevEl.style.width=''; prevEl.style.flex='';
+          nextEl.style.width=''; nextEl.style.flex='';
+        });
+      }
+      window.addEventListener('DOMContentLoaded',()=>{
+        makePanelResizer('sidebar-resize-handle',
+          document.querySelector('aside#side'),
+          document.getElementById('editor-section'),
+          {min:120,max:600}
+        );
+        makePanelResizer('preview-resize-handle',
+          document.getElementById('editor-section'),
+          document.getElementById('preview-section'),
+          {min:160,max:1200}
+        );
+      });
+    })();
+    </script>
 
     <!-- kAIxU IDE modules — load order matters -->
     <!-- Core layer -->

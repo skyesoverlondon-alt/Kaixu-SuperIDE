@@ -1,0 +1,486 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  kAIxU SuperIDE — APP SUITE ROADMAP
+  Mission: fully replace GitHub Codespaces + every tab a dev has open
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. SECRETS VAULT                                               [PRIORITY: P0]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  The first thing every dev sets up. Lives in the IDE sidebar. One click.
+
+  WHAT IT IS
+    A fully encrypted per-workspace (and per-org) secrets store.
+    Replaces: .env files, Netlify env UI, Doppler, 1Password Secrets.
+
+  CORE FEATURES
+    • Store env vars + API keys per workspace / per org / global
+    • Scoped views:   [This Workspace]  [Org Shared]  [Personal]
+    • One-click copy  — value revealed only on hover/click
+    • Import .env     — drag & drop or paste raw .env text → parsed + stored
+    • Export .env     — click "Export" → downloads .env for local dev
+    • Sync to Netlify — push selected vars to Netlify env via API token
+    • Sync to Vercel  — same, to Vercel project env
+    • Sync to Wrangler secrets (Cloudflare Workers) — wrangler secret put
+    • Masked display  — values shown as •••••••• by default
+    • Audit trail     — who viewed/changed which key and when
+    • Key rotation    — set expiry dates, get reminders before they expire
+    • Tags            — group secrets: [AI Keys] [DB] [Stripe] [Internal]
+    • Search          — fuzzy search by name, tag, or last modified
+    • Diff mode       — compare workspace vars vs prod (Netlify/Vercel)
+    • Version history — roll back any secret to any previous value
+
+  DATA MODEL
+    secrets(id, org_id, workspace_id?, user_id?, name, encrypted_value,
+            scope [workspace|org|personal], tags[], expires_at, created_at)
+    secret_audit(id, secret_id, user_id, action [view|edit|delete|export], ts)
+
+  IMPORT/EXPORT FORMAT
+    .env              KEY=VALUE (standard)
+    JSON              { "KEY": "VALUE" }
+    Netlify API       PATCH /api/v1/sites/:id/env
+    Vercel API        POST /v9/projects/:id/env
+
+  UI
+    Sidebar panel with search bar + scope tabs
+    Inline editor — click key name to expand and edit
+    "Import .env" button → modal with paste area or file drop
+    "Export" button → scoped download
+    "Sync ▶ Netlify" button → shows diff of what will be pushed, confirm
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  2. API PLAYGROUND                                              [PRIORITY: P0]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Postman / Insomnia — but lives inside the IDE, shares your vault secrets.
+  Replaces: Postman, Insomnia, Thunder Client, RapidAPI.
+
+  CORE FEATURES
+    • Build HTTP requests: GET/POST/PUT/PATCH/DELETE
+    • Auth helpers: Bearer, Basic, API Key, OAuth2 flow
+    • Pull secrets directly from Secrets Vault (no copy-paste)
+    • Collections — group requests by project/feature
+    • Environments — [Local] [Staging] [Production] switch in one click
+    • Response viewer: JSON tree, raw, headers, timing, status badge
+    • Save responses as fixtures for tests
+    • cURL import/export — paste a curl command → auto-builds the request
+    • AI assist — describe what you want to hit → AI builds the request
+    • History — last 100 requests per workspace with replay
+    • WebSocket tester — connect to WS endpoints, send/receive frames
+    • SSE Viewer — connect to streaming endpoints, watch events live
+    • GraphQL — schema introspection, query builder, variable editor
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3. DB STUDIO                                                   [PRIORITY: P0]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Visual DB browser + query editor. Connection string comes from Secrets Vault.
+  Replaces: TablePlus, DBeaver, Neon console SQL editor, pgAdmin.
+
+  CORE FEATURES
+    • Connect via connection string (auto-pulls from Secrets Vault)
+    • Supported: PostgreSQL (Neon), MySQL, SQLite, MongoDB, Redis
+    • Table browser — sidebar tree of schemas, tables, views, indexes
+    • Row viewer — paginated grid with inline editing
+    • SQL editor — syntax highlighted, AI autocomplete, explain plan
+    • AI query builder — "show me all users who signed up this week" → SQL
+    • Schema viewer — visual ER diagram from live schema
+    • Query history — saved/named queries per workspace
+    • CSV/JSON export — any query result → download
+    • Migrations runner — run .sql files, view applied migrations
+    • Danger zone confirmation — DELETE/DROP requires confirm modal
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  4. DEPLOY CENTER                                               [PRIORITY: P0]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  One panel to deploy anywhere. Click, watch it go, see the result.
+  Replaces: Netlify dashboard, Vercel dashboard, wrangler CLI, gh CLI.
+
+  CORE FEATURES
+    • Connected targets per workspace:
+        Netlify site     (API token from Secrets Vault)
+        Vercel project   (API token from Secrets Vault)
+        Cloudflare Worker (wrangler deploy via API)
+        GitHub Pages     (gh-pages branch push)
+        Custom (curl webhook — post to any deploy URL)
+    • Deploy button per target — triggers build + shows live log stream
+    • Deploy history — last N deploys per target with status + URL
+    • Preview deploys — Netlify/Vercel branch previews listed + linked
+    • Environment push — sync Secrets Vault → target env before deploy
+    • Rollback — one-click revert to any previous deploy
+    • Status badges — live build status shown in IDE status bar
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5. GIT FLOW                                                    [PRIORITY: P0]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Full visual git UI. No terminal needed for 95% of git tasks.
+  Replaces: GitHub desktop, Sourcetree, GitLens, raw git CLI.
+
+  CORE FEATURES
+    • Commit graph — visual branch/merge history timeline
+    • Staged/unstaged diff viewer — inline gutter + side-by-side
+    • Stage hunks — select individual lines to stage
+    • Commit — message box with AI suggested commit message from diff
+    • Push / Pull / Fetch with status indicator
+    • Branch manager — create, switch, delete, rename
+    • PR creator — write PR title/body, push branch, open PR in one flow
+    • PR viewer — view open PRs, diffs, comments, approve/merge
+    • Stash manager — stash, list stashes, pop/apply/drop
+    • Blame — click any line → see who wrote it + commit message
+    • Cherry-pick — drag commit onto branch
+    • Conflict resolver — visual 3-way merge with accept/reject per hunk
+    • Tag manager — create/delete/push tags
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  6. LOG VIEWER                                                  [PRIORITY: P1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Real-time log streaming from every service in one panel.
+  Replaces: Netlify function logs, Cloudflare Worker logs, Papertrail.
+
+  CORE FEATURES
+    • Sources:
+        Netlify function logs (via Netlify API log streaming)
+        Cloudflare Worker logs (wrangler tail via API)
+        Custom log drain (POST log lines to our ingest endpoint)
+        Browser console capture (inject script → stream to IDE)
+    • Live streaming with pause/resume
+    • Filter by level: [ERROR] [WARN] [INFO] [DEBUG]
+    • Search / regex filter across streamed lines
+    • Timestamp display — relative "2s ago" or absolute UTC
+    • Error highlighting — red flash on error lines
+    • AI explain — highlight an error line → AI diagnoses it instantly
+    • Pin important lines — bookmark log lines for reference
+    • Export — download timeboxed log slice as .txt or .json
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  7. TEST RUNNER                                                 [PRIORITY: P1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Run tests visually without leaving the editor. Fail fast, fix fast.
+  Replaces: VS Code Testing extension, Jest UI, Vitest UI.
+
+  CORE FEATURES
+    • Auto-detect test framework: Jest, Vitest, Mocha, pytest, go test
+    • Run all / run file / run single test
+    • Red/green tree view — pass/fail per test with expandable stack trace
+    • Watch mode — rerun on file save
+    • Coverage overlay — gutter highlights covered vs uncovered lines
+    • AI fix — click failing test → AI reads test + source → suggests fix
+    • CI results sync — pull last CI run results from GitHub Actions / Netlify
+    • Snapshot viewer — display/update snapshots inline
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  8. PACKAGE MANAGER UI                                          [PRIORITY: P1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Browse, install, remove, and audit packages without touching the terminal.
+  Replaces: npm website, npx browsing, pip search, Snyk.
+
+  CORE FEATURES
+    • Read package.json / requirements.txt / go.mod / Cargo.toml
+    • Display installed packages with current version + latest available
+    • One-click update — individual package or "Update All Safe"
+    • Search npm / PyPI / crates.io — with download stats + description
+    • Install/remove with live terminal output in embedded pane
+    • Dependency graph — visual tree of what depends on what
+    • Security audit — run npm audit / pip audit, show CVEs with severity
+    • AI advice — "is this the right package for X?" → AI recommends
+    • Bundle size badge — show import cost per package (like Import Cost ext)
+    • License checker — flag GPL/copyleft packages for commercial projects
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  9. LIVE SHARE                                                  [PRIORITY: P1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Real-time multiplayer editing. See teammates' cursors. Code together live.
+  Replaces: VS Code Live Share, CodeWithMe, Tuple (for code review).
+
+  CORE FEATURES
+    • Share session link — anyone with the link joins (auth via org or token)
+    • Live cursor presence — colored named cursors per collaborator
+    • Collaborative editing — CRDT-based (Yjs) conflict-free co-editing
+    • Follow mode — follow a collaborator's viewport + file
+    • Read-only guests — share with clients to review without editing
+    • Voice channel — built-in WebRTC voice while coding (no Zoom tab)
+    • Shared terminal — one terminal, everyone sees the output
+    • Session recording — record + replay a Live Share session
+    • AI observer mode — AI watches the session, can be called with @kAIxU
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  10. CRON SCHEDULER                                             [PRIORITY: P1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Schedule serverless function calls. Visual cron builder. No YAML.
+  Replaces: Netlify scheduled functions config, EasyCron, cron-job.org.
+
+  CORE FEATURES
+    • Visual schedule builder — pick minute/hour/day or natural language
+      ("every day at 9am UTC", "every Monday", "every 5 minutes")
+    • Target: Netlify function URL, any webhook, Cloudflare Worker route
+    • Secrets injection — pull headers/auth from Secrets Vault per job
+    • Run history — last 50 executions per job with status + response body
+    • Manual trigger — "Run Now" button for any job
+    • Failure alerts — notify via email or webhook on N consecutive failures
+    • Timezone selector — schedule in any timezone
+    • Retry policy — on failure: retry immediately, after 1m, or no retry
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  11. DOCKER MANAGER                                             [PRIORITY: P1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Manage containers inside the IDE. No Docker Desktop needed.
+  Replaces: Docker Desktop, Portainer, Lazydocker.
+
+  CORE FEATURES
+    • Container list — running / stopped / exited with CPU + memory bars
+    • Start / Stop / Restart / Remove per container
+    • Logs panel — tail logs per container in the Log Viewer
+    • Shell exec — click "Open Shell" → embedded terminal attached to container
+    • Image browser — list local images, pull new, prune dangling
+    • Compose support — read docker-compose.yml, start/stop stacks as a unit
+    • Port mapping viewer — which host ports map to which container ports
+    • Volume browser — list named volumes, inspect contents
+    • Build — build image from Dockerfile in workspace → show build log
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  12. PORT FORWARDER                                             [PRIORITY: P1]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Expose local dev servers to the internet. One click.
+  Replaces: ngrok, Cloudflare Tunnel, VS Code port forwarding.
+
+  CORE FEATURES
+    • Detect running servers on common ports (3000, 4444, 8080, 8787…)
+    • Forward with one click → get a public *.kaixu.app URL instantly
+    • Persistent subdomain option — kaixu.app/yourname for demos
+    • Basic auth guard on forwarded port (optional)
+    • Request log — see every incoming request in real time
+    • HTTPS — always TLS-terminated at our edge
+    • Share URL with team — auto-expires after session or on demand
+    • Webhook testing mode — forward external webhooks to local handler
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  13. SNIPPET HUB                                                [PRIORITY: P2]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Team-wide snippet library. AI-powered search. Insert with one keystroke.
+  Replaces: VS Code snippets, Pieces, Codeium snippets, Notion code blocks.
+
+  CORE FEATURES
+    • Create snippets per workspace or org — scoped visibility
+    • Tabstop placeholders — $1, $2 like VS Code snippet syntax
+    • Language tag — JS / Python / SQL / Bash / etc.
+    • AI tagging — auto-tag snippet on save based on content
+    • Natural language search — "auth middleware express" finds the snippet
+    • Insert via command palette or sidebar click
+    • Snippet versioning — edit history per snippet
+    • Usage counter — see which snippets your team uses most
+    • Import from VS Code snippets.json
+    • Public snippet marketplace — publish/install community snippets
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  14. TEAM BOARD                                                 [PRIORITY: P2]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Lightweight kanban + issue tracker without leaving the IDE.
+  Replaces: Linear, Jira, GitHub Issues, Trello.
+
+  CORE FEATURES
+    • Boards per org or workspace — [Backlog] [In Progress] [Review] [Done]
+    • Cards — title, description, assignee, labels, due date, priority
+    • Link card to file or line of code — click to jump to it in the editor
+    • AI card creation — describe a bug → AI creates a card with steps
+    • GitHub Issues sync — bi-directional sync with linked repo issues
+    • Mentions — @username in card comments triggers notification
+    • Sprint mode — drag cards into a sprint, track velocity
+    • My Tasks view — filter to only cards assigned to you across all boards
+    • Status bar badge — shows your open task count in the IDE status bar
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  15. DOC GEN                                                    [PRIORITY: P2]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  AI-powered documentation generator. Write code, get docs.
+  Replaces: Docusaurus manual writing, JSDoc generation, readme.so.
+
+  CORE FEATURES
+    • Scan workspace → generate README.md from project structure + code
+    • Per-function docstrings — select function → AI writes JSDoc/PyDoc
+    • API reference docs — read route files → generate OpenAPI 3.0 spec
+    • Embed in workspace as docs/ folder or push to GitHub wiki
+    • Live preview pane — rendered markdown alongside source
+    • Changelog generator — read git log → write CHANGELOG.md
+    • AI Q&A on your own codebase — "how does auth work in this project?"
+    • Export to: Notion, Confluence, GitBook, static HTML site
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  16. ANALYTICS DASH                                             [PRIORITY: P2]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Real usage metrics for your own app — without embedding a third-party script.
+  Replaces: Plausible, Vercel Analytics, Mixpanel (basic usage).
+
+  CORE FEATURES
+    • Drop-in JS snippet → captures page views, custom events, errors
+    • Dashboard: DAU/WAU/MAU, top pages, referrer breakdown, device split
+    • Funnel builder — define steps → see drop-off between them
+    • Error rate tracker — JS errors by page + frequency
+    • AI insight — "what happened on March 1st traffic spike?" → AI reads data
+    • Real-time view — live counter of users on site right now
+    • Data stored in your own Neon DB — you own your data, zero vendors
+    • Embeds as an app tab in the IDE so you never leave to check numbers
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  17. NOTIFICATION CENTER                                        [PRIORITY: P2]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  One inbox for everything happening across your stack.
+  Replaces: emails from Netlify/GitHub/Stripe/Sentry all hitting your inbox.
+
+  CORE FEATURES
+    • Unified feed — deploy events, CI failures, DB alerts, team mentions
+    • Sources: Netlify, GitHub, Stripe webhooks, Cloudflare, Sentry, Slack
+    • Rule engine — "only notify me for prod deploys that fail"
+    • Channels — route alerts to: IDE bell, email, Slack, Discord, SMS
+    • Snooze — snooze a noisy alert type for N hours
+    • Digest mode — batch non-urgent alerts into a daily summary
+    • Webhook receiver — any service can POST here → shows in feed
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  18. BILLING DASH                                               [PRIORITY: P2]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  See your kAIxU plan usage and your own app's Stripe revenue side by side.
+
+  CORE FEATURES
+    • kAIxU usage — AI calls used vs plan cap, seats, storage
+    • Upgrade / downgrade plan inline (Stripe Checkout)
+    • Your Stripe revenue — connect Stripe key (from Secrets Vault) →
+      show MRR, new subs today, churn, failed payments, upcoming invoices
+    • Cost breakdown — AI calls by model/provider, storage by workspace
+    • Spend alerts — warn when X% of AI cap is consumed
+    • Invoice history — download PDFs for kAIxU subscription
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  19. AUDIO STUDIO (AI Voice)                                    [PRIORITY: P3]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Talk to your codebase. Dictate code. Listen to docs read aloud.
+  Replaces: nothing — this is new territory.
+
+  CORE FEATURES
+    • Voice → code — dictate a function description → kAIxU writes it
+    • Voice → terminal command — say "run tests" → executes
+    • Code readback — kAIxU reads a file or diff aloud (accessibility)
+    • Meeting mode — record a dev standup, AI extracts action items →
+      automatically creates Team Board cards
+    • Voice comments — leave a voice note on any line of code
+    • Transcription — all voice stored as searchable text
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  20. EXTENSION STORE                                            [PRIORITY: P3]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Third-party devs build on top of kAIxU. Ecosystem grows itself.
+  Replaces: VS Code Extension Marketplace (our own version).
+
+  CORE FEATURES
+    • Extension manifest — name, description, permissions, icon
+    • Extension types:
+        Sidebar panel  — renders iframe in IDE sidebar
+        Editor command — adds items to command palette
+        AI plugin      — hooks into kAIxU chat context
+        Theme          — custom color scheme
+    • Publish → kAIxU store → install with one click
+    • Sandboxed iframes — extensions cannot access other workspace data
+    • Revenue share — paid extensions (80% to dev, 20% to kAIxU)
+    • kAIxU Extension SDK — npm package with typed API for IDE integration
+    • Featured extensions curated by kAIxU team
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  INVESTOR TOOL — SHIPPED ✅                                    [PRIORITY: P0]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  GatewayLive.html  — TOOLS/GatewayLive.html
+
+  PURPOSE
+    Investor-facing live smoke test dashboard. Every button fires a real
+    HTTP call to the kAIxU Cloudflare Worker. Zero mocks. Zero theater.
+    This is not a demo — it is a live QA suite dressed for a boardroom.
+
+  TESTS (all real network, real JSON, real latency)
+    ✅ GET  /health          — worker liveness, no auth required
+    ✅ POST /v1/chat         — chat completion, asserts output_text non-empty
+    ✅ POST /v1/stream       — SSE body read chunk-by-chunk, asserts ≥1 event
+    ✅ POST /v1/embed        — embedding, asserts array length > 0
+    ✅ AUTH guard            — bad token → must return 401/403
+
+  ANTI-THEATER GUARANTEE
+    • Stream test reads body with getReader() — PASS requires actual tokens
+    • Stream demo: if SSE fails, shows raw error — NOT a fallback animation
+    • Token counts come from usage.output_tokens in the response, not estimate
+    • All latencies from Date.now() wall-clock, not synthetic timers
+    • Raw request + response JSON visible for every test (click row to expand)
+
+  LINKED FROM
+    • homelanding.html — glowing neon CTA in hero + dedicated investor banner
+    • homelanding.html — nav (⚡ Live Gateway) + footer (⚡ Live Smoke)
+    • index.html       — nav (⚡ Live Gateway) + footer
+    • kaixu-admin.html — header button (⚡ Live Smoke)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BUILD ORDER SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  P0 — Must have before Codespace replacement claim is real:
+    0. Gateway Live Smoke — ✅ SHIPPED (TOOLS/GatewayLive.html)
+    1. Secrets Vault — ✅ SHIPPED (TOOLS/SovereignVariables.html)
+    2. API Playground — ✅ SHIPPED (TOOLS/APIPlayground.html)
+    3. DB Studio — ✅ SHIPPED (TOOLS/DBStudio.html)
+    4. Deploy Center — ✅ SHIPPED (TOOLS/DeployCenter.html)
+    5. Git Flow — ✅ SHIPPED (TOOLS/GitFlow.html)
+
+  P1 — Needed within 60 days:
+    6.  Log Viewer — ✅ SHIPPED (TOOLS/LogViewer.html)
+    7.  Test Runner — ✅ SHIPPED (TOOLS/TestRunner.html)
+    8.  Package Manager UI — ✅ SHIPPED (TOOLS/PackageManager.html)
+    9.  Live Share — ✅ SHIPPED (TOOLS/LiveShare.html)
+    10. Cron Scheduler — ✅ SHIPPED (TOOLS/CronScheduler.html)
+    11. Docker Manager — ✅ SHIPPED (TOOLS/DockerManager.html)
+    12. Port Forwarder — ✅ SHIPPED (TOOLS/PortForwarder.html)
+
+  P2 — Needed within 90 days:
+    13. Snippet Hub — ✅ SHIPPED (TOOLS/SnippetHub.html)
+    14. Team Board — ✅ SHIPPED (TOOLS/TodoBoard.html)
+    15. Doc Gen — ✅ SHIPPED (TOOLS/DocGen.html)
+    16. Analytics Dash — ✅ SHIPPED (TOOLS/AnalyticsDash.html)
+    17. Notification Center — ✅ SHIPPED (TOOLS/NotificationCenter.html)
+    18. Billing Dash — ✅ SHIPPED (TOOLS/BillingDash.html)
+
+  P3 — Moat / differentiation (after product-market fit):
+    19. Audio Studio — ✅ SHIPPED (TOOLS/AudioStudio.html)
+    20. Extension Store — ✅ SHIPPED (TOOLS/ExtensionStore.html)

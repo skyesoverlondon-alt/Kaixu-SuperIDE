@@ -44,15 +44,17 @@ function fail(msg) { console.log(`  ${FAIL}  ${c.red(msg)}`); errors++; }
 function warn(msg) { console.log(`  ${WARN}  ${c.yellow(msg)}`); warnings++; }
 function info(msg) { console.log(`  ${INFO}  ${c.dim(msg)}`); }
 
+async function main() {
+
 // ── Required env vars ─────────────────────────────────────────────────────────
 const REQUIRED = [
   { key: 'JWT_SECRET',          desc: 'JWT signing secret (64+ chars recommended)',  minLen: 16 },
   { key: 'DATABASE_URL',        desc: 'Neon PostgreSQL connection string',           minLen: 20 },
-  { key: 'KAIXU_GATE_TOKEN',    desc: 'Bearer token for kAIxU AI gateway',           minLen: 10 },
+  { key: 'KAIXUSI_SECRET',      desc: 'Shared bearer token: Netlify functions <-> KaixuSI worker', minLen: 10 },
+  { key: 'KAIXUSI_WORKER_URL',  desc: 'KaixuSI Cloudflare Worker URL (e.g. https://kaixusi.xxx.workers.dev)', minLen: 15 },
 ];
 
 const OPTIONAL = [
-  { key: 'KAIXU_GATE_BASE',     desc: 'AI gateway base URL (default: kaixu67.skyesoverlondon.workers.dev)' },
   { key: 'KAIXU_DEFAULT_MODEL', desc: 'Default AI model (default: kAIxU-flash)' },
   { key: 'DATABASE_REPLICA_URL',desc: 'Neon read replica URL (Phase 28: multi-region reads)' },
   { key: 'SENDGRID_API_KEY',    desc: 'SendGrid API key (required for all emails)' },
@@ -114,7 +116,8 @@ for (const { key, desc } of OPTIONAL) {
       : ssoVars.includes(key) ? 'SAML SSO'
       : observabilityVars.includes(key) ? 'error monitoring'
       : 'optional feature';
-    info(`${key} not set — ${group} feature will be unavailable (${desc})`);
+    const groupLabel = group === 'optional feature' ? group : `${group} feature`;
+    info(`${key} not set — ${groupLabel} will be unavailable (${desc})`);
   }
 }
 
@@ -167,28 +170,38 @@ if (CHECK_DB || CHECK_ALL) {
 
 // ── Section: AI gateway ping ─────────────────────────────────────────────────
 if (CHECK_GATE || CHECK_ALL) {
-  console.log(c.bold('\n⑥ kAIxU AI gateway\n'));
+  console.log(c.bold('\n⑥ KaixuSI Worker\n'));
   try {
-    const base = (process.env.KAIXU_GATE_BASE || 'https://kaixu67.skyesoverlondon.workers.dev').replace(/\/+$/, '');
-    const token = process.env.KAIXU_GATE_TOKEN || '';
-    if (!token) {
-      fail('KAIXU_GATE_TOKEN not set — cannot test gateway');
+    const workerUrl = (process.env.KAIXUSI_WORKER_URL || '').replace(/\/+$/, '');
+    const secret    = process.env.KAIXUSI_SECRET || '';
+    if (!workerUrl) {
+      fail('KAIXUSI_WORKER_URL not set — cannot test KaixuSI Worker');
     } else {
-      const res = await fetch(`${base}/v1/health`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      // /health is public (no auth)
+      const res = await fetch(`${workerUrl}/health`);
       const data = await res.json();
-      if (data.ok) {
-        pass(`Gateway healthy: ${base}/v1/health`);
-        pass(`keyConfigured: ${data.keyConfigured}`);
-        pass(`authConfigured: ${data.authConfigured}`);
-        if (data.openGate) warn('openGate: true — token auth is DISABLED in the gateway. This is insecure for production.');
+      if (data.brain === 'KaixuSI' && data.status === 'ok') {
+        pass(`KaixuSI Worker healthy: ${workerUrl}/health`);
+        pass(`brain: ${data.brain}  version: ${data.version}  origin: ${data.origin}`);
       } else {
-        fail(`Gateway returned ok:false — ${data.error || 'unknown error'}`);
+        fail(`Worker responded but brain identity unexpected: ${JSON.stringify(data)}`);
+      }
+      // Test auth if secret is set
+      if (secret) {
+        const chatRes = await fetch(`${workerUrl}/v1/chat`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${secret}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 }),
+        });
+        if (chatRes.ok) pass('KAIXUSI_SECRET auth to /v1/chat — accepted');
+        else if (chatRes.status === 401) fail('KAIXUSI_SECRET rejected by worker — verify the secret matches');
+        else warn(`/v1/chat returned ${chatRes.status} (provider may need a real API key)`);
+      } else {
+        warn('KAIXUSI_SECRET not set — skipping auth test');
       }
     }
   } catch (err) {
-    fail(`Gateway request failed: ${err.message}`);
+    fail(`KaixuSI Worker request failed: ${err.message}`);
   }
 }
 
@@ -226,3 +239,10 @@ if (errors === 0 && warnings === 0) {
   console.log();
   process.exit(1);
 }
+
+}
+
+main().catch((err) => {
+  console.error(c.red(`Fatal setup-check error: ${err?.message || String(err)}`));
+  process.exit(1);
+});

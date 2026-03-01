@@ -7,6 +7,10 @@ const DB_NAME = 'kaixu-workspace';
 const DB_VERSION = 3;
 var db; // global — shared across all modules
 
+function _storeExists(storeName) {
+  return !!(db && db.objectStoreNames && db.objectStoreNames.contains(storeName));
+}
+
 async function openDatabase() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -28,6 +32,20 @@ async function openDatabase() {
 
 function idbGet(storeName, key) {
   return new Promise((resolve, reject) => {
+    if (!_storeExists(storeName)) {
+      if (key === undefined) {
+        const tx = db.transaction('meta', 'readonly');
+        const req = tx.objectStore('meta').get(storeName);
+        req.onsuccess = () => {
+          const rec = req.result || null;
+          resolve(rec ? (rec.value ?? null) : null);
+        };
+        req.onerror = () => reject(req.error);
+        return;
+      }
+      resolve(null);
+      return;
+    }
     const tx = db.transaction(storeName, 'readonly');
     const req = tx.objectStore(storeName).get(key);
     req.onsuccess = () => resolve(req.result || null);
@@ -37,6 +55,13 @@ function idbGet(storeName, key) {
 
 function idbPut(storeName, value) {
   return new Promise((resolve, reject) => {
+    if (!_storeExists(storeName)) {
+      const tx = db.transaction('meta', 'readwrite');
+      const req = tx.objectStore('meta').put({ key: storeName, value });
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+      return;
+    }
     const tx = db.transaction(storeName, 'readwrite');
     const req = tx.objectStore(storeName).put(value);
     req.onsuccess = () => resolve();
@@ -46,6 +71,13 @@ function idbPut(storeName, value) {
 
 function idbDel(storeName, key) {
   return new Promise((resolve, reject) => {
+    if (!_storeExists(storeName)) {
+      const tx = db.transaction('meta', 'readwrite');
+      const req = tx.objectStore('meta').delete(storeName);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+      return;
+    }
     const tx = db.transaction(storeName, 'readwrite');
     const req = tx.objectStore(storeName).delete(key);
     req.onsuccess = () => resolve();
@@ -55,6 +87,10 @@ function idbDel(storeName, key) {
 
 function idbAll(storeName) {
   return new Promise((resolve, reject) => {
+    if (!_storeExists(storeName)) {
+      resolve([]);
+      return;
+    }
     const tx = db.transaction(storeName, 'readonly');
     const req = tx.objectStore(storeName).getAll();
     req.onsuccess = () => resolve(req.result || []);

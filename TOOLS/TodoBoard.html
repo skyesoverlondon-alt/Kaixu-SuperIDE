@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo Board — kAIxU Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg0:#040008;--purple:#a243ff;--purple-hot:#d130ff;
+      --gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;
+      --glass-bg:rgba(8,4,14,0.92);--border:rgba(162,67,255,0.18);
+    }
+    *{box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:var(--bg0);color:#e2e8f0;margin:0;min-height:100vh;overflow-x:hidden}
+    .mono{font-family:'Share Tech Mono',monospace}
+    canvas{position:fixed;top:0;left:0;z-index:0;pointer-events:none}
+    .glass{background:var(--glass-bg);backdrop-filter:blur(24px);border:1px solid var(--border)}
+    #app{position:relative;z-index:10;display:flex;flex-direction:column;height:100vh;padding:1rem 1.25rem;gap:1rem}
+    .board{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;flex:1;min-height:0;overflow-x:auto}
+    @media(max-width:900px){.board{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:540px){.board{grid-template-columns:1fr}}
+    .col{display:flex;flex-direction:column;min-height:0;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);overflow:hidden}
+    .col-header{padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .col-title{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:bold}
+    .col-count{font-family:'Share Tech Mono',monospace;font-size:10px;padding:1px 8px;border-radius:20px;min-width:20px;text-align:center}
+    .col-body{flex:1;overflow-y:auto;padding:.625rem;display:flex;flex-direction:column;gap:.5rem;scrollbar-width:thin;scrollbar-color:var(--purple) transparent}
+    .col-body::-webkit-scrollbar{width:2px}
+    .col-body::-webkit-scrollbar-thumb{background:var(--purple);border-radius:10px}
+    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:.75rem;cursor:grab;transition:all .18s;user-select:none;position:relative}
+    .card:active{cursor:grabbing}
+    .card.dragging{opacity:.4;transform:rotate(2deg)}
+    .card.drag-over{border-color:var(--purple);background:rgba(162,67,255,.1)}
+    .card:hover{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.06);transform:translateY(-2px)}
+    .card-title{font-size:13px;font-weight:600;margin-bottom:.35rem;line-height:1.45;word-break:break-word}
+    .card-desc{font-size:11px;color:#94a3b8;line-height:1.55;word-break:break-word;white-space:pre-wrap}
+    .card-meta{display:flex;align-items:center;gap:.5rem;margin-top:.55rem;flex-wrap:wrap}
+    .tag-chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.08em;text-transform:uppercase;border:1px solid;cursor:pointer}
+    .priority-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+    .due-label{font-size:9px;font-family:'Share Tech Mono',monospace;color:#64748b}
+    .due-label.overdue{color:var(--red)}
+    .due-label.soon{color:var(--gold)}
+    .card-actions{position:absolute;top:.5rem;right:.5rem;display:flex;gap:.25rem;opacity:0;transition:opacity .15s}
+    .card:hover .card-actions{opacity:1}
+    .card-btn{background:transparent;border:none;cursor:pointer;font-size:12px;padding:2px 5px;border-radius:6px;color:#64748b;transition:color .15s}
+    .card-btn:hover{color:var(--purple)}
+    .btn-purple{background:var(--purple);color:#fff;border:none;cursor:pointer;transition:all .18s;border-radius:10px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:.5rem 1rem}
+    .btn-purple:hover{background:var(--purple-hot);transform:translateY(-1px)}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:#94a3b8;cursor:pointer;transition:all .15s;border-radius:10px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:.5rem 1rem}
+    .btn-ghost:hover{border-color:var(--purple);color:var(--purple)}
+    .add-card-btn{margin:.5rem;padding:.5rem;border-radius:10px;background:transparent;border:1px dashed rgba(255,255,255,.1);color:#64748b;cursor:pointer;font-size:12px;text-align:center;transition:all .15s;flex-shrink:0}
+    .add-card-btn:hover{border-color:var(--purple);color:var(--purple)}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);z-index:2000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+    .overlay.active{opacity:1;pointer-events:all}
+    input,textarea,select{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e2e8f0;padding:.6rem .875rem;outline:none;transition:border-color .15s;font-family:'Inter',sans-serif;font-size:13px}
+    input:focus,textarea:focus,select:focus{border-color:var(--purple)}
+    select option{background:#0c0618}
+    #search-input{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e2e8f0;padding:.5rem .875rem;outline:none;font-size:12px;font-family:'Share Tech Mono',monospace;transition:border-color .15s;width:180px}
+    #search-input:focus{border-color:var(--purple)}
+    .drag-placeholder{border:2px dashed rgba(162,67,255,.35);border-radius:12px;height:60px;margin-bottom:.5rem;background:rgba(162,67,255,.05)}
+    #toast{position:fixed;bottom:2rem;right:2rem;z-index:9999;padding:.65rem 1.1rem;border-radius:10px;font-size:12px;font-family:'Share Tech Mono',monospace;transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none}
+    #toast.show{transform:translateY(0);opacity:1}
+    .ai-msg-user{background:rgba(162,67,255,.15);border:1px solid rgba(162,67,255,.25);color:#e2e8f0;border-radius:12px;padding:.6rem .875rem;font-size:11.5px;align-self:flex-end;max-width:90%;line-height:1.6}
+    .ai-msg-assistant{background:rgba(79,255,176,.07);border:1px solid rgba(79,255,176,.15);color:#cbd5e1;border-radius:12px;padding:.6rem .875rem;font-size:11.5px;align-self:flex-start;max-width:95%;white-space:pre-wrap;line-height:1.65}
+    .ai-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.2s ease-in-out infinite;display:inline-block}
+    .ai-dot:nth-child(2){animation-delay:.2s}.ai-dot:nth-child(3){animation-delay:.4s}
+    @keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+    .priority-bar{display:flex;gap:.5rem;flex-wrap:wrap}
+    .pbar-item{font-size:10px;font-family:'Share Tech Mono',monospace;padding:2px 10px;border-radius:20px;cursor:pointer;transition:all .15s;border:1px solid transparent}
+    .pbar-item.active{background:rgba(162,67,255,.15);border-color:var(--purple);color:var(--purple)}
+    .pbar-item:not(.active){color:#64748b;border-color:rgba(255,255,255,.08)}
+    .pbar-item:hover:not(.active){border-color:var(--purple);color:var(--purple)}
+  </style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="toast"></div>
+
+<!-- CARD MODAL -->
+<div id="card-modal" class="overlay">
+  <div class="glass p-8 rounded-3xl w-full max-w-lg mx-4">
+    <h3 id="card-modal-title" class="mono text-sm font-bold tracking-wider uppercase mb-6" style="color:var(--purple)">New Task</h3>
+    <input type="hidden" id="card-edit-id">
+    <input type="hidden" id="card-edit-col">
+    <div class="flex flex-col gap-4">
+      <input id="card-title-input" placeholder="Task title…" class="w-full">
+      <textarea id="card-desc-input" rows="3" placeholder="Description, links, notes…" class="w-full resize-none"></textarea>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="mono text-xs text-slate-600 uppercase tracking-widest block mb-1.5">Priority</label>
+          <select id="card-priority-input" class="w-full">
+            <option value="none">None</option>
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <div>
+          <label class="mono text-xs text-slate-600 uppercase tracking-widest block mb-1.5">Due Date</label>
+          <input type="date" id="card-due-input" class="w-full">
+        </div>
+      </div>
+      <div>
+        <label class="mono text-xs text-slate-600 uppercase tracking-widest block mb-1.5">Tag</label>
+        <input id="card-tag-input" placeholder="feat / bug / idea / review…" class="w-full">
+      </div>
+    </div>
+    <div class="flex gap-3 mt-7">
+      <button onclick="closeCardModal()" class="btn-ghost flex-1 py-2.5">Cancel</button>
+      <button onclick="saveCard()" class="btn-purple flex-1 py-2.5">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI MODAL -->
+<div id="ai-modal" class="overlay">
+  <div class="glass rounded-3xl w-full max-w-lg mx-4 flex flex-col overflow-hidden" style="max-height:80vh">
+    <div class="px-6 py-4 border-b flex items-center justify-between flex-shrink-0" style="border-color:var(--border)">
+      <div class="flex items-center gap-2">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)"></div>
+        <span class="mono text-xs font-bold tracking-wider" style="color:var(--green)">kAIxU BRAIN — Task Advisor</span>
+      </div>
+      <button onclick="closeAI()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
+    </div>
+    <div id="ai-messages" class="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3" style="scrollbar-width:thin;scrollbar-color:var(--purple) transparent"></div>
+    <div class="px-5 py-4 border-t flex-shrink-0 flex gap-2" style="border-color:var(--border)">
+      <input id="ai-input" class="flex-1" placeholder="Ask anything about your tasks…"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();sendAI();}">
+      <button onclick="sendAI()" class="btn-purple px-4 py-2">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Header -->
+  <header class="glass rounded-2xl px-5 py-3 flex items-center justify-between gap-3 flex-shrink-0 flex-wrap">
+    <div class="flex items-center gap-4">
+      <span class="mono text-xs font-bold tracking-wider" style="color:var(--purple)">TODO BOARD</span>
+      <span class="mono text-xs text-slate-600 hidden sm:inline">kAIxU Suite</span>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap justify-end">
+      <div class="priority-bar">
+        <span class="pbar-item active" onclick="setPriorityFilter(null,this)">All</span>
+        <span class="pbar-item" onclick="setPriorityFilter('critical',this)" style="color:#ff4f6a">🔴 Critical</span>
+        <span class="pbar-item" onclick="setPriorityFilter('high',this)"     style="color:#ffd36a">🟡 High</span>
+        <span class="pbar-item" onclick="setPriorityFilter('medium',this)"   style="color:#a243ff">🟣 Med</span>
+        <span class="pbar-item" onclick="setPriorityFilter('low',this)"      style="color:#4fffb0">🟢 Low</span>
+      </div>
+      <input id="search-input" placeholder="Search…" oninput="renderBoard()">
+      <button onclick="openAI()" class="btn-ghost py-2">🧠 Brain</button>
+      <button onclick="openCardModal(null,null)" class="btn-purple py-2">+ Task</button>
+    </div>
+  </header>
+
+  <!-- Board -->
+  <div class="board flex-1 min-h-0" id="board"></div>
+</div>
+
+<script>
+// ── CONSTANTS ─────────────────────────────────────────────────
+const STORAGE_KEY = 'kaixu_todo_v2';
+const BRAIN_KEY   = 'sovereign_brain_cfg';
+
+const COLS = [
+  { id:'backlog',     label:'Backlog',     color:'#64748b' },
+  { id:'todo',        label:'To Do',       color:'#a243ff' },
+  { id:'inprogress',  label:'In Progress', color:'#ffd36a' },
+  { id:'done',        label:'Done',        color:'#4fffb0' },
+];
+
+const PRIORITY = {
+  none:     { label:'--',       color:'#475569', dot:'#475569' },
+  low:      { label:'Low',      color:'#4fffb0', dot:'#4fffb0' },
+  medium:   { label:'Medium',   color:'#a243ff', dot:'#a243ff' },
+  high:     { label:'High',     color:'#ffd36a', dot:'#ffd36a' },
+  critical: { label:'Critical', color:'#ff4f6a', dot:'#ff4f6a' },
+};
+
+const TAG_COLORS = ['#30e0ff','#a243ff','#ffd36a','#4fffb0','#ff4f6a','#94a3b8','#f472b6','#38bdf8'];
+const tagColorCache = {};
+function tagColor(tag){ if(!tag) return '#475569'; if(!tagColorCache[tag]){ const h=tag.split('').reduce((a,c)=>a+c.charCodeAt(0),0); tagColorCache[tag]=TAG_COLORS[h%TAG_COLORS.length]; } return tagColorCache[tag]; }
+
+// ── STATE ─────────────────────────────────────────────────────
+let boards = { backlog:[], todo:[], inprogress:[], done:[] };
+let brainCfg = { url:'https://kaixusi.skyesoverlondon.workers.dev', secret:'' };
+let aiHistory = [];
+let dragCard = null, dragSourceCol = null;
+let priorityFilter = null;
+
+function saveState(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(boards))}catch(e){} }
+function loadState(){ try{ const s=localStorage.getItem(STORAGE_KEY); if(s) boards=JSON.parse(s); }catch(e){} }
+function loadBrainCfg(){ try{ const c=localStorage.getItem(BRAIN_KEY); if(c) brainCfg={...brainCfg,...JSON.parse(c)}; }catch(e){} }
+const uid=()=>'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ── RENDER ────────────────────────────────────────────────────
+function renderBoard(){
+  const q=(document.getElementById('search-input')?.value||'').toLowerCase();
+  const boardEl=document.getElementById('board');
+  boardEl.innerHTML='';
+  const today=new Date(); today.setHours(0,0,0,0);
+  const soon=new Date(today); soon.setDate(soon.getDate()+3);
+
+  COLS.forEach(col=>{
+    let cards=boards[col.id]||[];
+    if(q) cards=cards.filter(c=>c.title?.toLowerCase().includes(q)||(c.desc||'').toLowerCase().includes(q)||(c.tag||'').toLowerCase().includes(q));
+    if(priorityFilter) cards=cards.filter(c=>c.priority===priorityFilter);
+
+    const colEl=document.createElement('div');
+    colEl.className='col'; colEl.dataset.col=col.id;
+
+    // Header
+    const hdr=document.createElement('div');
+    hdr.className='col-header';
+    hdr.innerHTML=`<span class="col-title" style="color:${col.color}">${esc(col.label)}</span>
+      <span class="col-count mono" style="background:${col.color}18;color:${col.color};border:1px solid ${col.color}44">${cards.length}</span>`;
+    colEl.appendChild(hdr);
+
+    // Body
+    const body=document.createElement('div');
+    body.className='col-body'; body.dataset.col=col.id;
+    body.addEventListener('dragover',onDragOver);
+    body.addEventListener('drop',e=>onDrop(e,col.id));
+    body.addEventListener('dragleave',onDragLeave);
+
+    cards.forEach(card=>{
+      const cardEl=document.createElement('div');
+      cardEl.className='card'; cardEl.draggable=true; cardEl.dataset.id=card.id; cardEl.dataset.col=col.id;
+      cardEl.addEventListener('dragstart',onDragStart);
+      cardEl.addEventListener('dragend',onDragEnd);
+
+      const pr=PRIORITY[card.priority]||PRIORITY.none;
+      const tag=card.tag?.trim();
+      const tc=tagColor(tag);
+
+      let dueHtml='';
+      if(card.due){
+        const d=new Date(card.due); d.setHours(0,0,0,0);
+        const label=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+        const cls=d<today?'overdue':d<=soon?'soon':'';
+        dueHtml=`<span class="due-label ${cls}">📅 ${esc(label)}</span>`;
+      }
+
+      cardEl.innerHTML=`
+        <div class="card-actions">
+          <button class="card-btn" onclick="event.stopPropagation();editCard('${card.id}','${col.id}')" title="Edit">✏️</button>
+          <button class="card-btn" onclick="event.stopPropagation();deleteCard('${card.id}','${col.id}')" title="Delete" style="color:var(--red)">×</button>
+        </div>
+        <div class="flex items-start gap-2">
+          <div class="priority-dot mt-1 flex-shrink-0" style="background:${pr.dot};box-shadow:0 0 5px ${pr.dot}60" title="${pr.label} priority"></div>
+          <div class="card-title">${esc(card.title||'Untitled')}</div>
+        </div>
+        ${card.desc?`<div class="card-desc">${esc(card.desc)}</div>`:''}
+        <div class="card-meta">
+          ${tag?`<span class="tag-chip" style="color:${tc};border-color:${tc}55;background:${tc}11">${esc(tag)}</span>`:''}
+          ${dueHtml}
+        </div>`;
+      body.appendChild(cardEl);
+    });
+
+    // Add button
+    const addBtn=document.createElement('button');
+    addBtn.className='add-card-btn';
+    addBtn.textContent='+ Add Task';
+    addBtn.onclick=()=>openCardModal(null,col.id);
+    colEl.appendChild(body);
+    colEl.appendChild(addBtn);
+    boardEl.appendChild(colEl);
+  });
+}
+
+// ── DRAG & DROP ───────────────────────────────────────────────
+function onDragStart(e){
+  dragCard=e.currentTarget.dataset.id;
+  dragSourceCol=e.currentTarget.dataset.col;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+}
+function onDragEnd(e){ e.currentTarget.classList.remove('dragging'); document.querySelectorAll('.drag-placeholder').forEach(el=>el.remove()); }
+function onDragOver(e){
+  e.preventDefault(); e.dataTransfer.dropEffect='move';
+  const body=e.currentTarget;
+  if(!body.querySelector('.drag-placeholder')){
+    const ph=document.createElement('div'); ph.className='drag-placeholder'; body.insertBefore(ph,body.firstChild);
+  }
+}
+function onDragLeave(e){ if(!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.querySelectorAll('.drag-placeholder').forEach(el=>el.remove()); }
+function onDrop(e,targetCol){
+  e.preventDefault();
+  document.querySelectorAll('.drag-placeholder').forEach(el=>el.remove());
+  if(!dragCard) return;
+  if(dragSourceCol===targetCol) return;
+  const srcArr=boards[dragSourceCol], tgtArr=boards[targetCol];
+  const idx=srcArr.findIndex(c=>c.id===dragCard);
+  if(idx===-1) return;
+  const [card]=srcArr.splice(idx,1);
+  tgtArr.unshift(card);
+  saveState(); renderBoard();
+  toast(`Moved to ${COLS.find(c=>c.id===targetCol)?.label||targetCol}`,'ok');
+}
+
+// ── CRUD ──────────────────────────────────────────────────────
+let editingCardId=null, editingColId=null;
+function openCardModal(id,colId){
+  editingCardId=id; editingColId=colId||'todo';
+  document.getElementById('card-modal-title').textContent=id?'Edit Task':'New Task';
+  if(id){
+    const card=(boards[colId]||[]).find(c=>c.id===id);
+    if(card){
+      document.getElementById('card-title-input').value=card.title||'';
+      document.getElementById('card-desc-input').value=card.desc||'';
+      document.getElementById('card-priority-input').value=card.priority||'medium';
+      document.getElementById('card-due-input').value=card.due||'';
+      document.getElementById('card-tag-input').value=card.tag||'';
+    }
+  } else {
+    document.getElementById('card-title-input').value='';
+    document.getElementById('card-desc-input').value='';
+    document.getElementById('card-priority-input').value='medium';
+    document.getElementById('card-due-input').value='';
+    document.getElementById('card-tag-input').value='';
+  }
+  document.getElementById('card-modal').classList.add('active');
+  setTimeout(()=>document.getElementById('card-title-input').focus(),50);
+}
+function closeCardModal(){ document.getElementById('card-modal').classList.remove('active'); }
+function saveCard(){
+  const title=document.getElementById('card-title-input').value.trim();
+  if(!title){toast('Title is required','warn');return;}
+  const card={
+    id:editingCardId||uid(), title,
+    desc:document.getElementById('card-desc-input').value.trim(),
+    priority:document.getElementById('card-priority-input').value,
+    due:document.getElementById('card-due-input').value,
+    tag:document.getElementById('card-tag-input').value.trim(),
+    created:editingCardId?undefined:new Date().toISOString(),
+  };
+  if(editingCardId){
+    const col=boards[editingColId]; const idx=col.findIndex(c=>c.id===editingCardId);
+    if(idx>-1){card.created=col[idx].created; col[idx]=card;}
+  } else {
+    (boards[editingColId]||(boards[editingColId]=[])).unshift(card);
+  }
+  saveState(); renderBoard(); closeCardModal();
+  toast(editingCardId?'Task updated':'Task added','ok');
+}
+function editCard(id,col){ openCardModal(id,col); }
+function deleteCard(id,col){
+  if(!confirm('Delete this task?')) return;
+  boards[col]=(boards[col]||[]).filter(c=>c.id!==id);
+  saveState(); renderBoard(); toast('Deleted','ok');
+}
+
+// ── FILTER ────────────────────────────────────────────────────
+function setPriorityFilter(p,el){
+  priorityFilter=p;
+  document.querySelectorAll('.pbar-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  renderBoard();
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  const c={ok:'rgba(79,255,176,.1)',warn:'rgba(255,211,106,.1)',err:'rgba(255,79,106,.1)'};
+  const bc={ok:'rgba(79,255,176,.3)',warn:'rgba(255,211,106,.3)',err:'rgba(255,79,106,.3)'};
+  const tc={ok:'var(--green)',warn:'var(--gold)',err:'var(--red)'};
+  el.style.background=c[type]; el.style.border=`1px solid ${bc[type]}`; el.style.color=tc[type];
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ── AI ────────────────────────────────────────────────────────
+function openAI(){ document.getElementById('ai-modal').classList.add('active'); document.getElementById('ai-input').focus(); }
+function closeAI(){ document.getElementById('ai-modal').classList.remove('active'); }
+function appendMsg(role,text){
+  const box=document.getElementById('ai-messages');
+  const d=document.createElement('div'); d.className=role==='user'?'ai-msg-user':'ai-msg-assistant';
+  d.textContent=text; box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+function showThinking(){
+  const box=document.getElementById('ai-messages');
+  const d=document.createElement('div'); d.id='ai-thinking'; d.style.cssText='display:flex;gap:4px;padding:.5rem';
+  d.innerHTML='<div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div>';
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+function hideThinking(){ document.getElementById('ai-thinking')?.remove(); }
+async function sendAI(){
+  const input=document.getElementById('ai-input'); const msg=input.value.trim(); if(!msg) return;
+  input.value=''; appendMsg('user',msg); showThinking();
+  if(!brainCfg.secret){ hideThinking(); appendMsg('assistant','⚠ No brain configured. Set KAIXUSI_SECRET in SovereignVariables → Brain Config.'); return; }
+  aiHistory.push({role:'user',content:msg});
+  const allCards=COLS.flatMap(c=>(boards[c.id]||[]).map(card=>({col:c.label,...card})));
+  const ctx=`You are the kAIxU Task Advisor. The user has ${allCards.length} tasks across ${COLS.length} columns. Here is a summary:\n${allCards.map(c=>`[${c.col}] ${c.title} (${c.priority||'no priority'}${c.due?' due:'+c.due:''}${c.tag?' #'+c.tag:''})`).join('\n')}\n\nBe concise and actionable. Use bullet points.`;
+  const messages=[{role:'user',content:ctx},...aiHistory];
+  try{
+    const res=await fetch(`${brainCfg.url}/v1/chat`,{
+      method:'POST', headers:{'Authorization':`Bearer ${brainCfg.secret}`,'Content-Type':'application/json'},
+      body:JSON.stringify({provider:'kaixu',model:'kAIxU-Brain-2.5',messages,max_tokens:1024,temperature:0.5}),
+    });
+    hideThinking();
+    if(!res.ok){appendMsg('assistant',`Error ${res.status} from brain`);return;}
+    const d=await res.json(); const text=d.output_text||d.error||'No response';
+    aiHistory.push({role:'assistant',content:text}); appendMsg('assistant',text);
+  }catch(e){ hideThinking(); appendMsg('assistant',`Brain unreachable: ${e.message}`); }
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();openCardModal(null,'todo');}
+  if(e.key==='Escape'){closeCardModal();closeAI();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('search-input')?.focus();}
+});
+
+// ── THREE.JS ──────────────────────────────────────────────────
+function initScene(){
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+  const geo=new THREE.BufferGeometry();
+  const v=[]; for(let i=0;i<1800;i++) v.push(THREE.MathUtils.randFloatSpread(160),THREE.MathUtils.randFloatSpread(160),THREE.MathUtils.randFloatSpread(160));
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));
+  const stars=new THREE.Points(geo,new THREE.PointsMaterial({color:0xa243ff,size:0.07,transparent:true,opacity:0.18}));
+  scene.add(stars); cam.position.z=50;
+  (function animate(){ requestAnimationFrame(animate); stars.rotation.y+=0.0002; renderer.render(scene,cam); })();
+  window.addEventListener('resize',()=>{ cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  loadState(); loadBrainCfg(); initScene();
+  // seed with a couple of example cards if empty
+  if(Object.values(boards).every(arr=>!arr.length)){
+    boards.todo=[{id:uid(),title:'Set up kAIxU Brain config',desc:'Add KAIXUSI_SECRET in SovereignVariables → Brain Config',priority:'high',tag:'setup',due:'',created:new Date().toISOString()}];
+    boards.backlog=[{id:uid(),title:'Explore all TOOLS apps',desc:'Check out Secrets Vault, Todo Board and more',priority:'medium',tag:'meta',due:'',created:new Date().toISOString()}];
+    saveState();
+  }
+  renderBoard();
+});
+</script>
+</body>
+</html>

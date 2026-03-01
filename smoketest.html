@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KaixuSI — Brain Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0: #040008; --bg1: #0a0012; --bg2: #100020;
+  --ink: #e8ecff; --muted: #7060a0;
+  --purple: #a243ff; --purple-hot: #d130ff;
+  --gold: #ffd36a; --gold-hot: #ffb700;
+  --cyan: #30e0ff; --green: #4fffb0;
+  --red: #ff5c72;
+  --mono: 'Share Tech Mono', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html,body { min-height: 100vh; }
+body {
+  background: var(--bg0);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── ambient glow ── */
+body::before {
+  content: '';
+  position: fixed; top: -30vh; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 600px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(162,67,255,.22) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed; bottom: -30vh; left: 50%; transform: translateX(-50%);
+  width: 700px; height: 600px;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255,183,0,.07) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── brain orb header ── */
+.brain-header {
+  position: relative; z-index: 10;
+  text-align: center;
+  padding: 64px 24px 32px;
+}
+.orb-wrap {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 120px; height: 120px; margin-bottom: 28px;
+}
+.orb {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #d130ff, #5a00cc 60%, #1a0040 100%);
+  box-shadow: 0 0 30px rgba(162,67,255,.8), 0 0 80px rgba(162,67,255,.4), 0 0 120px rgba(162,67,255,.2);
+  animation: orbPulse 3s ease-in-out infinite;
+  position: relative; z-index: 2;
+}
+@keyframes orbPulse {
+  0%,100% { box-shadow: 0 0 30px rgba(162,67,255,.8), 0 0 80px rgba(162,67,255,.4), 0 0 120px rgba(162,67,255,.2); transform: scale(1); }
+  50% { box-shadow: 0 0 50px rgba(162,67,255,1), 0 0 120px rgba(162,67,255,.6), 0 0 200px rgba(162,67,255,.3); transform: scale(1.06); }
+}
+.orb-ring {
+  position: absolute; border-radius: 50%; border: 1.5px solid transparent; inset: 0;
+}
+.orb-ring-1 { inset: -14px; border-top-color: var(--purple-hot); border-bottom-color: var(--purple-hot); animation: spin1 4s linear infinite; opacity: .7; }
+.orb-ring-2 { inset: -26px; border-left-color: var(--gold); border-right-color: var(--gold); animation: spin2 6s linear infinite; opacity: .5; }
+.orb-ring-3 { inset: -38px; border-top-color: var(--cyan); animation: spin3 8s linear infinite; opacity: .3; }
+@keyframes spin1 { 100% { transform: rotate(360deg); } }
+@keyframes spin2 { 100% { transform: rotate(-360deg); } }
+@keyframes spin3 { 100% { transform: rotate(360deg); } }
+
+.brain-title {
+  font-size: 2.4rem; font-weight: 900; letter-spacing: -.03em;
+  background: linear-gradient(135deg, #fff 0%, var(--ink) 40%, var(--purple) 80%, var(--gold) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.brain-sub { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 8px; letter-spacing: .15em; text-transform: uppercase; }
+
+.global-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 100px; padding: 6px 18px; margin-top: 20px;
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+  transition: border-color .3s;
+}
+.global-status.ok  { border-color: rgba(79,255,176,.3); color: var(--green); }
+.global-status.err { border-color: rgba(255,92,114,.3); color: var(--red); }
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--muted);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+.status-dot.ok  { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.status-dot.err { background: var(--red);   box-shadow: 0 0 8px var(--red); }
+@keyframes dotPulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+/* ── config band ── */
+.config-band {
+  position: relative; z-index: 10;
+  display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: flex-end;
+  max-width: 860px; margin: 0 auto 64px;
+  padding: 0 24px;
+}
+.cf {
+  display: flex; flex-direction: column; gap: 6px;
+  flex: 1; min-width: 200px; max-width: 320px;
+}
+.cf label { font-size: 10px; font-family: var(--mono); color: var(--muted); letter-spacing: .12em; text-transform: uppercase; }
+.cf input, .cf select {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px; color: var(--ink);
+  font-size: 13px; padding: 10px 14px;
+  font-family: var(--mono); outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.cf input:focus, .cf select:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(162,67,255,.15);
+}
+.cf select option { background: #100020; }
+
+.ping-btn {
+  height: 42px; padding: 0 28px; border: none; border-radius: 8px; cursor: pointer;
+  font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .08em;
+  background: linear-gradient(135deg, var(--purple), var(--purple-hot));
+  color: #fff;
+  box-shadow: 0 0 20px rgba(162,67,255,.5);
+  transition: box-shadow .2s, transform .15s;
+}
+.ping-btn:hover { box-shadow: 0 0 40px rgba(162,67,255,.8); transform: translateY(-2px); }
+.ping-btn:active { transform: scale(.97); }
+
+/* ── cards grid ── */
+.cards {
+  position: relative; z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 28px;
+  max-width: 1280px; margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+.card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(162,67,255,.15);
+  border-radius: 16px;
+  padding: 28px;
+  position: relative; overflow: hidden;
+  transition: border-color .3s, box-shadow .3s, transform .3s;
+  animation: floatCard var(--float-dur, 5s) ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+@keyframes floatCard {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--card-glow, var(--purple)), transparent);
+  opacity: .6;
+}
+.card:hover {
+  border-color: rgba(162,67,255,.4);
+  box-shadow: 0 0 40px rgba(162,67,255,.12), 0 8px 40px rgba(0,0,0,.4);
+}
+
+.card-label {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 20px;
+}
+.method-tag {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  padding: 3px 10px; border-radius: 5px; letter-spacing: .08em;
+}
+.method-get  { background: rgba(79,255,176,.12); color: var(--green); }
+.method-post { background: rgba(162,67,255,.15); color: var(--purple-hot); }
+.method-sse  { background: rgba(48,224,255,.1);  color: var(--cyan); }
+.method-vec  { background: rgba(255,211,106,.1); color: var(--gold); }
+
+.card-path { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--ink); }
+.card-desc { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+.input-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 14px; }
+.input-row .cf { flex: 1; }
+
+.glow-input {
+  width: 100%;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px; color: var(--ink);
+  font-size: 13px; padding: 10px 14px;
+  font-family: var(--mono); outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.glow-input:focus { border-color: var(--purple); box-shadow: 0 0 0 3px rgba(162,67,255,.12); }
+
+textarea.glow-input { resize: vertical; min-height: 70px; }
+
+.send-btn {
+  flex-shrink: 0; height: 40px; padding: 0 20px;
+  border: none; border-radius: 8px; cursor: pointer;
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  transition: opacity .2s, transform .1s, box-shadow .2s;
+}
+.send-btn:active { transform: scale(.96); }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; }
+.send-btn.purple { background: linear-gradient(135deg, var(--purple), var(--purple-hot)); color: #fff; box-shadow: 0 0 14px rgba(162,67,255,.4); }
+.send-btn.purple:hover:not(:disabled) { box-shadow: 0 0 28px rgba(162,67,255,.7); }
+.send-btn.teal   { background: linear-gradient(135deg, #00b5bc, var(--cyan)); color: #000; box-shadow: 0 0 14px rgba(48,224,255,.3); }
+.send-btn.teal:hover:not(:disabled)   { box-shadow: 0 0 28px rgba(48,224,255,.6); }
+.send-btn.gold   { background: linear-gradient(135deg, var(--gold-hot), var(--gold)); color: #000; box-shadow: 0 0 14px rgba(255,183,0,.3); }
+.send-btn.gold:hover:not(:disabled)   { box-shadow: 0 0 28px rgba(255,183,0,.6); }
+
+.badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; min-height: 22px; }
+.badge {
+  font-size: 10px; font-family: var(--mono); font-weight: 700;
+  padding: 2px 9px; border-radius: 100px; letter-spacing: .04em;
+}
+.b-pass { background: rgba(79,255,176,.1);  color: var(--green); border: 1px solid rgba(79,255,176,.25); }
+.b-fail { background: rgba(255,92,114,.1);  color: var(--red);   border: 1px solid rgba(255,92,114,.25); }
+.b-info { background: rgba(162,67,255,.1);  color: var(--purple-hot); border: 1px solid rgba(162,67,255,.25); }
+.b-warn { background: rgba(255,183,0,.1);   color: var(--gold);  border: 1px solid rgba(255,183,0,.25); }
+
+.output {
+  background: rgba(0,0,0,.5);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 8px; padding: 14px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.7;
+  min-height: 72px; max-height: 280px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-word;
+  color: var(--ink); position: relative;
+}
+.output.empty { color: var(--muted); font-style: italic; }
+.output.stream { max-height: 220px; font-size: 13px; color: var(--ink); font-style: normal; }
+
+.copy-chip {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(255,255,255,.06); border: none;
+  border-radius: 5px; color: var(--muted);
+  font-size: 10px; font-family: var(--mono); padding: 2px 8px;
+  cursor: pointer; transition: color .15s;
+}
+.copy-chip:hover { color: var(--ink); }
+
+.meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 8px; min-height: 16px; }
+.meta strong { color: var(--ink); }
+
+.vector-row {
+  margin-top: 6px;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,211,106,.1);
+  border-radius: 7px; padding: 10px 12px;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--gold); overflow-x: auto; white-space: nowrap;
+}
+.vector-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+
+.spinner {
+  display: inline-block; width: 11px; height: 11px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin1 .5s linear infinite; vertical-align: middle;
+}
+
+.sel-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.sel-row .cf { min-width: 140px; }
+</style>
+</head>
+<body>
+
+<!-- brain header -->
+<div class="brain-header">
+  <div class="orb-wrap">
+    <div class="orb"></div>
+    <div class="orb-ring orb-ring-1"></div>
+    <div class="orb-ring orb-ring-2"></div>
+    <div class="orb-ring orb-ring-3"></div>
+  </div>
+  <div class="brain-title">KaixuSI Brain Test</div>
+  <div class="brain-sub">smoke · verify · watch</div>
+  <div class="global-status" id="gStatus">
+    <span class="status-dot" id="gDot"></span>
+    <span id="gLabel">not pinged</span>
+  </div>
+</div>
+
+<!-- config band -->
+<div class="config-band">
+  <div class="cf">
+    <label>Worker URL</label>
+    <input id="workerUrl" value="https://kaixusi.skyesoverlondon.workers.dev" />
+  </div>
+  <div class="cf">
+    <label>KAIXUSI_SECRET</label>
+    <input id="secret" type="password" placeholder="Bearer token" />
+  </div>
+  <div class="cf">
+    <label>Provider</label>
+    <select id="provider">
+      <option value="openai">openai</option>
+      <option value="anthropic">anthropic</option>
+      <option value="gemini">gemini</option>
+    </select>
+  </div>
+  <div class="cf">
+    <label>Model</label>
+    <select id="model">
+      <option value="gpt-4o-mini">gpt-4o-mini</option>
+      <option value="gpt-4o">gpt-4o</option>
+    </select>
+  </div>
+  <button class="ping-btn" onclick="pingHealth()">⚡ Ping Brain</button>
+</div>
+
+<!-- floating cards -->
+<div class="cards">
+
+  <!-- Health -->
+  <div class="card" style="--float-dur:5.2s;--float-delay:0s;--card-glow:var(--green);">
+    <div class="card-label">
+      <span class="method-tag method-get">GET</span>
+      <span class="card-path">/health</span>
+      <span class="card-desc">public</span>
+    </div>
+    <div class="badge-row" id="hBadges"></div>
+    <div class="output empty" id="hOut">Click ⚡ Ping Brain above →</div>
+  </div>
+
+  <!-- Chat -->
+  <div class="card" style="--float-dur:6s;--float-delay:.8s;--card-glow:var(--purple-hot);">
+    <div class="card-label">
+      <span class="method-tag method-post">POST</span>
+      <span class="card-path">/v1/chat</span>
+      <span class="card-desc">full response</span>
+    </div>
+    <div class="input-row">
+      <input class="glow-input" id="chatMsg" value="Say hello and tell me what model you are." style="flex:1" />
+      <button class="send-btn purple" id="chatBtn" onclick="sendChat()">Send</button>
+    </div>
+    <div class="badge-row" id="chatBadges"></div>
+    <div class="meta" id="chatMeta"></div>
+    <div style="position:relative;margin-top:8px">
+      <div class="output empty" id="chatOut">Response appears here</div>
+      <button class="copy-chip" onclick="cp('chatOut')">copy</button>
+    </div>
+  </div>
+
+  <!-- Stream -->
+  <div class="card" style="--float-dur:7s;--float-delay:1.4s;--card-glow:var(--cyan);">
+    <div class="card-label">
+      <span class="method-tag method-sse">SSE</span>
+      <span class="card-path">/v1/stream</span>
+      <span class="card-desc">real-time tokens</span>
+    </div>
+    <div class="input-row">
+      <input class="glow-input" id="streamMsg" value="Count from 1 to 10, one number per line." style="flex:1" />
+      <button class="send-btn teal" id="streamBtn" onclick="sendStream()">Stream</button>
+    </div>
+    <div class="badge-row" id="streamBadges"></div>
+    <div class="output stream empty" id="streamOut">Tokens stream here in real time</div>
+  </div>
+
+  <!-- Embed -->
+  <div class="card" style="--float-dur:5.8s;--float-delay:2s;--card-glow:var(--gold);">
+    <div class="card-label">
+      <span class="method-tag method-vec">VEC</span>
+      <span class="card-path">/v1/embed</span>
+      <span class="card-desc">text → vectors</span>
+    </div>
+    <div class="sel-row">
+      <div class="cf">
+        <label>Provider</label>
+        <select id="embedProv"><option value="gemini">gemini</option><option value="openai">openai</option></select>
+      </div>
+      <div class="cf">
+        <label>Model</label>
+        <select id="embedModel"><option value="text-embedding-004">text-embedding-004</option><option value="text-embedding-3-small">text-embedding-3-small</option></select>
+      </div>
+    </div>
+    <textarea class="glow-input" id="embedTexts" rows="3">The quick brown fox
+KaixuSI is the brain
+Hello world</textarea>
+    <div class="input-row" style="margin-top:10px">
+      <div style="flex:1"></div>
+      <button class="send-btn gold" id="embedBtn" onclick="sendEmbed()">Embed</button>
+    </div>
+    <div class="badge-row" id="embedBadges"></div>
+    <div class="meta" id="embedMeta"></div>
+    <div id="embedVecs"></div>
+  </div>
+
+  <!-- Raw -->
+  <div class="card" style="--float-dur:6.5s;--float-delay:.4s;grid-column:span 1;--card-glow:var(--purple);">
+    <div class="card-label">
+      <span class="method-tag method-post">RAW</span>
+      <span class="card-path">custom request</span>
+    </div>
+    <div class="cf" style="margin-bottom:10px">
+      <label>Path</label>
+      <input class="glow-input" id="rawPath" value="/v1/chat" />
+    </div>
+    <div class="cf" style="margin-bottom:10px">
+      <label>JSON Body</label>
+      <textarea class="glow-input" id="rawBody" rows="5" style="font-size:11px">{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "messages": [{"role": "user", "content": "What is 2 + 2?"}]
+}</textarea>
+    </div>
+    <div class="input-row">
+      <span id="rawStatus" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></span>
+      <button class="send-btn purple" id="rawBtn" onclick="sendRaw()" style="margin-left:auto">Fire</button>
+    </div>
+    <div style="position:relative;margin-top:8px">
+      <div class="output empty" id="rawOut">Raw JSON response</div>
+      <button class="copy-chip" onclick="cp('rawOut')">copy</button>
+    </div>
+  </div>
+
+  <!-- Attribution inspector -->
+  <div class="card" style="--float-dur:5.5s;--float-delay:2.6s;--card-glow:var(--gold);">
+    <div class="card-label">
+      <span class="method-tag method-post">POST</span>
+      <span class="card-path">/v1/chat</span>
+      <span class="card-desc">attribution check</span>
+    </div>
+    <div class="sel-row">
+      <div class="cf">
+        <label>User ID</label>
+        <input class="glow-input" id="aUserId" placeholder="uuid or test-user-1" />
+      </div>
+      <div class="cf">
+        <label>Workspace ID</label>
+        <input class="glow-input" id="aWsId" placeholder="uuid or ws-demo" />
+      </div>
+    </div>
+    <div class="input-row" style="margin-top:6px">
+      <input class="glow-input" id="aMsg" value="Who sent this?" style="flex:1" />
+      <button class="send-btn purple" id="attribBtn" onclick="sendAttrib()">Send</button>
+    </div>
+    <div class="badge-row" id="aBadges"></div>
+    <div class="output empty" id="aOut" style="margin-top:8px">attributed_to will appear here</div>
+  </div>
+
+</div>
+
+<script>
+const $  = id => document.getElementById(id);
+const wu = () => $('workerUrl').value.replace(/\/+$/, '');
+const sk = () => $('secret').value.trim();
+const ah = () => ({ 'Authorization': `Bearer ${sk()}`, 'Content-Type': 'application/json' });
+
+// ── badges / output helpers ──────────────────────────────────────────────────
+function badges(id, arr) {
+  $(id).innerHTML = arr.map(b =>
+    `<span class="badge b-${b.t}">${b.v}</span>`
+  ).join('');
+}
+function out(id, text, empty = false) {
+  const el = $(id);
+  el.textContent = text;
+  el.classList.toggle('empty', empty);
+}
+function meta(id, pairs) {
+  $(id).innerHTML = pairs.map(([k,v]) => `<span>${k}: <strong>${v}</strong></span>`).join('');
+}
+function cp(id) { navigator.clipboard.writeText($(id).textContent); }
+function spin(btn, label) {
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> ${label}`;
+}
+function unspin(btn, label) { btn.disabled = false; btn.innerHTML = label; }
+
+// ── auto model list ──────────────────────────────────────────────────────────
+$('provider').addEventListener('change', () => {
+  const m = { openai: ['gpt-4o-mini','gpt-4o'], anthropic: ['claude-3-5-haiku-20241022','claude-sonnet-4-5'], gemini: ['gemini-2.5-flash','gemini-2.5-pro'] };
+  $('model').innerHTML = (m[$('provider').value] || []).map(v => `<option>${v}</option>`).join('');
+});
+$('embedProv').addEventListener('change', () => {
+  const m = { gemini: ['text-embedding-004'], openai: ['text-embedding-3-small','text-embedding-ada-002'] };
+  $('embedModel').innerHTML = (m[$('embedProv').value] || []).map(v => `<option>${v}</option>`).join('');
+});
+
+// ── health ───────────────────────────────────────────────────────────────────
+async function pingHealth() {
+  out('hOut', 'pinging…', true);
+  $('hBadges').innerHTML = '';
+  const t = Date.now();
+  try {
+    const r = await fetch(`${wu()}/health`);
+    const ms = Date.now() - t;
+    const d = await r.json();
+    out('hOut', JSON.stringify(d, null, 2));
+    const ok = r.ok && d.status === 'ok';
+    const selfHosted = d.origin === 'self-hosted';
+    $('gDot').className = `status-dot ${ok ? 'ok' : 'err'}`;
+    $('gLabel').textContent = ok ? `${d.brain || 'KaixuSI'} · ${d.origin || '?'} · ${ms}ms` : 'error';
+    $('gStatus').className = `global-status ${ok ? 'ok' : 'err'}`;
+    badges('hBadges', [
+      { t: ok ? 'pass' : 'fail', v: ok ? `✓ ${r.status}` : `✗ ${r.status}` },
+      { t: 'info', v: `${ms}ms` },
+      { t: selfHosted ? 'pass' : 'warn', v: `origin: ${d.origin || '?'}` },
+      { t: 'info', v: `brain: ${d.brain || '?'}` },
+    ]);
+  } catch(e) {
+    out('hOut', 'Network error: ' + e.message);
+    $('gDot').className = 'status-dot err';
+    $('gLabel').textContent = 'unreachable';
+    $('gStatus').className = 'global-status err';
+    badges('hBadges', [{ t: 'fail', v: '✗ unreachable' }]);
+  }
+}
+
+// ── chat ─────────────────────────────────────────────────────────────────────
+async function sendChat() {
+  const btn = $('chatBtn');
+  spin(btn, '');
+  out('chatOut', 'waiting…', true);
+  $('chatBadges').innerHTML = ''; $('chatMeta').innerHTML = '';
+
+  const body = {
+    provider: $('provider').value, model: $('model').value,
+    messages: [{ role: 'user', content: $('chatMsg').value }],
+    app_id: 'kaixusi-smoketest'
+  };
+  const t = Date.now();
+  try {
+    const r = await fetch(`${wu()}/v1/chat`, { method:'POST', headers: ah(), body: JSON.stringify(body) });
+    const ms = Date.now() - t;
+    const d = await r.json();
+    const ok = r.ok && d.output_text;
+    out('chatOut', ok ? d.output_text : JSON.stringify(d, null, 2), !ok);
+    badges('chatBadges', [
+      { t: ok ? 'pass' : 'fail', v: ok ? `✓ ${r.status}` : `✗ ${r.status}` },
+      { t: 'info', v: `${ms}ms` },
+      { t: d.kaixusi ? 'pass' : 'warn', v: `kaixusi:${!!d.kaixusi}` },
+      { t: 'info', v: d.provider || '?' },
+    ]);
+    if (d.usage) {
+      meta('chatMeta', [
+        ['prompt', d.usage.prompt_tokens ?? '?'],
+        ['completion', d.usage.completion_tokens ?? '?'],
+        ['total', d.usage.total_tokens ?? '?'],
+        ['latency_ms', d.latency_ms ?? ms],
+      ]);
+    }
+  } catch(e) {
+    out('chatOut', 'Error: ' + e.message);
+    badges('chatBadges', [{ t: 'fail', v: '✗ network' }]);
+  }
+  unspin(btn, 'Send');
+}
+
+// ── stream ───────────────────────────────────────────────────────────────────
+async function sendStream() {
+  const btn = $('streamBtn');
+  spin(btn, 'live');
+  const box = $('streamOut');
+  box.textContent = ''; box.classList.remove('empty');
+  $('streamBadges').innerHTML = '';
+
+  const body = {
+    provider: $('provider').value, model: $('model').value,
+    messages: [{ role: 'user', content: $('streamMsg').value }],
+    app_id: 'kaixusi-smoketest'
+  };
+  const t = Date.now();
+  try {
+    const r = await fetch(`${wu()}/v1/stream`, { method:'POST', headers: ah(), body: JSON.stringify(body) });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      box.textContent = `✗ ${e.error || r.status}`; box.classList.add('empty');
+      badges('streamBadges', [{ t: 'fail', v: `✗ ${r.status}` }]);
+      return;
+    }
+    badges('streamBadges', [{ t: 'pass', v: '✓ streaming…' }]);
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = '', chunks = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') break;
+        try {
+          const c = JSON.parse(raw);
+          const t = c.choices?.[0]?.delta?.content || c.delta?.text || '';
+          if (t) { box.textContent += t; chunks++; box.scrollTop = box.scrollHeight; }
+        } catch {}
+      }
+    }
+    const ms = Date.now() - t;
+    badges('streamBadges', [
+      { t: 'pass', v: '✓ complete' },
+      { t: 'info', v: `${ms}ms` },
+      { t: 'info', v: `${chunks} chunks` },
+    ]);
+  } catch(e) {
+    box.textContent = 'Error: ' + e.message; box.classList.add('empty');
+    badges('streamBadges', [{ t: 'fail', v: '✗ ' + e.message }]);
+  }
+  unspin(btn, 'Stream');
+}
+
+// ── embed ────────────────────────────────────────────────────────────────────
+async function sendEmbed() {
+  const btn = $('embedBtn');
+  spin(btn, '');
+  $('embedBadges').innerHTML = ''; $('embedMeta').innerHTML = ''; $('embedVecs').innerHTML = '';
+  const texts = $('embedTexts').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const body = { provider: $('embedProv').value, model: $('embedModel').value, texts, app_id: 'kaixusi-smoketest' };
+  const t = Date.now();
+  try {
+    const r = await fetch(`${wu()}/v1/embed`, { method:'POST', headers: ah(), body: JSON.stringify(body) });
+    const ms = Date.now() - t;
+    const d = await r.json();
+    const ok = r.ok && d.embeddings;
+    badges('embedBadges', [
+      { t: ok ? 'pass' : 'fail', v: ok ? `✓ ${r.status}` : `✗ ${r.status}` },
+      { t: 'info', v: `${ms}ms` },
+      { t: 'info', v: `${d.embeddings?.length || 0} vectors` },
+    ]);
+    if (ok) {
+      meta('embedMeta', [
+        ['model', d.model || '?'],
+        ['dims', d.embeddings[0]?.length ?? '?'],
+      ]);
+      $('embedVecs').innerHTML = d.embeddings.map((vec, i) => {
+        const prev = vec.slice(0,10).map(v => v.toFixed(4)).join(', ');
+        return `<div style="margin-top:8px">
+          <div class="vector-label">[${i}] "${texts[i]}"</div>
+          <div class="vector-row">[${prev}, … (${vec.length} dims)]</div>
+        </div>`;
+      }).join('');
+    } else {
+      $('embedVecs').innerHTML = `<div class="output">${JSON.stringify(d, null, 2)}</div>`;
+    }
+  } catch(e) {
+    badges('embedBadges', [{ t: 'fail', v: '✗ ' + e.message }]);
+  }
+  unspin(btn, 'Embed');
+}
+
+// ── raw ──────────────────────────────────────────────────────────────────────
+async function sendRaw() {
+  const btn = $('rawBtn');
+  spin(btn, '');
+  out('rawOut', 'sending…', true); $('rawStatus').textContent = '';
+  let body;
+  try { body = JSON.parse($('rawBody').value); }
+  catch(e) { out('rawOut', 'JSON parse error: ' + e.message); unspin(btn, 'Fire'); return; }
+  const t = Date.now();
+  try {
+    const r = await fetch(`${wu()}${$('rawPath').value}`, { method:'POST', headers: ah(), body: JSON.stringify(body) });
+    const ms = Date.now() - t;
+    const d = await r.json().catch(() => null);
+    out('rawOut', JSON.stringify(d, null, 2));
+    $('rawStatus').textContent = `${r.status} · ${ms}ms`;
+    $('rawStatus').style.color = r.ok ? 'var(--green)' : 'var(--red)';
+  } catch(e) {
+    out('rawOut', 'Error: ' + e.message);
+    $('rawStatus').textContent = 'network error';
+    $('rawStatus').style.color = 'var(--red)';
+  }
+  unspin(btn, 'Fire');
+}
+
+// ── attribution ──────────────────────────────────────────────────────────────
+async function sendAttrib() {
+  const btn = $('attribBtn');
+  spin(btn, '');
+  out('aOut', 'sending…', true); $('aBadges').innerHTML = '';
+  const body = {
+    provider: $('provider').value, model: $('model').value,
+    messages: [{ role: 'user', content: $('aMsg').value }],
+    user_id:      $('aUserId').value || null,
+    workspace_id: $('aWsId').value  || null,
+    app_id: 'kaixusi-smoketest'
+  };
+  try {
+    const r = await fetch(`${wu()}/v1/chat`, { method:'POST', headers: ah(), body: JSON.stringify(body) });
+    const d = await r.json();
+    const at = d.attributed_to || {};
+    out('aOut', JSON.stringify(at, null, 2), !d.attributed_to);
+    badges('aBadges', [
+      { t: r.ok ? 'pass' : 'fail', v: r.ok ? '✓ attributed' : '✗ failed' },
+      { t: at.user_id ? 'pass' : 'warn', v: `user: ${at.user_id || '—'}` },
+      { t: at.workspace_id ? 'pass' : 'warn', v: `ws: ${at.workspace_id || '—'}` },
+    ]);
+  } catch(e) {
+    out('aOut', 'Error: ' + e.message);
+    badges('aBadges', [{ t: 'fail', v: '✗ network' }]);
+  }
+  unspin(btn, 'Send');
+}
+
+window.addEventListener('load', pingHealth);
+</script>
+</body>
+</html>

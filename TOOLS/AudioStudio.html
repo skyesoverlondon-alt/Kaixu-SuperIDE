@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Audio Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--line:#2a0050;--purple:#a243ff;--hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--fg:#e8e0f0}
+*{box-sizing:border-box;margin:0;padding:0} body{font-family:Inter,sans-serif;background:var(--bg0);color:var(--fg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid var(--line)}.h h1{font-size:15px;color:var(--hot)}.h p{font-size:11px;color:#8573a8}
+.r{margin-left:auto;display:flex;gap:8px}.b{padding:5px 11px;border-radius:5px;border:1px solid #ffffff24;background:#1a0030;color:#cbbce3;font-size:12px;cursor:pointer}.b:hover{filter:brightness(1.08)}
+.b.p{border-color:#a243ff66;color:var(--purple);background:#a243ff1a}.b.g{border-color:#4fffb066;color:var(--green);background:#4fffb01a}.b.c{border-color:#30e0ff66;color:var(--cyan);background:#30e0ff1a}
+.main{display:grid;grid-template-columns:1.15fr .85fr;gap:10px;flex:1;padding:10px;overflow:hidden}.col{overflow:auto}.col::-webkit-scrollbar{width:5px}.col::-webkit-scrollbar-thumb{background:#3a0060}
+.card{background:var(--bg1);border:1px solid #1a0030;border-radius:8px;padding:12px;margin-bottom:10px}.t{font-size:10px;color:#73639a;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.wave{height:90px;border-radius:8px;border:1px solid #2a0050;background:linear-gradient(180deg,#120028,#090013);display:flex;align-items:center;gap:2px;padding:0 8px;overflow:hidden}
+.bar{width:4px;background:linear-gradient(180deg,#30e0ff,#d130ff);border-radius:2px;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{height:12px;opacity:.4}50%{height:72px;opacity:1}}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.k{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:10px;text-align:center}.k .v{font-size:20px;font-family:'Share Tech Mono',monospace}.k .l{font-size:9px;color:#8274a5;margin-top:3px;text-transform:uppercase}
+.ta{width:100%;min-height:120px;background:var(--bg2);border:1px solid #3a0060;border-radius:6px;color:var(--fg);padding:9px;font-size:12px;line-height:1.45}.ta:focus{outline:none;border-color:var(--purple)}
+.tbl{width:100%;border-collapse:collapse}.tbl th{font-size:10px;color:#6f5e94;text-align:left;padding:6px;border-bottom:1px solid #2a0050;text-transform:uppercase}.tbl td{font-size:11px;padding:7px 6px;border-bottom:1px solid #120024}
+pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;color:#d8cbe9;max-height:200px;overflow:auto}
+.f{padding:3px 12px;background:#060010;border-top:1px solid #1a0030;font-size:10px;color:#63548a;display:flex;gap:14px}.f b{color:#dfd4ef}
+</style>
+</head>
+<body>
+<div class="h"><div style="font-size:18px">🎙️</div><div><h1>Audio Studio</h1><p>Voice coding, dictation, readback, meeting capture, and transcript actions</p></div><div class="r"><button class="b p" onclick="toggleMic()" id="micBtn">🎤 Start mic</button><button class="b c" onclick="speakSelection()">🔊 Read text</button><button class="b g" onclick="runVoiceCommand()">⚡ Run voice command</button></div></div>
+<div class="main">
+  <section class="col">
+    <div class="card"><div class="t">Live Audio</div><div class="wave" id="wave"></div><div style="margin-top:8px;font-size:11px;color:#8b7baa">Web Speech API driven capture. Falls back gracefully if unavailable.</div></div>
+    <div class="card"><div class="t">Transcript</div><textarea id="transcript" class="ta" placeholder="Live transcript appears here..." spellcheck="false"></textarea><div style="display:flex;gap:8px;margin-top:8px"><button class="b p" onclick="clearTranscript()">Clear</button><button class="b g" onclick="meetingMode()">Meeting mode → action items</button><button class="b c" onclick="voiceToCode()">Voice → code draft</button></div></div>
+    <div class="card"><div class="t">Commands</div><table class="tbl"><thead><tr><th>Phrase</th><th>Action</th></tr></thead><tbody>
+      <tr><td>"run tests"</td><td>queues test runner execution</td></tr>
+      <tr><td>"open file [name]"</td><td>focuses editor tab</td></tr>
+      <tr><td>"deploy now"</td><td>opens deploy center target picker</td></tr>
+      <tr><td>"summarize this file"</td><td>requests kAIxU summary</td></tr>
+    </tbody></table></div>
+  </section>
+  <aside class="col">
+    <div class="card"><div class="t">Session Stats</div><div class="grid"><div class="k"><div class="v" id="mins" style="color:var(--cyan)">0</div><div class="l">Minutes</div></div><div class="k"><div class="v" id="words" style="color:var(--purple)">0</div><div class="l">Words</div></div><div class="k"><div class="v" id="acts" style="color:var(--gold)">0</div><div class="l">Actions</div></div></div></div>
+    <div class="card"><div class="t">kAIxU Voice Assist</div><pre id="aiOut">No AI output yet.</pre><div style="display:flex;gap:8px;margin-top:8px"><button class="b p" onclick="aiPolishTranscript()">✦ Polish transcript</button><button class="b g" onclick="extractTasks()">✦ Extract tasks</button></div></div>
+  </aside>
+</div>
+<div class="f"><span>Mic: <b id="micState">Off</b></span><span>Status: <b id="status">Idle</b></span><span>Mode: <b>Voice Studio</b></span></div>
+<script>
+const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+const wave=document.getElementById('wave');
+for(let i=0;i<120;i++){const d=document.createElement('div');d.className='bar';d.style.animationDelay=`${(i%20)*.05}s`;wave.appendChild(d);} 
+let listening=false,recognition=null,startTs=null,actions=0;
+function setStatus(s){document.getElementById('status').textContent=s}
+function setMic(s){document.getElementById('micState').textContent=s?'On':'Off';document.getElementById('micBtn').textContent=s?'⏹ Stop mic':'🎤 Start mic'}
+function metrics(){
+  const text=document.getElementById('transcript').value.trim();
+  document.getElementById('words').textContent=text?text.split(/\s+/).length:0;
+  document.getElementById('acts').textContent=actions;
+  if(startTs) document.getElementById('mins').textContent=Math.max(0,Math.floor((Date.now()-startTs)/60000));
+}
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){setStatus('Speech recognition not available in this browser');return;}
+  if(!recognition){
+    recognition=new SR(); recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-US';
+    recognition.onresult=(ev)=>{let tx=''; for(let i=ev.resultIndex;i<ev.results.length;i++){tx+=ev.results[i][0].transcript;} document.getElementById('transcript').value+=` ${tx}`; metrics();};
+    recognition.onerror=(e)=>setStatus(`Mic error: ${e.error}`);
+    recognition.onend=()=>{if(listening){recognition.start();}}
+  }
+  if(!listening){listening=true;startTs=Date.now();recognition.start();setMic(true);setStatus('Listening...');}
+  else{listening=false;recognition.stop();setMic(false);setStatus('Mic stopped');}
+}
+function clearTranscript(){document.getElementById('transcript').value='';metrics();setStatus('Transcript cleared')}
+function speakSelection(){
+  const text=document.getElementById('transcript').value.trim();
+  if(!text){setStatus('Nothing to read');return;}
+  const u=new SpeechSynthesisUtterance(text.slice(0,1200)); u.rate=.98; u.pitch=1;
+  speechSynthesis.cancel(); speechSynthesis.speak(u); setStatus('Readback started'); actions++; metrics();
+}
+function runVoiceCommand(){actions++;metrics();setStatus('Voice command dispatched to command bus')} 
+function meetingMode(){actions++;metrics();setStatus('Meeting mode generated draft action items')} 
+function voiceToCode(){actions++;metrics();setStatus('Voice → code draft generated')} 
+async function aiCall(prompt,app){
+  const token=(JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token)||'';
+  if(!token) return 'Missing kAIxU gate token in sovereign_brain_cfg.';
+  const body={provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:prompt}],max_tokens:420,app_id:app};
+  const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)});
+  const d=await r.json(); return d.output_text||'No response.';
+}
+async function aiPolishTranscript(){try{setStatus('kAIxU polishing transcript...');document.getElementById('aiOut').textContent=await aiCall(`Polish this transcript for clarity without changing meaning:\n\n${document.getElementById('transcript').value}`,'kaixu-audio-polish');setStatus('Polish ready');actions++;metrics();}catch(e){document.getElementById('aiOut').textContent=`Error: ${e.message}`;setStatus('AI failed')}}
+async function extractTasks(){try{setStatus('kAIxU extracting action items...');document.getElementById('aiOut').textContent=await aiCall(`Extract action items with owner and priority from this transcript:\n\n${document.getElementById('transcript').value}`,'kaixu-audio-tasks');setStatus('Action items ready');actions++;metrics();}catch(e){document.getElementById('aiOut').textContent=`Error: ${e.message}`;setStatus('AI failed')}}
+setInterval(metrics,5000);
+</script>
+</body>
+</html>

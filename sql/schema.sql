@@ -416,3 +416,40 @@ create unique index if not exists idx_orgs_sso_domain on orgs(sso_domain) where 
 
 -- ─── MFA enforcement on orgs ────────────────────────────────────────────────
 ALTER TABLE orgs ADD COLUMN IF NOT EXISTS require_mfa boolean NOT NULL DEFAULT false;
+
+-- ─── KaixuSI Customer API Keys ───────────────────────────────────────────────
+-- Per-user API keys dispensed to customers. Stored as SHA-256 hashes.
+-- Plaintext is shown once on creation and never stored.
+-- Keys are prefixed `ksk_` so they're easy to identify.
+create table if not exists kaixu_keys (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references users(id) on delete cascade,
+  key_hash     text not null unique,            -- SHA-256 of plaintext key
+  label        text not null default 'My KaixuSI Key',
+  status       text not null default 'active'  check (status in ('active','revoked')),
+  last_used_at timestamptz,
+  revoked_at   timestamptz,
+  created_at   timestamptz not null default now()
+);
+create index if not exists idx_kaixu_keys_user_id  on kaixu_keys(user_id);
+create index if not exists idx_kaixu_keys_key_hash on kaixu_keys(key_hash);
+create index if not exists idx_kaixu_keys_status   on kaixu_keys(status);
+-- ─── KaixuSI Customer API Keys (enterprise / dispensed) ─────────────────────
+-- Full-featured key table: quota tracking, owner attribution, revocation.
+-- Only the SHA-256 hash of the plaintext `kxsi_...` key is ever stored.
+create table if not exists kaixu_customer_keys (
+  id            uuid        primary key default gen_random_uuid(),
+  key_hash      text        not null unique,           -- SHA-256 of kxsi_… key
+  label         text,                                  -- friendly name
+  owner_email   text,                                  -- customer contact
+  created_at    timestamptz not null default now(),
+  revoked_at    timestamptz,                           -- null = active
+  last_used_at  timestamptz,
+  call_count    int         not null default 0,
+  monthly_limit int         not null default 1000,
+  is_active     boolean     not null default true
+);
+
+create index if not exists idx_kxc_keys_hash     on kaixu_customer_keys(key_hash);
+create index if not exists idx_kxc_keys_active   on kaixu_customer_keys(is_active);
+create index if not exists idx_kxc_keys_email    on kaixu_customer_keys(owner_email);

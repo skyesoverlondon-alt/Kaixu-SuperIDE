@@ -16,6 +16,7 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "jest": "^29.7.0",
+    "playwright": "^1.58.2",
     "supertest": "^7.0.0"
   },
   "optionalDependencies": {
@@ -31,12 +32,20 @@
     "test": "jest --testPathPattern=tests/ --forceExit",
     "test:watch": "jest --testPathPattern=tests/ --watch",
     "test:coverage": "jest --testPathPattern=tests/ --coverage --forceExit",
-    "lint": "node --check netlify/functions/*.js netlify/functions/_lib/*.js 2>&1 | head -50"
+    "lint": "node --check netlify/functions/*.js netlify/functions/_lib/*.js 2>&1 | head -50",
+    "worker:dev": "cd worker && npm run dev",
+    "worker:deploy": "cd worker && npm run deploy",
+    "worker:tail": "cd worker && npm run tail",
+    "worker:secret": "cd worker && npx wrangler secret put"
   },
   "jest": {
     "testEnvironment": "node",
-    "setupFiles": ["./tests/setup.js"],
-    "testMatch": ["**/tests/**/*.test.js"],
+    "setupFiles": [
+      "./tests/setup.js"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
     "collectCoverageFrom": [
       "netlify/functions/**/*.js",
       "!netlify/functions/_lib/db.js"

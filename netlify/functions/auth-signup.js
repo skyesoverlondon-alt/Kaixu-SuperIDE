@@ -91,8 +91,8 @@ exports.handler = async (event) => {
     if (msg.toLowerCase().includes('jwt_secret') || msg.toLowerCase().includes('missing/weak')) {
       return json(500, { ok: false, error: 'Server misconfiguration: JWT_SECRET not set' });
     }
-    if (msg.toLowerCase().includes('database_url') || msg.toLowerCase().includes('connect')) {
-      return json(500, { ok: false, error: 'Server misconfiguration: database not reachable' });
+    if (msg.toLowerCase().includes('missing database connection')) {
+      return json(500, { ok: false, error: 'Server misconfiguration: DATABASE_URL not set in Netlify env' });
     }
     return json(500, { ok: false, error: 'Signup failed: ' + msg });
   }

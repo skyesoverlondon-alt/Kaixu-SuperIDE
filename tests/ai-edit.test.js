@@ -29,8 +29,8 @@ describe('POST /ai-edit', () => {
   let handler;
 
   beforeAll(() => {
-    process.env.KAIXU_GATE_TOKEN = 'test-gate-token';
-    process.env.KAIXU_GATE_BASE  = 'https://kaixu67.skyesoverlondon.workers.dev';
+    process.env.KAIXUSI_SECRET      = 'test-kaixusi-secret';
+    process.env.KAIXUSI_WORKER_URL  = 'http://localhost:8787';
     handler = require('../netlify/functions/ai-edit').handler;
   });
 
@@ -96,18 +96,20 @@ describe('POST /ai-edit', () => {
     checkQuota.mockResolvedValueOnce({ allowed: true, used: 0, limit: 1000 });
     db.query.mockResolvedValue({ rows: [] });
 
-    // Mock the fetch to gateway
+    // Mock the fetch to KaixuSI worker
     global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
       json: async () => ({
-        ok: true,
-        text: JSON.stringify({
+        output_text: JSON.stringify({
           reply: 'Done',
           summary: 'Created file',
           operations: [{ type: 'create', path: 'hello.js', content: 'console.log("hello")' }],
           touched: ['hello.js'],
         }),
         model: 'gemini-2.5-flash',
-        usage: { promptTokens: 10, candidatesTokens: 50, totalTokens: 60 },
+        usage: { input_tokens: 10, output_tokens: 50 },
+        attributed_to: { user_id: 'user-1', workspace_id: null, org_id: null, app_id: 'kaixu-superide' },
+        kaixusi: true,
       }),
     });
 

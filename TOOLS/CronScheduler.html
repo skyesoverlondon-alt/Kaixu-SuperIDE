@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Cron Scheduler</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--bg3:#1e0040;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg0);color:var(--fg);font-family:'Inter',sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  .hdr{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid #2a0050;flex-shrink:0;}
+  .hdr-title{font-weight:700;font-size:15px;color:var(--gold);}
+  .hdr-sub{color:#8060a0;font-size:11px;}
+  .hdr-right{margin-left:auto;display:flex;gap:8px;}
+  .btn{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:all .15s;}
+  .btn-green{background:rgba(79,255,176,.15);color:var(--green);border:1px solid rgba(79,255,176,.3);}
+  .btn-green:hover{background:rgba(79,255,176,.25);}
+  .btn-gold{background:rgba(255,211,106,.12);color:var(--gold);border:1px solid rgba(255,211,106,.3);}
+  .btn-gold:hover{background:rgba(255,211,106,.22);}
+  .btn-purple{background:rgba(162,67,255,.15);color:var(--purple);border:1px solid rgba(162,67,255,.3);}
+  .btn-purple:hover{background:rgba(162,67,255,.25);}
+  .btn-red{background:rgba(255,79,106,.12);color:var(--red);border:1px solid rgba(255,79,106,.3);}
+  .btn-red:hover{background:rgba(255,79,106,.22);}
+  .btn-sm{padding:3px 9px;font-size:11px;}
+  .layout{display:flex;flex:1;overflow:hidden;}
+
+  /* JOB LIST */
+  .job-list-pane{width:300px;background:var(--bg1);border-right:1px solid #2a0050;display:flex;flex-direction:column;flex-shrink:0;}
+  .pane-hdr{padding:10px 12px;border-bottom:1px solid #1a0030;display:flex;align-items:center;justify-content:space-between;}
+  .pane-hdr-label{font-size:11px;font-weight:700;color:#8060a0;text-transform:uppercase;letter-spacing:.08em;}
+  .job-scroll{flex:1;overflow-y:auto;}
+  .job-scroll::-webkit-scrollbar{width:3px;}
+  .job-scroll::-webkit-scrollbar-thumb{background:#3a0060;}
+  .job-item{padding:10px 12px;border-bottom:1px solid #1a0030;cursor:pointer;transition:background .1s;}
+  .job-item:hover{background:var(--bg2);}
+  .job-item.active{background:var(--bg2);border-left:2px solid var(--gold);}
+  .job-name{font-weight:700;font-size:12px;color:var(--fg);}
+  .job-cron{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--gold);margin-top:2px;}
+  .job-desc{font-size:10px;color:#7050a0;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .job-status-row{display:flex;align-items:center;gap:6px;margin-top:5px;}
+  .status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .status-dot.active{background:var(--green);box-shadow:0 0 6px rgba(79,255,176,.5);}
+  .status-dot.paused{background:var(--gold);}
+  .status-dot.failed{background:var(--red);}
+  .job-next{font-size:9px;color:#6040a0;}
+  .last-badge{font-size:9px;padding:1px 5px;border-radius:3px;}
+  .last-ok{background:rgba(79,255,176,.1);color:var(--green);}
+  .last-fail{background:rgba(255,79,106,.1);color:var(--red);}
+
+  /* MAIN */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .detail-area{flex:1;overflow-y:auto;padding:14px;}
+  .detail-area::-webkit-scrollbar{width:4px;}
+  .detail-area::-webkit-scrollbar-thumb{background:#3a0060;}
+
+  /* FORM CARD */
+  .card{background:var(--bg1);border:1px solid #2a0050;border-radius:7px;padding:16px;margin-bottom:12px;}
+  .card-title{font-size:12px;font-weight:700;color:#8060a0;text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
+  .form-row{display:flex;gap:10px;margin-bottom:10px;align-items:flex-end;}
+  .form-group{flex:1;}
+  .form-group label{display:block;font-size:10px;color:#7050a0;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;}
+  .form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg2);border:1px solid #3a0060;border-radius:4px;color:var(--fg);padding:7px 10px;font-family:inherit;font-size:12px;}
+  .form-group textarea{height:60px;resize:vertical;font-family:'Share Tech Mono',monospace;}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--gold);}
+  .cron-builder{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px;}
+  .cron-field{text-align:center;}
+  .cron-field label{font-size:9px;color:#7050a0;display:block;margin-bottom:3px;}
+  .cron-field input{width:100%;background:var(--bg2);border:1px solid #3a0060;border-radius:4px;color:var(--gold);padding:6px 4px;font-family:'Share Tech Mono',monospace;font-size:13px;text-align:center;}
+  .cron-field input:focus{outline:none;border-color:var(--gold);}
+  .cron-preview{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--gold);background:var(--bg2);padding:8px 12px;border-radius:4px;border:1px solid #2a0050;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+  .cron-human{font-size:11px;color:var(--cyan);}
+  .quick-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+  .quick-btn{padding:3px 9px;border-radius:3px;background:rgba(255,211,106,.08);color:var(--gold);border:1px solid rgba(255,211,106,.2);cursor:pointer;font-size:10px;font-family:inherit;}
+  .quick-btn:hover{background:rgba(255,211,106,.18);}
+
+  /* RUN HISTORY */
+  .run-table{width:100%;border-collapse:collapse;}
+  .run-table th{font-size:10px;color:#6040a0;text-align:left;padding:5px 8px;border-bottom:1px solid #1a0030;text-transform:uppercase;letter-spacing:.05em;}
+  .run-table td{font-size:11px;padding:7px 8px;border-bottom:1px solid #0d001a;font-family:'Share Tech Mono',monospace;}
+  .run-table tr:last-child td{border-bottom:none;}
+  .run-ok{color:var(--green);}
+  .run-fail{color:var(--red);}
+  .run-row{cursor:pointer;}
+  .run-row:hover td{background:#0a0018;}
+
+  /* EMPTY */
+  .empty{display:flex;align-items:center;justify-content:center;height:100%;color:#5040a0;flex-direction:column;gap:10px;text-align:center;}
+  .empty .big{font-size:36px;}
+
+  /* STATUS BAR */
+  .status-bar{padding:3px 14px;background:#060010;border-top:1px solid #1a0030;display:flex;gap:16px;font-size:10px;color:#5040a0;flex-shrink:0;}
+  .status-bar span b{color:var(--fg);}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--bg1);border:1px solid #3a0060;border-radius:8px;width:540px;max-height:85vh;overflow-y:auto;padding:20px;}
+  .modal h3{font-size:15px;font-weight:700;color:var(--gold);margin-bottom:14px;}
+  .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
+  .natural-hint{font-size:10px;color:#6040a0;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="font-size:20px;">⏰</div>
+  <div>
+    <div class="hdr-title">Cron Scheduler</div>
+    <div class="hdr-sub">Schedule serverless jobs · visual builder · no YAML</div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn btn-gold" onclick="openNew()">+ New Job</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- JOB LIST -->
+  <div class="job-list-pane">
+    <div class="pane-hdr">
+      <span class="pane-hdr-label">Jobs (<span id="jobCount">0</span>)</span>
+      <button class="btn btn-sm btn-purple" onclick="refreshJobs()">↻</button>
+    </div>
+    <div class="job-scroll" id="jobScroll"></div>
+  </div>
+
+  <!-- MAIN DETAIL -->
+  <div class="main">
+    <div class="detail-area" id="detailArea">
+      <div class="empty" id="emptyState">
+        <div class="big">⏰</div>
+        <div style="font-size:15px;color:#8060a0;font-weight:600;">No job selected</div>
+        <div style="font-size:12px;color:#5040a0;max-width:260px;line-height:1.5;">Create a new cron job or select one from the list to view details and run history.</div>
+        <button class="btn btn-gold" onclick="openNew()">+ New Job</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span>Jobs: <b id="sbJobs">0</b></span>
+  <span>Active: <b id="sbActive" style="color:var(--green)">0</b></span>
+  <span>Failed: <b id="sbFailed" style="color:var(--red)">0</b></span>
+  <span>Status: <b id="statusLabel">Idle</b></span>
+</div>
+
+<!-- NEW JOB MODAL -->
+<div class="modal-overlay hidden" id="jobModal">
+  <div class="modal">
+    <h3 id="modalTitle">⏰ New Cron Job</h3>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Job Name</label>
+      <input type="text" id="cfgName" placeholder="daily-backup"/>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Natural Language Schedule (or use builder below)</label>
+      <input type="text" id="cfgNatural" placeholder="every day at 9am UTC, every 5 minutes, every Monday…" oninput="parseNatural()"/>
+      <div class="natural-hint" id="naturalHint">Type a schedule in plain English</div>
+    </div>
+    <div class="card-title" style="margin-bottom:8px;">Cron Expression Builder</div>
+    <div class="quick-btns">
+      <span class="quick-btn" onclick="setQuick('* * * * *')">Every minute</span>
+      <span class="quick-btn" onclick="setQuick('*/5 * * * *')">Every 5 min</span>
+      <span class="quick-btn" onclick="setQuick('0 * * * *')">Hourly</span>
+      <span class="quick-btn" onclick="setQuick('0 9 * * *')">Daily 9am</span>
+      <span class="quick-btn" onclick="setQuick('0 9 * * 1')">Mon 9am</span>
+      <span class="quick-btn" onclick="setQuick('0 0 1 * *')">Monthly</span>
+    </div>
+    <div class="cron-builder">
+      <div class="cron-field"><label>Minute</label><input type="text" id="c_min" value="0" oninput="buildCron()"/></div>
+      <div class="cron-field"><label>Hour</label><input type="text" id="c_hr" value="9" oninput="buildCron()"/></div>
+      <div class="cron-field"><label>Day</label><input type="text" id="c_day" value="*" oninput="buildCron()"/></div>
+      <div class="cron-field"><label>Month</label><input type="text" id="c_mo" value="*" oninput="buildCron()"/></div>
+      <div class="cron-field"><label>Weekday</label><input type="text" id="c_dow" value="*" oninput="buildCron()"/></div>
+    </div>
+    <div class="cron-preview">
+      <span id="cronExpr" style="font-size:15px;">0 9 * * *</span>
+      <span class="cron-human" id="cronHuman">Every day at 09:00 UTC</span>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Target URL (webhook / Netlify function / CF Worker route)</label>
+      <input type="text" id="cfgUrl" placeholder="https://mysite.netlify.app/.netlify/functions/daily-job"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Timezone</label>
+        <select id="cfgTz">
+          <option>UTC</option><option>America/New_York</option><option>America/Los_Angeles</option>
+          <option>Europe/London</option><option>Europe/Paris</option><option>Asia/Tokyo</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Retry on failure</label>
+        <select id="cfgRetry">
+          <option value="none">No retry</option>
+          <option value="immediate">Retry immediately</option>
+          <option value="1m">Retry after 1 min</option>
+          <option value="5m">Retry after 5 min</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Request Headers (JSON, optional)</label>
+      <textarea id="cfgHeaders" placeholder='{"Authorization":"Bearer {{secret}}","Content-Type":"application/json"}'></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Request Body (JSON, optional)</label>
+      <textarea id="cfgBody" placeholder='{"action":"run"}'></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:4px;">
+      <label>Failure Alert Webhook (optional)</label>
+      <input type="text" id="cfgAlert" placeholder="https://hooks.slack.com/…"/>
+    </div>
+    <div class="modal-btns">
+      <button class="btn" style="background:#1a0030;color:#8060a0;" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="saveJob()">Save Job</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const HUMAN_MAP=[
+  [/every minute/i,'* * * * *'],
+  [/every (\d+) min/i,(m)=>`*/${m[1]} * * * *`],
+  [/every hour/i,'0 * * * *'],
+  [/every day at (\d+)(?::(\d+))?\s*(am|pm)?/i,(m)=>{
+    let h=parseInt(m[1]);
+    if(m[3]==='pm'&&h<12) h+=12;
+    if(m[3]==='am'&&h===12) h=0;
+    return `${m[2]||0} ${h} * * *`;
+  }],
+  [/daily/i,'0 9 * * *'],
+  [/every monday/i,'0 9 * * 1'],
+  [/every friday/i,'0 9 * * 5'],
+  [/every week/i,'0 9 * * 1'],
+  [/monthly/i,'0 0 1 * *'],
+  [/every (\d+) hour/i,(m)=>`0 */${m[1]} * * *`],
+];
+
+const CRON_HUMAN={
+  '* * * * *':'Every minute',
+  '*/5 * * * *':'Every 5 minutes',
+  '*/15 * * * *':'Every 15 minutes',
+  '0 * * * *':'Every hour',
+  '0 9 * * *':'Every day at 09:00 UTC',
+  '0 0 * * *':'Every day at midnight UTC',
+  '0 9 * * 1':'Every Monday at 09:00 UTC',
+  '0 9 * * 5':'Every Friday at 09:00 UTC',
+  '0 0 1 * *':'First of every month at midnight UTC',
+};
+
+const DEMO_RUNS=[
+  {ts:'2026-03-01 09:00:00',status:'ok',dur:412,code:200,resp:'{"ok":true}'},
+  {ts:'2026-02-29 09:00:00',status:'ok',dur:388,code:200,resp:'{"ok":true}'},
+  {ts:'2026-02-28 09:00:00',status:'fail',dur:5002,code:504,resp:'Gateway Timeout'},
+  {ts:'2026-02-27 09:00:00',status:'ok',dur:401,code:200,resp:'{"ok":true}'},
+  {ts:'2026-02-26 09:00:00',status:'ok',dur:355,code:200,resp:'{"ok":true}'},
+];
+
+let jobs=[
+  {id:1,name:'daily-backup',cron:'0 9 * * *',url:'https://myapp.netlify.app/.netlify/functions/backup',tz:'UTC',status:'active',lastRun:'2026-03-01 09:00',lastOk:true,retry:'1m',desc:'Daily database backup to S3'},
+  {id:2,name:'health-ping',cron:'*/5 * * * *',url:'https://kaixusi.skyesoverlondon.workers.dev/health',tz:'UTC',status:'active',lastRun:'2026-03-01 16:50',lastOk:true,retry:'immediate',desc:'Worker liveness check every 5 min'},
+  {id:3,name:'weekly-report',cron:'0 9 * * 1',url:'https://myapp.netlify.app/.netlify/functions/report',tz:'America/New_York',status:'paused',lastRun:'2026-02-24 14:00',lastOk:true,retry:'none',desc:'Send weekly analytics email'},
+  {id:4,name:'token-cleanup',cron:'0 0 * * *',url:'https://myapp.netlify.app/.netlify/functions/cleanup',tz:'UTC',status:'failed',lastRun:'2026-03-01 00:00',lastOk:false,retry:'5m',desc:'Expire old auth tokens'},
+];
+let selectedJob=null;
+let editingId=null;
+
+function init(){ renderJobList(); updateStatusBar(); }
+
+function renderJobList(){
+  const el=document.getElementById('jobScroll');
+  el.innerHTML=jobs.map(j=>`
+    <div class="job-item${selectedJob===j.id?' active':''}" onclick="selectJob(${j.id})">
+      <div class="job-name">${j.name}</div>
+      <div class="job-cron">${j.cron}</div>
+      <div class="job-desc">${j.desc}</div>
+      <div class="job-status-row">
+        <div class="status-dot ${j.status}"></div>
+        <span class="job-next">${j.status==='active'?'Next: '+nextRun(j.cron):j.status}</span>
+        <span class="last-badge ${j.lastOk?'last-ok':'last-fail'}">${j.lastOk?'✓ ok':'✗ fail'}</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('jobCount').textContent=jobs.length;
+}
+
+function updateStatusBar(){
+  document.getElementById('sbJobs').textContent=jobs.length;
+  document.getElementById('sbActive').textContent=jobs.filter(j=>j.status==='active').length;
+  document.getElementById('sbFailed').textContent=jobs.filter(j=>j.status==='failed').length;
+}
+
+function selectJob(id){
+  selectedJob=id;
+  renderJobList();
+  const j=jobs.find(x=>x.id===id);
+  if(!j) return;
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('detailArea').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--fg);">${j.name}</div>
+        <div style="font-size:11px;color:#7050a0;">${j.desc}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn btn-green btn-sm" onclick="runNow(${j.id})">▶ Run Now</button>
+        <button class="btn ${j.status==='paused'?'btn-gold':'btn-purple'} btn-sm" onclick="togglePause(${j.id})">${j.status==='paused'?'▶ Resume':'⏸ Pause'}</button>
+        <button class="btn btn-gold btn-sm" onclick="editJob(${j.id})">✎ Edit</button>
+        <button class="btn btn-red btn-sm" onclick="deleteJob(${j.id})">✕ Delete</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">Schedule</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div><div style="font-size:10px;color:#7050a0;">CRON</div><div style="font-family:'Share Tech Mono',monospace;font-size:15px;color:var(--gold);margin-top:3px;">${j.cron}</div></div>
+        <div><div style="font-size:10px;color:#7050a0;">HUMAN</div><div style="font-size:12px;color:var(--cyan);margin-top:3px;">${CRON_HUMAN[j.cron]||humanizeCron(j.cron)}</div></div>
+        <div><div style="font-size:10px;color:#7050a0;">TIMEZONE</div><div style="font-size:12px;color:var(--fg);margin-top:3px;">${j.tz}</div></div>
+        <div><div style="font-size:10px;color:#7050a0;">NEXT RUN</div><div style="font-size:12px;color:var(--green);margin-top:3px;">${nextRun(j.cron)}</div></div>
+        <div><div style="font-size:10px;color:#7050a0;">RETRY</div><div style="font-size:12px;color:var(--fg);margin-top:3px;">${j.retry}</div></div>
+        <div><div style="font-size:10px;color:#7050a0;">STATUS</div><div style="font-size:12px;margin-top:3px;color:${j.status==='active'?'var(--green)':j.status==='failed'?'var(--red)':'var(--gold)'};">${j.status}</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">Target</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);word-break:break-all;">${j.url}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Run History (last 5)</div>
+      <table class="run-table">
+        <thead><tr><th>Timestamp</th><th>Status</th><th>Duration</th><th>HTTP</th><th>Response</th></tr></thead>
+        <tbody>${DEMO_RUNS.map(r=>`
+          <tr class="run-row">
+            <td>${r.ts}</td>
+            <td class="${r.status==='ok'?'run-ok':'run-fail'}">${r.status==='ok'?'✓ ok':'✗ fail'}</td>
+            <td>${r.dur}ms</td>
+            <td>${r.code}</td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.resp}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function runNow(id){
+  const j=jobs.find(x=>x.id===id);
+  setStatus(`Running ${j.name}…`);
+  setTimeout(async()=>{
+    try{
+      const r=await fetch(j.url,{method:'GET',signal:AbortSignal.timeout(8000)});
+      j.lastOk=r.ok; j.lastRun=new Date().toISOString().slice(0,16).replace('T',' ');
+      if(!r.ok) j.status='failed'; else j.status='active';
+      setStatus(`${j.name}: ${r.status} ${r.ok?'✓':'✗'}`);
+    }catch(e){
+      j.lastOk=false; j.status='failed';
+      setStatus(`${j.name}: error — ${e.message}`);
+    }
+    renderJobList(); updateStatusBar(); selectJob(id);
+  },100);
+}
+
+function togglePause(id){
+  const j=jobs.find(x=>x.id===id);
+  j.status=j.status==='paused'?'active':'paused';
+  renderJobList(); updateStatusBar(); selectJob(id);
+  setStatus(`${j.name} ${j.status}`);
+}
+
+function deleteJob(id){
+  jobs=jobs.filter(x=>x.id!==id);
+  selectedJob=null;
+  renderJobList(); updateStatusBar();
+  document.getElementById('detailArea').innerHTML='<div class="empty" id="emptyState"><div class="big">⏰</div><div style="color:#8060a0;font-size:14px;">Job deleted</div></div>';
+  setStatus('Job deleted');
+}
+
+function editJob(id){
+  editingId=id;
+  const j=jobs.find(x=>x.id===id);
+  document.getElementById('modalTitle').textContent='✎ Edit Job';
+  document.getElementById('cfgName').value=j.name;
+  document.getElementById('cfgUrl').value=j.url;
+  document.getElementById('cfgTz').value=j.tz;
+  document.getElementById('cfgRetry').value=j.retry;
+  const parts=j.cron.split(' ');
+  document.getElementById('c_min').value=parts[0];
+  document.getElementById('c_hr').value=parts[1];
+  document.getElementById('c_day').value=parts[2];
+  document.getElementById('c_mo').value=parts[3];
+  document.getElementById('c_dow').value=parts[4];
+  buildCron();
+  document.getElementById('jobModal').classList.remove('hidden');
+}
+
+function openNew(){
+  editingId=null;
+  document.getElementById('modalTitle').textContent='⏰ New Cron Job';
+  document.getElementById('cfgName').value='';
+  document.getElementById('cfgUrl').value='';
+  document.getElementById('cfgNatural').value='';
+  document.getElementById('naturalHint').textContent='Type a schedule in plain English';
+  setQuick('0 9 * * *');
+  document.getElementById('jobModal').classList.remove('hidden');
+}
+function closeModal(){ document.getElementById('jobModal').classList.add('hidden'); editingId=null; }
+
+function saveJob(){
+  const name=document.getElementById('cfgName').value.trim();
+  const url=document.getElementById('cfgUrl').value.trim();
+  const cron=document.getElementById('cronExpr').textContent.trim();
+  const tz=document.getElementById('cfgTz').value;
+  const retry=document.getElementById('cfgRetry').value;
+  if(!name||!url){ setStatus('Name and URL are required'); return; }
+  if(editingId){
+    const j=jobs.find(x=>x.id===editingId);
+    Object.assign(j,{name,url,cron,tz,retry});
+    setStatus(`Updated ${name}`);
+  } else {
+    jobs.push({id:Date.now(),name,cron,url,tz,status:'active',lastRun:'Never',lastOk:true,retry,desc:url.split('/').pop()});
+    setStatus(`Created ${name}`);
+  }
+  closeModal(); renderJobList(); updateStatusBar();
+}
+
+function buildCron(){
+  const expr=[
+    document.getElementById('c_min').value||'*',
+    document.getElementById('c_hr').value||'*',
+    document.getElementById('c_day').value||'*',
+    document.getElementById('c_mo').value||'*',
+    document.getElementById('c_dow').value||'*',
+  ].join(' ');
+  document.getElementById('cronExpr').textContent=expr;
+  document.getElementById('cronHuman').textContent=CRON_HUMAN[expr]||humanizeCron(expr);
+}
+
+function setQuick(expr){
+  const [min,hr,day,mo,dow]=expr.split(' ');
+  document.getElementById('c_min').value=min;
+  document.getElementById('c_hr').value=hr;
+  document.getElementById('c_day').value=day;
+  document.getElementById('c_mo').value=mo;
+  document.getElementById('c_dow').value=dow;
+  document.getElementById('cronExpr').textContent=expr;
+  document.getElementById('cronHuman').textContent=CRON_HUMAN[expr]||humanizeCron(expr);
+}
+
+function parseNatural(){
+  const input=document.getElementById('cfgNatural').value;
+  for(const [re,val] of HUMAN_MAP){
+    const m=input.match(re);
+    if(m){
+      const expr=typeof val==='function'?val(m):val;
+      setQuick(expr);
+      document.getElementById('naturalHint').textContent=`→ ${expr}`;
+      return;
+    }
+  }
+  document.getElementById('naturalHint').textContent='Could not parse — use the builder below';
+}
+
+function humanizeCron(expr){
+  const [min,hr,day,mo,dow]=expr.split(' ');
+  if(min.startsWith('*/')) return `Every ${min.slice(2)} minutes`;
+  if(min==='0'&&hr.startsWith('*/')) return `Every ${hr.slice(2)} hours`;
+  if(min==='0'&&hr!=='*'&&day==='*') return `Daily at ${hr.padStart(2,'0')}:00 UTC`;
+  return expr;
+}
+
+function nextRun(cron){
+  // simple approximation
+  const now=new Date();
+  const [min,hr]=cron.split(' ');
+  if(cron.startsWith('*/')||cron==='* * * * *') return 'in <5 min';
+  if(min==='0'&&hr==='*') return 'next hour';
+  const h=parseInt(hr)||9,m=parseInt(min)||0;
+  const next=new Date(now);
+  next.setUTCHours(h,m,0,0);
+  if(next<=now) next.setUTCDate(next.getUTCDate()+1);
+  const diff=next-now;
+  const hh=Math.floor(diff/3600000),mm=Math.floor((diff%3600000)/60000);
+  return `in ${hh}h ${mm}m`;
+}
+
+function refreshJobs(){ setStatus('Refreshed'); renderJobList(); }
+function setStatus(msg){ document.getElementById('statusLabel').textContent=msg; }
+
+init();
+</script>
+</body>
+</html>

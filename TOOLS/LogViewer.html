@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kAIxU — Log Viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+<style>
+:root{--bg0:#040008;--bg1:#080012;--bg2:#0d001c;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--muted:#64748b;--ink:#e2e8f0;--border:rgba(162,67,255,.18)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100vh;background:var(--bg0);color:var(--ink);font-family:'Inter',sans-serif;font-size:13px;overflow:hidden}
+#app{display:grid;grid-template-rows:52px auto 1fr;height:100vh}
+header{display:flex;align-items:center;gap:10px;padding:0 16px;background:rgba(4,0,8,.95);border-bottom:1px solid var(--border)}
+.logo{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--gold);letter-spacing:.1em}
+.hspacer{flex:1}
+.hbtn{padding:5px 12px;border-radius:7px;font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;border:1px solid rgba(255,255,255,.1);color:var(--muted);background:transparent;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.hbtn:hover{border-color:var(--purple);color:var(--purple)}
+/* Controls */
+#controls{display:flex;align-items:stretch;gap:0;border-bottom:1px solid var(--border);background:var(--bg1);flex-wrap:nowrap;overflow-x:auto}
+.ctrl-group{display:flex;flex-direction:column;padding:8px 12px;border-right:1px solid var(--border);min-width:0;gap:5px}
+.ctrl-label{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ctrl-input{padding:5px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px;color:var(--ink);font-family:'Share Tech Mono',monospace;font-size:10px;outline:none;transition:border .15s;min-width:0}
+.ctrl-input:focus{border-color:var(--purple)}
+select.ctrl-input option{background:#0d001c}
+.ctrl-btns{display:flex;align-items:center;gap:6px;padding:8px 12px;margin-left:auto}
+.ctrl-btn{padding:6px 14px;border-radius:7px;font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;border:1px solid;transition:all .15s;background:transparent;white-space:nowrap}
+.ctrl-btn.start{border-color:var(--green);color:var(--green)}
+.ctrl-btn.start:hover,.ctrl-btn.start.active{background:var(--green);color:#040008}
+.ctrl-btn.stop{border-color:var(--red);color:var(--red)}
+.ctrl-btn.stop:hover{background:rgba(255,79,106,.12)}
+.ctrl-btn.clear{border-color:rgba(255,255,255,.1);color:var(--muted)}
+.ctrl-btn.clear:hover{border-color:var(--muted);color:var(--ink)}
+.ctrl-btn.export{border-color:var(--cyan);color:var(--cyan)}
+.ctrl-btn.export:hover{background:rgba(48,224,255,.1)}
+/* Log area */
+#log-wrap{flex:1;overflow-y:auto;scroll-behavior:smooth}
+#log-table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:11px}
+#log-table thead{position:sticky;top:0;z-index:5}
+#log-table th{padding:6px 10px;text-align:left;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);background:var(--bg2);border-bottom:1px solid var(--border);white-space:nowrap}
+#log-table td{padding:4px 10px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:top;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+#log-table tr:hover td{background:rgba(255,255,255,.025)}
+/* Level colors */
+.lvl-error{color:var(--red)}
+.lvl-warn{color:var(--gold)}
+.lvl-info{color:var(--cyan)}
+.lvl-debug{color:var(--muted)}
+.status-ok{color:var(--green)}
+.status-err{color:var(--red)}
+/* Status bar */
+#status-bar{display:flex;align-items:center;gap:12px;padding:4px 14px;background:var(--bg2);border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted)}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.sb-dot.live{background:var(--green);box-shadow:0 0 5px var(--green);animation:pulse 1s infinite}
+.sb-dot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Empty */
+.empty-log{display:flex;align-items:center;justify-content:center;flex-direction:column;height:100%;gap:12px;color:var(--muted);font-family:'Share Tech Mono',monospace}
+.empty-icon{font-size:40px;opacity:.25}
+/* Toast */
+#toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:11px;z-index:999;display:none;max-width:360px}
+#toast.ok{background:rgba(79,255,176,.15);border:1px solid var(--green);color:var(--green)}
+#toast.err{background:rgba(255,79,106,.12);border:1px solid var(--red);color:var(--red)}
+#toast.warn{background:rgba(255,211,106,.1);border:1px solid var(--gold);color:var(--gold)}
+/* Expand row */
+.expand-row td{white-space:pre-wrap;word-break:break-all;max-width:none;font-size:10px;color:var(--muted);padding:6px 14px 10px;background:rgba(255,255,255,.015)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <span class="logo">kAIxU</span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted)">/ Log Viewer</span>
+    <div class="hspacer"></div>
+    <a href="../homelanding.html" class="hbtn">← Home</a>
+    <a href="../index.html" class="hbtn">IDE</a>
+    <a href="GatewayLive.html" class="hbtn" style="color:var(--green);border-color:rgba(79,255,176,.35)">⚡ Gateway</a>
+  </header>
+
+  <div id="controls">
+    <div class="ctrl-group" style="flex:3;min-width:220px">
+      <div class="ctrl-label">XnthGateway / kAIxU Base URL</div>
+      <input id="base-url" class="ctrl-input" placeholder="https://your-site.netlify.app" style="width:100%">
+    </div>
+    <div class="ctrl-group" style="flex:2;min-width:160px">
+      <div class="ctrl-label">Admin Token</div>
+      <input id="admin-token" type="password" class="ctrl-input" placeholder="••••••••" style="width:100%">
+    </div>
+    <div class="ctrl-group" style="min-width:120px">
+      <div class="ctrl-label">Level</div>
+      <select id="filter-level" class="ctrl-input">
+        <option value="">All</option>
+        <option value="error">error</option>
+        <option value="warn">warn</option>
+        <option value="info">info</option>
+        <option value="debug">debug</option>
+      </select>
+    </div>
+    <div class="ctrl-group" style="min-width:130px">
+      <div class="ctrl-label">Function</div>
+      <input id="filter-fn" class="ctrl-input" placeholder="e.g. gateway-chat">
+    </div>
+    <div class="ctrl-group" style="min-width:120px">
+      <div class="ctrl-label">App ID</div>
+      <input id="filter-app" class="ctrl-input" placeholder="e.g. kaixu-*">
+    </div>
+    <div class="ctrl-group" style="min-width:150px">
+      <div class="ctrl-label">Search (error/path)</div>
+      <input id="filter-search" class="ctrl-input" placeholder="keyword…">
+    </div>
+    <div class="ctrl-btns">
+      <button class="ctrl-btn start" id="tail-btn" onclick="toggleTail()">▶ Start Tail</button>
+      <button class="ctrl-btn export" onclick="exportLogs()">↓ Export</button>
+      <button class="ctrl-btn clear" onclick="clearLogs()">✕ Clear</button>
+    </div>
+  </div>
+
+  <div id="log-wrap">
+    <div id="log-empty" class="empty-log">
+      <div class="empty-icon">📋</div>
+      <div style="font-size:11px;letter-spacing:.1em">Configure base URL + admin token, then Start Tail</div>
+    </div>
+    <table id="log-table" style="display:none">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Level</th>
+          <th>Function</th>
+          <th>Method</th>
+          <th>Path</th>
+          <th>Status</th>
+          <th>Duration</th>
+          <th>App</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody id="log-body"></tbody>
+    </table>
+  </div>
+
+  <div id="status-bar">
+    <div class="sb-dot" id="sb-dot"></div>
+    <span id="sb-msg">Idle — configure and start tail</span>
+    <span style="margin-left:auto" id="sb-count">0 events</span>
+    <span id="sb-cursor">cursor: 0</span>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+let tailing=false;
+let pollTimer=null;
+let afterId=0;
+let eventCount=0;
+let allEvents=[];
+let autoScroll=true;
+
+function base(){ return (document.getElementById('base-url').value||'').trim().replace(/\/+$/,''); }
+function token(){ return (document.getElementById('admin-token').value||'').trim(); }
+function toast(msg,type='ok'){ const el=document.getElementById('toast');el.textContent=msg;el.className=type;el.style.display='block';clearTimeout(el._t);el._t=setTimeout(()=>el.style.display='none',4500); }
+
+function setStatus(msg,state='idle'){
+  document.getElementById('sb-msg').textContent=msg;
+  const dot=document.getElementById('sb-dot');
+  dot.className='sb-dot'+(state==='live'?' live':state==='err'?' err':'');
+}
+
+function updateCounters(){
+  document.getElementById('sb-count').textContent=eventCount+' event'+(eventCount!==1?'s':'');
+  document.getElementById('sb-cursor').textContent='cursor: '+afterId;
+}
+
+async function fetchEvents(){
+  const b=base(); const t=token();
+  if(!b||!t){ setStatus('Missing base URL or admin token','err'); stopTail(); return; }
+
+  const level=document.getElementById('filter-level').value;
+  const fn=document.getElementById('filter-fn').value.trim();
+  const app=document.getElementById('filter-app').value.trim();
+  const search=document.getElementById('filter-search').value.trim().toLowerCase();
+
+  let url=`${b}/.netlify/functions/admin-monitor-events?limit=100&after_id=${afterId}`;
+  if(level) url+=`&level=${encodeURIComponent(level)}`;
+  if(fn) url+=`&fn=${encodeURIComponent(fn)}`;
+  if(app) url+=`&app=${encodeURIComponent(app)}`;
+
+  try{
+    const r=await fetch(url,{headers:{'X-Admin-Token':t,'Authorization':'Bearer '+t}});
+    if(!r.ok){const d=await r.json().catch(()=>({}));setStatus(`Error ${r.status}: ${d.error||'unknown'}` ,'err');if(r.status===401)stopTail();return;}
+    const d=await r.json();
+    const events=d.events||[];
+    if(d.next_after_id!==undefined) afterId=d.next_after_id;
+
+    let filtered=events;
+    if(search) filtered=events.filter(e=>(e.error_message||'').toLowerCase().includes(search)||(e.path||'').toLowerCase().includes(search)||(e.function_name||'').toLowerCase().includes(search));
+
+    if(filtered.length){
+      appendRows(filtered);
+      allEvents=allEvents.concat(filtered);
+      eventCount+=filtered.length;
+      updateCounters();
+      if(autoScroll){
+        const wrap=document.getElementById('log-wrap');
+        wrap.scrollTop=wrap.scrollHeight;
+      }
+    }
+
+    if(tailing) setStatus(`Tailing — last poll: ${new Date().toLocaleTimeString()}${filtered.length?` (+${filtered.length})`:''}`,'live');
+  }catch(e){
+    setStatus('Fetch error: '+e.message,'err');
+  }
+}
+
+function appendRows(events){
+  const tbody=document.getElementById('log-body');
+  document.getElementById('log-empty').style.display='none';
+  document.getElementById('log-table').style.display='table';
+
+  events.forEach(ev=>{
+    const tr=document.createElement('tr');
+    tr.style.cursor='pointer';
+    const lvlClass='lvl-'+(ev.level||'debug');
+    const statusClass=(ev.http_status&&ev.http_status<400)?'status-ok':'status-err';
+    const timeStr=ev.created_at?new Date(ev.created_at).toLocaleTimeString('en-US',{hour12:false}):'—';
+    tr.innerHTML=`
+      <td style="color:var(--muted)">${timeStr}</td>
+      <td class="${lvlClass}">${esc(ev.level||'?')}</td>
+      <td style="color:var(--cyan);max-width:160px">${esc(ev.function_name||'—')}</td>
+      <td style="color:var(--purple)">${esc(ev.method||'—')}</td>
+      <td>${esc(ev.path||'—')}</td>
+      <td class="${statusClass}">${ev.http_status||'—'}</td>
+      <td style="color:var(--muted)">${ev.duration_ms!=null?ev.duration_ms+'ms':'—'}</td>
+      <td style="color:var(--muted);max-width:120px">${esc(ev.app_id||'—')}</td>
+      <td class="lvl-error" style="max-width:200px">${esc(ev.error_message||'')}</td>
+    `;
+    // Expand on click to show full JSON
+    let expanded=false;
+    let expandTr=null;
+    tr.addEventListener('click',()=>{
+      if(expanded){if(expandTr)expandTr.remove();expanded=false;return;}
+      expandTr=document.createElement('tr');
+      expandTr.className='expand-row';
+      expandTr.innerHTML=`<td colspan="9">${esc(JSON.stringify(ev,null,2))}</td>`;
+      tr.after(expandTr);
+      expanded=true;
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function esc(s){ return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function toggleTail(){
+  if(tailing) stopTail(); else startTail();
+}
+
+function startTail(){
+  const b=base(); const t=token();
+  if(!b){toast('Enter a base URL','err');return;}
+  if(!t){toast('Enter an admin token','err');return;}
+  tailing=true;
+  const btn=document.getElementById('tail-btn');
+  btn.textContent='⏹ Stop Tail';
+  btn.className='ctrl-btn stop';
+  setStatus('Starting tail…','live');
+  fetchEvents();
+  pollTimer=setInterval(fetchEvents,3000);
+}
+
+function stopTail(){
+  tailing=false;
+  clearInterval(pollTimer); pollTimer=null;
+  const btn=document.getElementById('tail-btn');
+  btn.textContent='▶ Start Tail';
+  btn.className='ctrl-btn start';
+  setStatus('Paused');
+}
+
+function clearLogs(){
+  document.getElementById('log-body').innerHTML='';
+  eventCount=0; afterId=0;
+  allEvents=[];
+  updateCounters();
+  document.getElementById('log-table').style.display='none';
+  document.getElementById('log-empty').style.display='flex';
+  setStatus('Cleared');
+}
+
+function exportLogs(){
+  if(!allEvents.length){toast('No events to export','warn');return;}
+  const blob=new Blob([JSON.stringify(allEvents,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`kaixu-logs-${Date.now()}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(`Exported ${allEvents.length} events`);
+}
+
+// Detect user scroll to disable auto-scroll
+document.getElementById('log-wrap').addEventListener('scroll',function(){
+  autoScroll=(this.scrollTop+this.clientHeight)>=(this.scrollHeight-50);
+});
+
+// Persist config
+['base-url','admin-token'].forEach(id=>{
+  const el=document.getElementById(id);
+  const key='lv_'+id;
+  const saved=localStorage.getItem(key);
+  if(saved) el.value=saved;
+  el.addEventListener('change',()=>localStorage.setItem(key,el.value));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+	<title>Kaixu Gateway 13 — Smoke Tests | Skyes Over London LC</title>
+	<meta name="title" content="Kaixu Gateway 13 — Smoke Tests | Skyes Over London LC" />
+	<meta name="description" content="Live, self-serve smoke tests for Kaixu Gateway 13 (health, gateway-chat, async job). Run them in your browser to verify the gateway is operational." />
+	<meta name="robots" content="index, follow" />
+
+	<meta property="og:type" content="website" />
+	<meta property="og:title" content="Kaixu Gateway 13 — Smoke Tests" />
+	<meta property="og:description" content="Run live smoke tests against the Kaixu Gateway (E2E) and verify operational status." />
+
+	<meta name="theme-color" content="#080812" />
+
+	<!-- Fonts (matches editorial standard) -->
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,450;0,600;0,700;1,450;1,600&family=Instrument+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+	<style>
+		:root{
+			--ink:#07070c;
+			--paper:#070812;
+			--paper2:#0b0c18;
+			--glass:rgba(255,255,255,.06);
+			--glass2:rgba(0,0,0,.30);
+			--stroke:rgba(255,255,255,.12);
+			--stroke2:rgba(255,255,255,.08);
+
+			--gold:#ffd36a;
+			--gold2:#ffefb0;
+			--purple:#a243ff;
+			--purple2:#e0a7ff;
+			--cyan:#27f2ff;
+			--mist:rgba(255,255,255,.82);
+			--slate:rgba(255,255,255,.64);
+
+			--display:'Playfair Display', Georgia, serif;
+			--body:'Instrument Sans', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+			--mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+			--ease-out-expo:cubic-bezier(0.16,1,0.3,1);
+			--ease-out-quart:cubic-bezier(0.25,1,0.5,1);
+
+			--shadow: 0 18px 70px rgba(0,0,0,.55);
+			--shadow2: 0 12px 40px rgba(0,0,0,.40);
+
+			--r:18px;
+			--max:1400px;
+		}
+
+		*{margin:0;padding:0;box-sizing:border-box}
+		html{scroll-behavior:smooth;font-size:16px}
+		body{
+			font-family:var(--body);
+			color:rgba(255,255,255,.92);
+			background:
+				radial-gradient(1200px 740px at 18% 12%, rgba(162,67,255,.26), transparent 58%),
+				radial-gradient(1100px 820px at 82% 22%, rgba(39,242,255,.16), transparent 58%),
+				radial-gradient(900px 700px at 62% 88%, rgba(255,211,106,.14), transparent 60%),
+				linear-gradient(180deg, var(--paper), #05050b 45%, var(--paper2));
+			overflow-x:hidden;
+			-webkit-font-smoothing:antialiased;
+		}
+
+		a{color:inherit;text-decoration:none}
+		a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+			outline:2px solid rgba(39,242,255,.70);
+			outline-offset:3px;
+			border-radius:12px;
+		}
+
+		.watermark{
+			position:fixed;
+			inset:0;
+			z-index:0;
+			pointer-events:none;
+			opacity:.10;
+			background:
+				radial-gradient(900px 520px at 50% 40%, rgba(162,67,255,.10), transparent 62%),
+				radial-gradient(820px 520px at 52% 62%, rgba(255,211,106,.10), transparent 62%),
+				url("https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png") center 42% / min(560px, 70vw) no-repeat;
+			filter: drop-shadow(0 0 18px rgba(255,211,106,.10));
+		}
+		.grain{
+			position:fixed; inset:0; z-index:1; pointer-events:none;
+			opacity:.12; mix-blend-mode:overlay;
+			background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+			background-size:260px 260px;
+		}
+		.scanlines{
+			position:fixed; inset:0; z-index:1; pointer-events:none;
+			opacity:.08;
+			background:repeating-linear-gradient(to bottom, rgba(255,255,255,.05), rgba(255,255,255,.05) 1px, rgba(0,0,0,0) 3px, rgba(0,0,0,0) 6px);
+		}
+
+		/* NAV (from editorial standard) */
+		.nav{
+			position:fixed; top:0; left:0;
+			width:100%;
+			padding:1.25rem 3rem;
+			display:flex;
+			justify-content:space-between;
+			align-items:center;
+			z-index:1000;
+			background:transparent;
+			transition:all .4s var(--ease-out-expo);
+			border-bottom:1px solid rgba(255,255,255,0);
+		}
+		.nav.scrolled{
+			background:rgba(5,5,11,.70);
+			backdrop-filter:blur(18px);
+			-webkit-backdrop-filter:blur(18px);
+			border-bottom:1px solid rgba(255,255,255,.08);
+			padding:.9rem 3rem;
+		}
+		.nav-brand{display:flex; align-items:center; gap:14px;}
+		.nav-brand-title{display:flex; flex-direction:column; gap:2px; line-height:1.0;}
+		.nav-brand-name{font-family:var(--display); font-size:1.05rem; font-weight:700; color:rgba(255,255,255,.92); letter-spacing:.02em;}
+		.nav-brand-sub{font-family:var(--mono); font-size:.62rem; color:rgba(255,255,255,.58); letter-spacing:.12em; text-transform:uppercase;}
+
+		.nav-links{display:flex; gap:2rem; list-style:none;}
+		.nav-links a{font-family:var(--body); font-size:.86rem; font-weight:600; color:rgba(255,255,255,.66); transition:color .25s ease, transform .25s ease; letter-spacing:.02em;}
+		.nav-links a:hover{color:var(--gold2); transform:translateY(-1px);}
+
+		.nav-cta{
+			display:inline-flex;
+			align-items:center;
+			gap:.65rem;
+			padding:.78rem 1.15rem;
+			background:rgba(255,255,255,.06);
+			color:rgba(255,255,255,.92);
+			border:1px solid rgba(255,211,106,.25);
+			font-family:var(--mono);
+			font-size:.74rem;
+			letter-spacing:.12em;
+			text-transform:uppercase;
+			transition:all .3s ease;
+			cursor:pointer;
+		}
+		.nav-cta:hover{background:rgba(255,211,106,.10); border-color:rgba(39,242,255,.30); transform:translateY(-2px); box-shadow:0 18px 40px rgba(0,0,0,.35);}
+
+		/* HERO (adapted: no long delays; immediate load) */
+		.hero{min-height:92vh; display:flex; align-items:center; position:relative; overflow:hidden; z-index:2;}
+		.hero-overlay{position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.72) 100%), linear-gradient(90deg, rgba(0,0,0,.78) 0%, transparent 56%); z-index:2;}
+		.hero-content{position:relative; z-index:3; max-width:980px; padding:0 5rem; padding-top:8rem;}
+		.hero-eyebrow{display:inline-flex; align-items:center; gap:1rem; font-family:var(--mono); font-size:.72rem; color:var(--gold); letter-spacing:.2em; text-transform:uppercase; margin-bottom:1.8rem;}
+		.hero-eyebrow::before{content:""; width:40px; height:1px; background:linear-gradient(90deg, var(--cyan), var(--gold)); opacity:.9;}
+		.hero-title{font-family:var(--display); font-size:clamp(2.7rem,6.2vw,5.1rem); font-weight:700; color:rgba(255,255,255,.96); line-height:1.05; margin-bottom:1.6rem;}
+		.hero-title em{font-style:italic; color:var(--gold2);}
+		.hero-description{font-family:var(--body); font-size:1.12rem; color:rgba(255,255,255,.76); line-height:1.9; max-width:70ch; margin-bottom:2.3rem;}
+		.hero-actions{display:flex; gap:1.2rem; flex-wrap:wrap;}
+		.hero-btn{display:inline-flex; align-items:center; gap:.75rem; padding:1.05rem 2.1rem; font-family:var(--mono); font-size:.78rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; transition:all .35s var(--ease-out-expo); border-radius:0; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.04);}
+		.hero-btn:hover{transform:translateY(-2px); border-color:rgba(255,211,106,.40); background:rgba(255,211,106,.08);}
+		.hero-btn-primary{background:linear-gradient(90deg, rgba(39,242,255,.20), rgba(255,211,106,.20), rgba(162,67,255,.20)); border-color:rgba(255,211,106,.35); color:rgba(255,255,255,.94);}
+		.hero-btn-primary:hover{border-color:rgba(39,242,255,.30); background:rgba(255,255,255,.06); box-shadow:0 20px 45px rgba(0,0,0,.40);}
+
+		/* ARTICLE + cards + form primitives (from editorial standard) */
+		.article{max-width:var(--max); margin:0 auto; padding:7.5rem 5rem; position:relative; z-index:2;}
+		.article-header{display:grid; grid-template-columns:1fr 1fr; gap:5rem; margin-bottom:5rem; padding-bottom:5rem; border-bottom:1px solid rgba(255,255,255,.10);}
+		.article-meta{display:flex; flex-direction:column; gap:1.6rem;}
+		.article-category{font-family:var(--mono); font-size:.72rem; color:rgba(255,255,255,.70); letter-spacing:.15em; text-transform:uppercase;}
+		.article-date{font-family:var(--body); font-size:.95rem; color:rgba(255,255,255,.62);}
+		.article-author{display:flex; align-items:center; gap:1rem; margin-top:auto;}
+		.author-avatar{width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, rgba(255,211,106,.90), rgba(162,67,255,.75)); display:flex; align-items:center; justify-content:center; font-family:var(--display); font-size:1.1rem; color:#0a0a0a; font-weight:700; box-shadow:0 18px 40px rgba(0,0,0,.35);}
+		.author-info{display:flex; flex-direction:column; gap:.2rem;}
+		.author-name{font-family:var(--body); font-weight:800; font-size:.98rem; color:rgba(255,255,255,.92);}
+		.author-role{font-family:var(--mono); font-size:.70rem; color:rgba(255,255,255,.56); letter-spacing:.08em; text-transform:uppercase;}
+		.article-intro{font-family:var(--display); font-size:1.7rem; font-weight:450; line-height:1.55; color:rgba(255,255,255,.92);}
+		.article-intro em{font-style:italic; color:var(--gold2);}
+
+		.article-body{display:grid; grid-template-columns:280px 1fr; gap:5rem;}
+		.article-sidebar{position:sticky; top:120px; height:fit-content;}
+		.sidebar-nav{display:flex; flex-direction:column; gap:.75rem; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.18); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-radius:16px; padding:14px; box-shadow:var(--shadow2);}
+		.sidebar-nav-title{font-family:var(--mono); font-size:.65rem; color:rgba(255,255,255,.58); letter-spacing:.15em; text-transform:uppercase; padding-bottom:.9rem; border-bottom:1px solid rgba(255,255,255,.10); margin-bottom:.5rem;}
+		.sidebar-nav a{font-family:var(--body); font-size:.95rem; color:rgba(255,255,255,.70); padding:.55rem .65rem; border-left:2px solid transparent; transition:all .25s ease; border-radius:10px;}
+		.sidebar-nav a:hover, .sidebar-nav a.active{color:rgba(255,255,255,.92); border-left-color:var(--gold); background:rgba(255,211,106,.08);}
+
+		.article-content h2{font-family:var(--display); font-size:2.35rem; font-weight:700; color:rgba(255,255,255,.96); margin-top:4rem; margin-bottom:1.3rem; line-height:1.18; text-shadow:0 0 24px rgba(162,67,255,.10);}
+		.article-content h2:first-child{margin-top:0;}
+		.article-content h3{font-family:var(--display); font-size:1.45rem; font-weight:700; color:rgba(255,255,255,.94); margin-top:2.6rem; margin-bottom:.95rem;}
+		.article-content p{font-family:var(--body); font-size:1.08rem; color:rgba(255,255,255,.86); line-height:1.9; margin-bottom:1.25rem;}
+		.article-content p.lead{font-size:1.22rem; color:rgba(255,255,255,.74); line-height:1.8;}
+
+		.feature-grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:1.4rem; margin:2.2rem 0;}
+		.feature-card{background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); padding:2rem; position:relative; overflow:hidden; transition:all .35s var(--ease-out-expo); box-shadow:0 12px 40px rgba(0,0,0,.22);}
+		.feature-card::before{content:""; position:absolute; top:0; left:0; width:4px; height:100%; background:linear-gradient(180deg, var(--cyan), var(--gold), var(--purple)); transform:scaleY(0); transform-origin:top; transition:transform .35s var(--ease-out-expo);}
+		.feature-card:hover{transform:translateY(-4px); box-shadow:0 22px 55px rgba(0,0,0,.38); border-color:rgba(255,211,106,.20);}
+		.feature-card:hover::before{transform:scaleY(1);}
+		.feature-card h4{font-family:var(--display); font-size:1.18rem; font-weight:700; color:rgba(255,255,255,.94); margin-bottom:.65rem;}
+		.feature-card p{font-size:.96rem; color:rgba(255,255,255,.72); line-height:1.75; margin:0;}
+
+		.lead-shell{margin-top:2rem; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.22); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow:var(--shadow2); padding:1.25rem;}
+		form.lead-form{display:grid; gap:.85rem; padding:1.15rem; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03);}
+		.lead-form label{font-family:var(--mono); font-size:.70rem; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.70);}
+		.lead-form input, .lead-form textarea, .lead-form select{width:100%; padding:.85rem .85rem; border-radius:0; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.30); color:rgba(255,255,255,.92); font-family:var(--body); font-size:1rem;}
+		.lead-form textarea{min-height:120px; resize:vertical; font-family:var(--mono); font-size:.85rem;}
+		.lead-form .row{display:grid; grid-template-columns: 1fr 1fr; gap:.85rem;}
+		.lead-form .btnrow{display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; justify-content:flex-start; margin-top:.25rem;}
+		.lead-form button{border-radius:0; border:1px solid rgba(255,211,106,.34); background:linear-gradient(90deg, rgba(39,242,255,.20), rgba(255,211,106,.20), rgba(162,67,255,.18)); color:rgba(255,255,255,.95); padding:.95rem 1.15rem; cursor:pointer; font-family:var(--mono); font-size:.78rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; transition:all .25s ease; box-shadow:0 18px 44px rgba(0,0,0,.30);}
+		.lead-form button:hover{transform:translateY(-2px); border-color:rgba(39,242,255,.30); background:rgba(255,255,255,.06);}
+		.lead-form button.secondary{border-color:rgba(255,255,255,.16); background:rgba(255,255,255,.04); box-shadow:none; font-weight:700;}
+		.lead-form button.secondary:hover{transform:translateY(-2px); border-color:rgba(255,211,106,.40); background:rgba(255,211,106,.08);}
+		.lead-form .micro{font-family:var(--body); font-size:.92rem; color:rgba(255,255,255,.68); line-height:1.6;}
+		.lead-form .micro b{color:var(--gold2);}
+
+		.pack{margin:1.25rem 0 0; border:1px solid rgba(255,255,255,.10); background:rgba(0,0,0,.18); padding:1.15rem;}
+		.pack pre{margin-top:1rem; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.10); padding:1rem; overflow:auto; max-height:520px; color:rgba(255,255,255,.86); font-family:var(--mono); font-size:.78rem; line-height:1.7; white-space:pre-wrap; word-break:break-word;}
+
+		.pill{
+			display:inline-flex;
+			align-items:center;
+			gap:.5rem;
+			padding:.35rem .55rem;
+			border:1px solid rgba(255,255,255,.12);
+			background:rgba(255,255,255,.04);
+			font-family:var(--mono);
+			font-size:.68rem;
+			letter-spacing:.10em;
+			text-transform:uppercase;
+			color:rgba(255,255,255,.70);
+		}
+		.dot{width:9px; height:9px; border-radius:99px; background:rgba(255,255,255,.22);}
+		.dot.ok{background:rgba(39,242,255,.85); box-shadow:0 0 18px rgba(39,242,255,.35);}
+		.dot.warn{background:rgba(255,211,106,.85); box-shadow:0 0 18px rgba(255,211,106,.25);}
+
+		@media (max-width: 980px){
+			.nav{padding:1rem 1.25rem;}
+			.nav.scrolled{padding:.85rem 1.25rem;}
+			.nav-links{display:none;}
+			.hero-content{padding:0 1.25rem; padding-top:7rem;}
+			.article{padding:6.5rem 1.25rem;}
+			.article-header{grid-template-columns:1fr; gap:2rem;}
+			.article-body{grid-template-columns:1fr; gap:2rem;}
+			.article-sidebar{position:relative; top:auto;}
+			.feature-grid{grid-template-columns:1fr;}
+			.lead-form .row{grid-template-columns:1fr;}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="watermark" aria-hidden="true"></div>
+	<div class="grain" aria-hidden="true"></div>
+	<div class="scanlines" aria-hidden="true"></div>
+
+	<nav class="nav" id="nav" aria-label="Primary">
+		<div class="nav-brand">
+			<div class="nav-brand-title">
+				<span class="nav-brand-name">Skyes Over London LC</span>
+				<span class="nav-brand-sub">Gateway • Smoke Tests</span>
+			</div>
+		</div>
+
+		<ul class="nav-links" aria-label="Page sections">
+			<li><a href="#ledger">Ledger</a></li>
+			<li><a href="#run">Run It</a></li>
+			<li><a href="#what">What This Proves</a></li>
+			<li><a href="#faq">FAQ</a></li>
+		</ul>
+
+		<a class="nav-cta" href="./index.html">Admin Console</a>
+	</nav>
+
+	<section class="hero" id="top">
+		<div class="hero-overlay" aria-hidden="true"></div>
+		<div class="hero-content">
+			<span class="hero-eyebrow">Kaixu Gateway 13 • Live E2E Smoke Tests</span>
+			<h1 class="hero-title">Proof the gateway is <em>operational</em>.</h1>
+			<p class="hero-description">
+				This page documents smoke tests we run end-to-end (auth → request → metering → async job) and lets any investor/client
+				run the same checks in their own browser against the live gateway.
+			</p>
+			<div class="hero-actions">
+				<a href="#run" class="hero-btn hero-btn-primary">Run A Live Test</a>
+				<a href="#ledger" class="hero-btn">View Smoke Ledger</a>
+			</div>
+		</div>
+	</section>
+
+	<main class="article" aria-label="Smoke tests">
+		<header class="article-header">
+			<div class="article-meta">
+				<div>
+					<div class="article-category">Operational Evidence</div>
+					<div class="article-date" id="pageDate">Updated: —</div>
+				</div>
+
+				<div class="article-author">
+					<div class="author-avatar" aria-hidden="true">SOL</div>
+					<div class="author-info">
+						<div class="author-name">Skyes Over London LC</div>
+						<div class="author-role">Gateway Operations</div>
+					</div>
+				</div>
+			</div>
+
+			<div>
+				<p class="article-intro">
+					We don’t “trust” gateways. We <em>verify</em> them.
+				</p>
+				<p class="lead">
+					Every test below is designed to catch the real failure modes: missing env, broken DB, CORS issues, upstream provider failures,
+					async job worker breakage, and pricing/allowlist enforcement.
+				</p>
+			</div>
+		</header>
+
+		<div class="article-body">
+			<aside class="article-sidebar" aria-label="On this page">
+				<nav class="sidebar-nav" id="sidebarNav">
+					<div class="sidebar-nav-title">On this page</div>
+					<a href="#ledger">Smoke Test Ledger</a>
+					<a href="#run">Run It Yourself</a>
+					<a href="#what">What This Proves</a>
+					<a href="#faq">FAQ</a>
+				</nav>
+			</aside>
+
+			<article class="article-content">
+				<section id="ledger">
+					<h2>Smoke Test Ledger</h2>
+					<p>
+						A quick record of recent end-to-end validations.
+						These are repeatable — the next section runs live checks against the gateway in real time.
+					</p>
+
+					<div class="feature-grid" aria-label="Smoke test entries">
+						<div class="feature-card">
+							<h4>2026-02-26 • Local E2E (Gemini)</h4>
+							<p>
+								Scripted E2E validation succeeded: <span class="pill"><span class="dot ok"></span> E2E OK</span>
+								(sync chat + async job).
+							</p>
+						</div>
+						<div class="feature-card">
+							<h4>Self-Serve Verification</h4>
+							<p>
+								Anyone can run a public health check immediately, and run full E2E if provided a demo API key.
+							</p>
+						</div>
+					</div>
+				</section>
+
+				<section id="run">
+					<h2>Run It Yourself</h2>
+					<p class="lead">
+						This runs against the gateway you choose. For full E2E, you’ll need a Kaixu API key.
+						The key never leaves your browser except as an Authorization header to the gateway.
+					</p>
+
+					<div class="lead-shell">
+						<form class="lead-form" id="smokeForm">
+							<div class="row">
+								<div>
+									<label for="origin">Gateway origin</label>
+									<input id="origin" name="origin" type="url" placeholder="https://skyesol.netlify.app" autocomplete="off" />
+									<div class="micro">Default: <b>this site</b> (current origin). Cross-origin browser tests require the gateway’s CORS allowlist.</div>
+								</div>
+								<div>
+									<label for="provider">Provider / model</label>
+									<input id="provider" name="provider" type="text" value="gemini / gemini-2.5-flash" readonly />
+									<div class="micro">Fixed for credibility: one known-good path.</div>
+								</div>
+							</div>
+
+							<div>
+								<label for="apiKey">Kaixu API key (optional, required for E2E)</label>
+								<input id="apiKey" name="apiKey" type="password" placeholder="Paste demo key (Bearer ...)" autocomplete="off" />
+								<div class="micro">
+									If you don’t have a key, run <b>Health</b>. For full E2E, request a demo key from SOL.
+								</div>
+							</div>
+
+							<div class="btnrow">
+								<button type="button" id="btnHealth">Run Health Check</button>
+								<button type="button" id="btnChat" class="secondary">Run Chat Ping (needs key)</button>
+								<button type="button" id="btnJob" class="secondary">Run Async Job Ping (needs key)</button>
+								<button type="button" id="btnFull">Run Full Smoke Test</button>
+							</div>
+
+							<div class="pack" aria-label="Smoke output">
+								<div class="micro"><b>Status:</b> <span id="status">Idle</span></div>
+								<pre id="log" aria-live="polite"></pre>
+							</div>
+
+							<div class="pack" aria-label="Copy-paste">
+								<div class="micro"><b>Copy-paste (curl):</b> use your gateway origin and key.</div>
+								<pre id="curl"></pre>
+							</div>
+						</form>
+					</div>
+				</section>
+
+				<section id="what">
+					<h2>What This Proves</h2>
+					<div class="feature-grid">
+						<div class="feature-card">
+							<h4>Gateway boots + env is present</h4>
+							<p>
+								Health returns build/schema info and confirms DB/env wiring.
+							</p>
+						</div>
+						<div class="feature-card">
+							<h4>Billing + governance path executes</h4>
+							<p>
+								`gateway-chat` exercises auth, metering, pricing checks, and provider call.
+							</p>
+						</div>
+						<div class="feature-card">
+							<h4>Async job system is operational</h4>
+							<p>
+								Submits a job, polls status, and fetches the final result.
+							</p>
+						</div>
+						<div class="feature-card">
+							<h4>Repeatable, observable evidence</h4>
+							<p>
+								Same inputs, same endpoint paths, same output trail — a credibility artifact.
+							</p>
+						</div>
+					</div>
+				</section>
+
+				<section id="faq">
+					<h2>FAQ</h2>
+					<h3>Why do I need an API key for E2E?</h3>
+					<p>
+						Full E2E smoke testing includes calling `gateway-chat` and submitting async jobs.
+						Those endpoints are intentionally protected by a Kaixu API key.
+					</p>
+
+					<h3>What can I run without a key?</h3>
+					<p>
+						The health check is public and shows if the gateway is up and configured.
+					</p>
+
+					<h3>Why does another origin sometimes fail in the browser?</h3>
+					<p>
+						The gateway uses strict CORS by default. If you point this page at a different origin, that gateway must include this page’s origin in
+						`ALLOWED_ORIGINS` (or explicitly allow all origins) for browser requests to succeed.
+					</p>
+
+					<h3>Does this expose secrets?</h3>
+					<p>
+						No secrets are displayed on this page.
+						If you paste a demo key, it is only used in your browser to call the gateway.
+					</p>
+				</section>
+			</article>
+		</div>
+	</main>
+
+	<script>
+		(function () {
+			const nav = document.getElementById('nav');
+			const pageDate = document.getElementById('pageDate');
+			const originInput = document.getElementById('origin');
+			const apiKeyInput = document.getElementById('apiKey');
+			const statusEl = document.getElementById('status');
+			const logEl = document.getElementById('log');
+			const curlEl = document.getElementById('curl');
+
+			const btnHealth = document.getElementById('btnHealth');
+			const btnChat = document.getElementById('btnChat');
+			const btnJob = document.getElementById('btnJob');
+			const btnFull = document.getElementById('btnFull');
+
+			const DEFAULT_GATEWAY_ORIGIN = window.location.origin;
+
+			pageDate.textContent = `Updated: ${new Date().toISOString().slice(0, 10)}`;
+			originInput.value = DEFAULT_GATEWAY_ORIGIN;
+
+			function setStatus(s) {
+				statusEl.textContent = s;
+			}
+
+			function appendLog(line) {
+				const ts = new Date().toISOString();
+				logEl.textContent += `[${ts}] ${line}\n`;
+				logEl.scrollTop = logEl.scrollHeight;
+			}
+
+			function clearLog() {
+				logEl.textContent = '';
+			}
+
+			function normOrigin(v) {
+				const raw = String(v || '').trim();
+				if (!raw) return DEFAULT_GATEWAY_ORIGIN;
+				return raw.replace(/\/$/, '');
+			}
+
+			function bearerKey() {
+				const k = String(apiKeyInput.value || '').trim();
+				if (!k) return '';
+				if (/^Bearer\s+/i.test(k)) return k;
+				return `Bearer ${k}`;
+			}
+
+			function updateCurl() {
+				const origin = normOrigin(originInput.value);
+				const key = bearerKey() || 'Bearer <YOUR_KAIXU_KEY>';
+				const base = `${origin}/.netlify/functions`;
+				curlEl.textContent = [
+					`# Public health check`,
+					`curl -s ${base}/health | head -c 400`,
+					``,
+					`# Chat ping (Gemini)`,
+					`curl -s ${base}/gateway-chat \\\n+  -H "Authorization: ${key}" \\\n+  -H "Content-Type: application/json" \\\n+  -H "x-kaixu-install-id: smoketest-public" \\\n+  -d '{"provider":"gemini","model":"gemini-2.5-flash","messages":[{"role":"user","content":"ping"}],"max_tokens":64,"temperature":0}' | head -c 400`,
+					``,
+					`# Async job ping (submit)`,
+					`curl -s ${base}/gateway-job-submit \\\n+  -H "Authorization: ${key}" \\\n+  -H "Content-Type: application/json" \\\n+  -H "x-kaixu-install-id: smoketest-public" \\\n+  -d '{"provider":"gemini","model":"gemini-2.5-flash","messages":[{"role":"user","content":"ping"}],"max_tokens":64,"temperature":0}' | head -c 400`
+				].join('\n');
+			}
+
+			originInput.addEventListener('input', updateCurl);
+			apiKeyInput.addEventListener('input', updateCurl);
+			updateCurl();
+
+			async function httpJson(method, url, body, headers) {
+				const res = await fetch(url, {
+					method,
+					headers: {
+						...(headers || {}),
+						...(body !== undefined ? { 'content-type': 'application/json' } : {})
+					},
+					body: body !== undefined ? JSON.stringify(body) : undefined
+				});
+
+				const text = await res.text();
+				let data;
+				try { data = JSON.parse(text); } catch { data = { _non_json: text }; }
+				if (!res.ok) {
+					const err = new Error(`HTTP ${res.status}`);
+					err.status = res.status;
+					err.data = data;
+					throw err;
+				}
+				return data;
+			}
+
+			function summarizeErr(e) {
+				const d = e && e.data ? e.data : {};
+				return {
+					status: e && e.status,
+					error: d.error || (e && e.message) || 'error',
+					provider: d.provider,
+					hint: d.hint,
+					code: d.code
+				};
+			}
+
+			function authHeaders() {
+				const k = bearerKey();
+				if (!k) return null;
+				const installId = `smoketest-${Date.now()}`;
+				return {
+					authorization: k,
+					'x-kaixu-install-id': installId,
+					'x-kaixu-app': 'smoketest.html',
+					'x-kaixu-build': 'public'
+				};
+			}
+
+			async function runHealth(origin) {
+				appendLog(`Health → ${origin}/.netlify/functions/health`);
+				const data = await httpJson('GET', `${origin}/.netlify/functions/health`, undefined, {});
+				appendLog(`Health ok; build.id=${data?.build?.id || '?'}; db.ok=${String(!!data?.db?.ok)}`);
+				return data;
+			}
+
+			async function runChat(origin) {
+				const headers = authHeaders();
+				if (!headers) throw new Error('Missing API key');
+
+				appendLog('gateway-chat → ping (gemini/gemini-2.5-flash)');
+				const data = await httpJson(
+					'POST',
+					`${origin}/.netlify/functions/gateway-chat`,
+					{
+						provider: 'gemini',
+						model: 'gemini-2.5-flash',
+						messages: [{ role: 'user', content: 'ping' }],
+						max_tokens: 64,
+						temperature: 0
+					},
+					headers
+				);
+				appendLog(`gateway-chat ok; output_len=${(data?.output_text || '').length}; cost_cents=${data?.usage?.cost_cents ?? '?'}`);
+				return data;
+			}
+
+			async function runJob(origin) {
+				const headers = authHeaders();
+				if (!headers) throw new Error('Missing API key');
+
+				appendLog('gateway-job-submit → ping (gemini/gemini-2.5-flash)');
+				const submit = await httpJson(
+					'POST',
+					`${origin}/.netlify/functions/gateway-job-submit`,
+					{
+						provider: 'gemini',
+						model: 'gemini-2.5-flash',
+						messages: [{ role: 'user', content: 'ping' }],
+						max_tokens: 64,
+						temperature: 0
+					},
+					headers
+				);
+
+				const jobId = submit?.job_id;
+				if (!jobId) throw new Error('Missing job_id');
+				appendLog(`job submitted: ${jobId}`);
+
+				const deadline = Date.now() + 60_000;
+				let lastStatus = '';
+				while (Date.now() < deadline) {
+					const status = await httpJson('GET', `${origin}/.netlify/functions/gateway-job-status?id=${encodeURIComponent(jobId)}`, undefined, headers);
+					const st = status?.job?.status;
+					if (st && st !== lastStatus) {
+						lastStatus = st;
+						appendLog(`job status: ${st}`);
+					}
+					if (st === 'succeeded') break;
+					if (st === 'failed') throw new Error(status?.job?.error || 'Job failed');
+					await new Promise((r) => setTimeout(r, 1000));
+				}
+
+				const result = await httpJson('GET', `${origin}/.netlify/functions/gateway-job-result?id=${encodeURIComponent(jobId)}`, undefined, headers);
+				appendLog(`job result ok; output_len=${(result?.output_text || '').length}; cost_cents=${result?.usage?.cost_cents ?? '?'}`);
+				return result;
+			}
+
+			function withButtonsDisabled(disabled) {
+				for (const el of [btnHealth, btnChat, btnJob, btnFull]) el.disabled = disabled;
+			}
+
+			async function run(fn) {
+				const origin = normOrigin(originInput.value);
+				withButtonsDisabled(true);
+				try {
+					setStatus('Running…');
+					await fn(origin);
+					setStatus('OK');
+				} catch (e) {
+					const s = summarizeErr(e);
+					appendLog(`FAILED: ${s.error}`);
+					if (s.hint) appendLog(`hint: ${s.hint}`);
+					setStatus('FAILED');
+				} finally {
+					withButtonsDisabled(false);
+				}
+			}
+
+			btnHealth.addEventListener('click', () => {
+				clearLog();
+				run(async (origin) => {
+					await runHealth(origin);
+				});
+			});
+
+			btnChat.addEventListener('click', () => {
+				clearLog();
+				run(async (origin) => {
+					await runHealth(origin);
+					await runChat(origin);
+				});
+			});
+
+			btnJob.addEventListener('click', () => {
+				clearLog();
+				run(async (origin) => {
+					await runHealth(origin);
+					await runJob(origin);
+				});
+			});
+
+			btnFull.addEventListener('click', () => {
+				clearLog();
+				run(async (origin) => {
+					await runHealth(origin);
+					if (!bearerKey()) {
+						appendLog('No API key provided: skipped gateway-chat + async job.');
+						appendLog('Request a demo Kaixu API key to run full E2E.');
+						return;
+					}
+					await runChat(origin);
+					await runJob(origin);
+					appendLog('E2E OK');
+				});
+			});
+
+			function onScroll() {
+				if (!nav) return;
+				if (window.scrollY > 20) nav.classList.add('scrolled');
+				else nav.classList.remove('scrolled');
+			}
+			window.addEventListener('scroll', onScroll, { passive: true });
+			onScroll();
+		})();
+	</script>
+</body>
+</html>

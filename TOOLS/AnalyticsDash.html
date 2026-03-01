@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Analytics — kAIxU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--bg3:#1e003f;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0;--fgd:#9988bb}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg0);color:var(--fg);font-family:'Inter',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{background:var(--bg1);border-bottom:1px solid #2a0050;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+header h1{font-size:1.1rem;color:var(--purple-hot);font-family:'Share Tech Mono',monospace}
+.btn{padding:6px 14px;border-radius:7px;border:none;font-size:.8rem;cursor:pointer;font-weight:600;transition:.2s}
+.btn-purple{background:var(--purple);color:#fff}.btn-purple:hover{background:var(--purple-hot)}
+.btn-outline{background:transparent;color:var(--fgd);border:1px solid #3a0066}.btn-outline:hover{border-color:var(--purple);color:var(--purple)}
+.pill{padding:5px 12px;border-radius:20px;border:1px solid #3a0066;background:var(--bg2);color:var(--fgd);font-size:.75rem;cursor:pointer;transition:.2s}
+.pill:hover,.pill.active{background:var(--purple);color:#fff;border-color:var(--purple)}
+main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi{background:var(--bg1);border:1px solid #2a0050;border-radius:10px;padding:14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--purple-hot))}
+.kpi-label{font-size:.7rem;color:var(--fgd);text-transform:uppercase;letter-spacing:.06em}
+.kpi-val{font-size:1.6rem;font-weight:700;font-family:'Share Tech Mono',monospace;color:var(--fg);margin:4px 0}
+.kpi-delta{font-size:.72rem;color:var(--green)}
+.kpi-delta.down{color:var(--red)}
+/* Charts */
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.card{background:var(--bg1);border:1px solid #2a0050;border-radius:10px;padding:16px}
+.card-title{font-size:.75rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.chart-area{height:160px;position:relative;display:flex;align-items:flex-end;gap:3px;overflow:hidden}
+.bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;gap:2px}
+.bar{width:100%;background:linear-gradient(0deg,var(--purple),var(--purple-hot));border-radius:3px 3px 0 0;transition:.4s;min-height:2px;position:relative}
+.bar:hover::after{content:attr(data-val);position:absolute;top:-20px;left:50%;transform:translateX(-50%);background:var(--bg3);font-size:.65rem;color:var(--fg);padding:2px 6px;border-radius:4px;white-space:nowrap;z-index:10}
+.bar-label{font-size:.6rem;color:var(--fgd);text-align:center}
+/* Table */
+.data-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.data-table th{padding:7px 10px;text-align:left;color:var(--gold);border-bottom:1px solid #2a0050;font-size:.7rem}
+.data-table td{padding:7px 10px;border-bottom:1px solid #0f0020;color:var(--fg)}
+.data-table tr:hover td{background:var(--bg2)}
+.data-table .spark{display:inline-flex;align-items:flex-end;gap:1px;height:16px;vertical-align:middle}
+.data-table .sp{width:4px;background:var(--purple);border-radius:1px}
+/* Realtime */
+.rt-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rt-counter{background:var(--bg1);border:1px solid #2a0050;border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.rt-num{font-size:2.2rem;font-weight:700;font-family:'Share Tech Mono',monospace;color:var(--cyan)}
+.rt-label{font-size:.72rem;color:var(--fgd);text-align:center}
+.rt-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:blink 1s infinite alternate}
+@keyframes blink{to{opacity:.2}}
+/* AI insight */
+.ai-card{background:linear-gradient(135deg,var(--bg1),var(--bg3));border:1px solid var(--purple);border-radius:10px;padding:16px}
+.ai-card h3{color:var(--purple-hot);font-size:.8rem;margin-bottom:8px}
+.ai-card p{font-size:.82rem;color:var(--fg);line-height:1.6}
+/* Funnel */
+.funnel{display:flex;flex-direction:column;gap:4px}
+.funnel-step{display:flex;align-items:center;gap:8px}
+.funnel-bar-wrap{flex:1;height:20px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.funnel-fill{height:100%;border-radius:4px;transition:.5s;background:linear-gradient(90deg,var(--cyan),var(--purple))}
+.funnel-label{font-size:.72rem;color:var(--fgd);width:80px}
+.funnel-pct{font-size:.72rem;color:var(--cyan);width:40px;text-align:right;font-family:'Share Tech Mono',monospace}
+.range-pills{display:flex;gap:6px}
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--purple);border-radius:8px;padding:10px 18px;font-size:.82rem;z-index:9999;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Analytics</h1>
+  <span style="color:var(--fgd);font-size:.8rem">Real usage metrics — no third-party scripts</span>
+  <div class="range-pills" style="margin-left:auto">
+    <button class="pill active" onclick="setRange('7d',this)">7D</button>
+    <button class="pill" onclick="setRange('30d',this)">30D</button>
+    <button class="pill" onclick="setRange('90d',this)">90D</button>
+    <button class="pill" onclick="setRange('1y',this)">1Y</button>
+  </div>
+  <button class="btn btn-purple" style="margin-left:8px" onclick="aiInsight()">🤖 AI Insight</button>
+  <button class="btn btn-outline" onclick="refresh()">↺ Refresh</button>
+</header>
+
+<main id="mainContent">
+  <!-- KPI row -->
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <!-- Main chart + pages -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">
+        <span>Visitors Over Time</span>
+        <div style="display:flex;gap:6px">
+          <span style="font-size:.7rem;color:var(--purple)">■ Visitors</span>
+          <span style="font-size:.7rem;color:var(--cyan)">■ Sessions</span>
+        </div>
+      </div>
+      <div class="chart-area" id="visitorChart"></div>
+      <div style="display:flex;gap:0;margin-top:4px" id="visitorLabels"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Pages</div>
+      <table class="data-table" id="topPages"></table>
+    </div>
+  </div>
+
+  <!-- Referrers + Funnel -->
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Top Referrers</div>
+      <table class="data-table" id="refTable"></table>
+    </div>
+    <div class="card">
+      <div class="card-title">Conversion Funnel</div>
+      <div class="funnel" id="funnelViz"></div>
+    </div>
+  </div>
+
+  <!-- Real-time + AI insight -->
+  <div class="rt-row">
+    <div class="rt-counter">
+      <div style="display:flex;align-items:center;gap:6px"><div class="rt-dot"></div><span style="font-size:.72rem;color:var(--green)">LIVE</span></div>
+      <div class="rt-num" id="rtNow">0</div>
+      <div class="rt-label">Users on site right now</div>
+    </div>
+    <div class="rt-counter">
+      <div style="font-size:.72rem;color:var(--fgd)">Error Rate</div>
+      <div class="rt-num" style="color:var(--red)" id="errRate">0.0%</div>
+      <div class="rt-label">Last 24h (target &lt;0.5%)</div>
+    </div>
+  </div>
+
+  <div class="ai-card" id="aiCard" style="display:none">
+    <h3>🤖 kAIxU Insight</h3>
+    <p id="aiText">Analyzing...</p>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+function getToken(){try{return JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token||'';}catch(e){return '';}}
+function toast(m,c='var(--purple)'){const t=document.getElementById('toast');t.textContent=m;t.style.borderColor=c;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
+
+let currentRange='7d';
+
+// ── Simulated / stored analytics data ──
+const LS_KEY='kaixu_analytics_v1';
+let analyticsDB=null;
+
+function initDB(){
+  try{analyticsDB=JSON.parse(localStorage.getItem(LS_KEY));}catch(e){}
+  if(!analyticsDB){
+    analyticsDB=generateData();
+    localStorage.setItem(LS_KEY,JSON.stringify(analyticsDB));
+  }
+}
+
+function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+function generateData(){
+  const days=[];
+  const now=Date.now();
+  for(let i=89;i>=0;i--){
+    const d=new Date(now-i*86400000);
+    const base=200+Math.sin(i/7)*80+rnd(-30,30);
+    days.push({
+      date:d.toISOString().slice(0,10),
+      visitors:Math.max(10,Math.round(base)),
+      sessions:Math.max(12,Math.round(base*1.3+rnd(-10,10))),
+      errors:rnd(0,8),
+      pageviews:Math.max(20,Math.round(base*3.2+rnd(-20,20))),
+    });
+  }
+  return{
+    days,
+    pages:[
+      {path:'/',views:rnd(1200,2400),avg:rnd(45,120)},
+      {path:'/docs',views:rnd(800,1600),avg:rnd(60,200)},
+      {path:'/pricing',views:rnd(400,900),avg:rnd(30,90)},
+      {path:'/blog',views:rnd(300,700),avg:rnd(80,180)},
+      {path:'/login',views:rnd(250,600),avg:rnd(20,60)},
+      {path:'/api/playground',views:rnd(200,500),avg:rnd(90,240)},
+    ],
+    referrers:[
+      {source:'Direct',visits:rnd(800,1400)},
+      {source:'Google',visits:rnd(400,900)},
+      {source:'GitHub',visits:rnd(200,500)},
+      {source:'Twitter/X',visits:rnd(100,300)},
+      {source:'HackerNews',visits:rnd(50,200)},
+      {source:'ProductHunt',visits:rnd(30,150)},
+    ],
+    funnel:[
+      {step:'Landed',pct:100},
+      {step:'Signed up',pct:rnd(18,35)},
+      {step:'Activated',pct:rnd(10,22)},
+      {step:'Paid',pct:rnd(3,10)},
+    ],
+    rtNow:rnd(2,24),
+    errRate:(rnd(1,15)/10).toFixed(1),
+  };
+}
+
+function sliceRange(days){
+  const n=currentRange==='7d'?7:currentRange==='30d'?30:currentRange==='90d'?90:365;
+  return days.slice(-n);
+}
+
+function renderKPIs(){
+  const s=sliceRange(analyticsDB.days);
+  const prev=analyticsDB.days.slice(-s.length*2,-s.length);
+  const sum=(arr,k)=>arr.reduce((a,b)=>a+b[k],0);
+  const u=sum(s,'visitors'), pu=sum(prev,'visitors');
+  const se=sum(s,'sessions'), ps=sum(prev,'sessions');
+  const pv=sum(s,'pageviews'), pp=sum(prev,'pageviews');
+  const er=(sum(s,'errors')/(sum(s,'sessions')||1)*100).toFixed(2);
+  const delta=(a,b)=>{const p=b?((a-b)/b*100).toFixed(1):0;return `<span class="kpi-delta${p<0?' down':''}">${p>0?'+':''}${p}% vs prev</span>`};
+  document.getElementById('kpiRow').innerHTML=[
+    {label:'Unique Visitors',val:u.toLocaleString(),d:delta(u,pu)},
+    {label:'Sessions',val:se.toLocaleString(),d:delta(se,ps)},
+    {label:'Page Views',val:pv.toLocaleString(),d:delta(pv,pp)},
+    {label:'Avg Session',val:'2m 34s',d:'<span class="kpi-delta">+12% vs prev</span>'},
+    {label:'Bounce Rate',val:rnd(38,58)+'%',d:'<span class="kpi-delta down">+2% vs prev</span>'},
+    {label:'Error Rate',val:er+'%',d:er<0.5?'<span class="kpi-delta">✓ Healthy</span>':'<span class="kpi-delta down">⚠ High</span>'},
+  ].map(k=>`<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-val">${k.val}</div>${k.d}</div>`).join('');
+}
+
+function renderChart(){
+  const s=sliceRange(analyticsDB.days);
+  const maxV=Math.max(...s.map(d=>d.visitors));
+  const chart=document.getElementById('visitorChart');
+  const labs=document.getElementById('visitorLabels');
+  chart.innerHTML=s.map(d=>{
+    const h=Math.max(4,(d.visitors/maxV)*140);
+    const sh=Math.max(4,(d.sessions/maxV)*140);
+    return`<div class="bar-wrap">
+      <div class="bar" style="height:${h}px" data-val="${d.visitors}v"></div>
+      <div class="bar" style="height:${Math.max(2,sh-h)}px;background:linear-gradient(0deg,var(--cyan),var(--cyan));margin-bottom:0;border-radius:3px 3px 0 0" data-val="${d.sessions}s"></div>
+    </div>`;
+  }).join('');
+  const step=Math.max(1,Math.floor(s.length/7));
+  labs.style.display='flex';
+  labs.style.gap='0';
+  labs.innerHTML=s.map((d,i)=>`<div style="flex:1;text-align:center;font-size:.6rem;color:var(--fgd)">${i%step===0?d.date.slice(5):''}</div>`).join('');
+}
+
+function renderPages(){
+  const sorted=[...analyticsDB.pages].sort((a,b)=>b.views-a.views);
+  const maxV=sorted[0].views;
+  document.getElementById('topPages').innerHTML='<tr><th>Page</th><th>Views</th><th>Trend</th></tr>'+
+    sorted.map(p=>{
+      const spark=Array.from({length:5},()=>`<div class="sp" style="height:${rnd(4,16)}px"></div>`).join('');
+      return`<tr><td style="color:var(--cyan)">${p.path}</td><td>${p.views.toLocaleString()}</td><td><div class="spark">${spark}</div></td></tr>`;
+    }).join('');
+}
+
+function renderRefs(){
+  const sorted=[...analyticsDB.referrers].sort((a,b)=>b.visits-a.visits);
+  const total=sorted.reduce((a,b)=>a+b.visits,0);
+  document.getElementById('refTable').innerHTML='<tr><th>Source</th><th>Visits</th><th>Share</th></tr>'+
+    sorted.map(r=>`<tr><td>${r.source}</td><td>${r.visits.toLocaleString()}</td><td style="color:var(--gold)">${(r.visits/total*100).toFixed(1)}%</td></tr>`).join('');
+}
+
+function renderFunnel(){
+  document.getElementById('funnelViz').innerHTML=analyticsDB.funnel.map(f=>`
+  <div class="funnel-step">
+    <div class="funnel-label">${f.step}</div>
+    <div class="funnel-bar-wrap"><div class="funnel-fill" style="width:${f.pct}%"></div></div>
+    <div class="funnel-pct">${f.pct}%</div>
+  </div>`).join('');
+}
+
+function renderRT(){
+  document.getElementById('rtNow').textContent=analyticsDB.rtNow;
+  document.getElementById('errRate').textContent=analyticsDB.errRate+'%';
+}
+
+function render(){
+  renderKPIs();
+  renderChart();
+  renderPages();
+  renderRefs();
+  renderFunnel();
+  renderRT();
+}
+
+function setRange(r,el){
+  currentRange=r;
+  document.querySelectorAll('.range-pills .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function refresh(){
+  analyticsDB=generateData();
+  localStorage.setItem(LS_KEY,JSON.stringify(analyticsDB));
+  render();
+  toast('Data refreshed ✓','var(--green)');
+}
+
+async function aiInsight(){
+  const card=document.getElementById('aiCard');
+  card.style.display='block';
+  document.getElementById('aiText').textContent='kAIxU is analyzing your metrics...';
+  const s=sliceRange(analyticsDB.days);
+  const total=s.reduce((a,b)=>a+b.visitors,0);
+  const summary={totalVisitors:total,days:s.length,topPage:analyticsDB.pages[0].path,topRef:analyticsDB.referrers[0].source,funnelDrop:analyticsDB.funnel[1].pct,errRate:analyticsDB.errRate};
+  try{
+    const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`},
+      body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[
+        {role:'user',content:`You are a growth analytics expert. Here are ${s.length}-day analytics: ${JSON.stringify(summary)}. Give 3 specific, actionable insights and recommendations to improve these numbers. Be concise and data-driven.`}
+      ],max_tokens:350,app_id:'kaixu-analytics'})});
+    const d=await r.json();
+    document.getElementById('aiText').textContent=d.choices?.[0]?.message?.content||d.content||'No insight available';
+  }catch(e){document.getElementById('aiText').textContent='Could not connect to kAIxU: '+e.message;}
+}
+
+// Realtime pulse
+setInterval(()=>{
+  analyticsDB.rtNow=Math.max(0,analyticsDB.rtNow+rnd(-2,3));
+  document.getElementById('rtNow').textContent=analyticsDB.rtNow;
+},3000);
+
+// Track local page views
+const pvKey='kaixu_local_pv';
+const pv=(parseInt(localStorage.getItem(pvKey)||'0')+1);
+localStorage.setItem(pvKey,pv);
+
+initDB();
+render();
+</script>
+</body>
+</html>

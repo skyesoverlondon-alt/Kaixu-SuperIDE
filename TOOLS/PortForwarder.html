@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Port Forwarder</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--bg3:#1e0040;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg0);color:var(--fg);font-family:'Inter',sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  .hdr{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid #2a0050;flex-shrink:0;}
+  .hdr-title{font-weight:700;font-size:15px;color:var(--purple);}
+  .hdr-sub{color:#8060a0;font-size:11px;}
+  .hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .btn{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:all .15s;}
+  .btn-purple{background:rgba(162,67,255,.15);color:var(--purple);border:1px solid rgba(162,67,255,.3);}
+  .btn-purple:hover{background:rgba(162,67,255,.25);box-shadow:0 0 10px rgba(162,67,255,.3);}
+  .btn-green{background:rgba(79,255,176,.15);color:var(--green);border:1px solid rgba(79,255,176,.3);}
+  .btn-green:hover{background:rgba(79,255,176,.25);}
+  .btn-red{background:rgba(255,79,106,.12);color:var(--red);border:1px solid rgba(255,79,106,.3);}
+  .btn-red:hover{background:rgba(255,79,106,.22);}
+  .btn-cyan{background:rgba(48,224,255,.12);color:var(--cyan);border:1px solid rgba(48,224,255,.3);}
+  .btn-cyan:hover{background:rgba(48,224,255,.22);}
+  .btn-sm{padding:3px 9px;font-size:11px;}
+  .layout{display:flex;flex:1;overflow:hidden;}
+
+  /* LEFT: PORT LIST */
+  .port-pane{width:280px;background:var(--bg1);border-right:1px solid #2a0050;display:flex;flex-direction:column;flex-shrink:0;}
+  .pane-hdr{padding:10px 12px;border-bottom:1px solid #1a0030;display:flex;align-items:center;justify-content:space-between;}
+  .pane-label{font-size:11px;font-weight:700;color:#8060a0;text-transform:uppercase;letter-spacing:.08em;}
+  .port-list{flex:1;overflow-y:auto;}
+  .port-list::-webkit-scrollbar{width:3px;}
+  .port-list::-webkit-scrollbar-thumb{background:#3a0060;}
+
+  .port-item{padding:10px 12px;border-bottom:1px solid #1a0030;cursor:pointer;transition:background .1s;}
+  .port-item:hover{background:var(--bg2);}
+  .port-item.active{background:var(--bg2);border-left:2px solid var(--purple);}
+  .port-num{font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700;color:var(--purple);}
+  .port-label{font-size:11px;color:#8060a0;margin-top:1px;}
+  .port-status-row{display:flex;align-items:center;gap:6px;margin-top:6px;}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .dot-on{background:var(--green);box-shadow:0 0 6px rgba(79,255,176,.5);animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+  .dot-off{background:#3a0060;}
+  .port-url{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--cyan);word-break:break-all;line-height:1.4;}
+  .pub-badge{font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(79,255,176,.1);color:var(--green);border:1px solid rgba(79,255,176,.2);}
+
+  /* SCAN SECTION */
+  .scan-section{padding:10px 12px;border-bottom:1px solid #1a0030;}
+  .scan-label{font-size:10px;color:#6040a0;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+  .detected-port{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #0d001a;}
+  .detected-port:last-child{border-bottom:none;}
+  .dp-num{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--gold);min-width:45px;}
+  .dp-svc{font-size:11px;color:#a090c0;flex:1;}
+  .dp-fwd{padding:2px 7px;border-radius:3px;background:rgba(162,67,255,.1);color:var(--purple);border:1px solid rgba(162,67,255,.2);cursor:pointer;font-size:10px;font-family:inherit;font-weight:600;}
+  .dp-fwd:hover{background:rgba(162,67,255,.2);}
+
+  /* MAIN */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+  /* NEW FORWARD FORM */
+  .new-fwd-bar{padding:10px 14px;background:var(--bg1);border-bottom:1px solid #1a0030;display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
+  .form-group{display:flex;flex-direction:column;gap:3px;}
+  .form-group label{font-size:10px;color:#7050a0;text-transform:uppercase;letter-spacing:.05em;}
+  .form-input{background:var(--bg2);border:1px solid #3a0060;border-radius:4px;color:var(--fg);padding:6px 10px;font-family:inherit;font-size:12px;}
+  .form-input:focus{outline:none;border-color:var(--purple);}
+  .form-select{background:var(--bg2);border:1px solid #3a0060;border-radius:4px;color:var(--fg);padding:6px 8px;font-family:inherit;font-size:12px;}
+
+  /* DETAIL */
+  .detail-area{flex:1;overflow-y:auto;padding:14px;}
+  .detail-area::-webkit-scrollbar{width:4px;}
+  .detail-area::-webkit-scrollbar-thumb{background:#3a0060;}
+  .card{background:var(--bg1);border:1px solid #2a0050;border-radius:7px;padding:14px;margin-bottom:12px;}
+  .card-title{font-size:11px;font-weight:700;color:#8060a0;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+  .url-display{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--cyan);background:var(--bg2);padding:10px 12px;border-radius:5px;border:1px solid #2a0050;display:flex;align-items:center;justify-content:space-between;word-break:break-all;gap:10px;}
+  .copy-btn{padding:4px 10px;border-radius:3px;background:rgba(48,224,255,.1);color:var(--cyan);border:1px solid rgba(48,224,255,.2);cursor:pointer;font-size:10px;font-family:inherit;white-space:nowrap;font-weight:600;flex-shrink:0;}
+  .copy-btn:hover{background:rgba(48,224,255,.2);}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .stat-box{background:var(--bg2);border-radius:5px;padding:10px;text-align:center;}
+  .stat-val{font-size:22px;font-weight:800;font-family:'Share Tech Mono',monospace;}
+  .stat-lbl{font-size:9px;color:#7050a0;text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
+
+  /* REQUEST LOG */
+  .req-table{width:100%;border-collapse:collapse;}
+  .req-table th{font-size:10px;color:#6040a0;text-align:left;padding:5px 8px;border-bottom:1px solid #1a0030;text-transform:uppercase;letter-spacing:.05em;}
+  .req-table td{font-size:11px;padding:6px 8px;border-bottom:1px solid #0d001a;font-family:'Share Tech Mono',monospace;}
+  .req-ok{color:var(--green);}
+  .req-fail{color:var(--red);}
+  .req-row:hover td{background:#0a0018;cursor:pointer;}
+
+  /* EMPTY */
+  .empty{display:flex;align-items:center;justify-content:center;height:100%;color:#5040a0;flex-direction:column;gap:10px;text-align:center;}
+
+  /* STATUS BAR */
+  .status-bar{padding:3px 14px;background:#060010;border-top:1px solid #1a0030;display:flex;gap:16px;font-size:10px;color:#5040a0;flex-shrink:0;}
+  .status-bar span b{color:var(--fg);}
+
+  /* GLOW ANIMATION ON ACTIVE TUNNEL */
+  .tunnel-glow{animation:tunnelGlow 3s ease-in-out infinite;}
+  @keyframes tunnelGlow{0%,100%{box-shadow:0 0 8px rgba(162,67,255,.3);}50%{box-shadow:0 0 20px rgba(162,67,255,.6);}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="font-size:20px;">🔌</div>
+  <div>
+    <div class="hdr-title">Port Forwarder</div>
+    <div class="hdr-sub">Expose local servers · *.kaixu.app tunnels · HTTPS always</div>
+  </div>
+  <div class="hdr-right">
+    <span id="edgeStatus" style="font-size:11px;color:var(--green);">● Edge connected</span>
+    <button class="btn btn-purple btn-sm" onclick="scanPorts()">🔍 Scan ports</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- PORT LIST -->
+  <div class="port-pane">
+    <div class="pane-hdr">
+      <span class="pane-label">Tunnels (<span id="tunnelCount">0</span>)</span>
+    </div>
+
+    <!-- DETECTED PORTS -->
+    <div class="scan-section">
+      <div class="scan-label">Detected local servers</div>
+      <div id="detectedPorts"></div>
+    </div>
+
+    <!-- ACTIVE TUNNELS -->
+    <div style="padding:8px 12px;border-bottom:1px solid #1a0030;">
+      <div class="scan-label">Active tunnels</div>
+    </div>
+    <div class="port-list" id="portList"></div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- NEW FORWARD -->
+    <div class="new-fwd-bar">
+      <div class="form-group">
+        <label>Local Port</label>
+        <input class="form-input" id="newPort" placeholder="3000" style="width:90px;"/>
+      </div>
+      <div class="form-group">
+        <label>Subdomain</label>
+        <input class="form-input" id="newSubdomain" placeholder="myapp (optional)" style="width:140px;"/>
+      </div>
+      <div class="form-group">
+        <label>Auth</label>
+        <select class="form-select" id="newAuth">
+          <option value="none">None</option>
+          <option value="basic">Basic Auth</option>
+          <option value="token">Bearer Token</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Protocol</label>
+        <select class="form-select" id="newProto">
+          <option value="http">HTTP</option>
+          <option value="https">HTTPS</option>
+          <option value="ws">WebSocket</option>
+        </select>
+      </div>
+      <button class="btn btn-purple" onclick="createTunnel()" style="align-self:flex-end;">⚡ Forward</button>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="detail-area" id="detailArea">
+      <div class="empty">
+        <div style="font-size:36px;">🔌</div>
+        <div style="font-size:15px;color:#8060a0;font-weight:600;">No tunnel selected</div>
+        <div style="font-size:12px;color:#5040a0;max-width:260px;line-height:1.5;">Enter a local port above and click ⚡ Forward to expose it, or scan to auto-detect running servers.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span>Tunnels: <b id="sbTunnels">0</b></span>
+  <span>Requests today: <b id="sbReqs">0</b></span>
+  <span>Bandwidth: <b id="sbBw">0 B</b></span>
+  <span>Status: <b id="statusLabel">Idle</b></span>
+</div>
+
+<script>
+const DETECTED=[
+  {port:3000,label:'Next.js dev server'},
+  {port:8080,label:'Local API server'},
+  {port:5173,label:'Vite dev server'},
+  {port:8787,label:'Wrangler (CF Worker)'},
+];
+const FAKE_REQUESTS=[
+  {ts:'16:50:44',method:'GET',path:'/',status:200,dur:12,ip:'82.13.x.x'},
+  {ts:'16:50:46',method:'POST',path:'/api/submit',status:201,dur:88,ip:'82.13.x.x'},
+  {ts:'16:50:52',method:'GET',path:'/api/status',status:200,dur:4,ip:'176.55.x.x'},
+  {ts:'16:51:01',method:'GET',path:'/favicon.ico',status:200,dur:2,ip:'82.13.x.x'},
+  {ts:'16:51:10',method:'POST',path:'/webhook',status:200,dur:34,ip:'54.187.x.x'},
+];
+
+let tunnels=[];
+let selectedTunnel=null;
+let totalReqs=0;
+
+function init(){
+  renderDetected();
+  // Demo tunnel pre-loaded
+  addTunnelObj({port:3000,subdomain:'myapp-dev',proto:'http',auth:'none'});
+  setStatus('Ready');
+}
+
+function renderDetected(){
+  document.getElementById('detectedPorts').innerHTML=DETECTED.map(d=>`
+    <div class="detected-port">
+      <span class="dp-num">${d.port}</span>
+      <span class="dp-svc">${d.label}</span>
+      <button class="dp-fwd" onclick="quickForward(${d.port},'${d.label}')">⚡ Forward</button>
+    </div>`).join('');
+}
+
+function quickForward(port,label){
+  document.getElementById('newPort').value=port;
+  document.getElementById('newSubdomain').value='';
+  createTunnel();
+}
+
+function createTunnel(){
+  const port=parseInt(document.getElementById('newPort').value);
+  const subdomain=document.getElementById('newSubdomain').value.trim()||`local-${port}`;
+  const proto=document.getElementById('newProto').value;
+  const auth=document.getElementById('newAuth').value;
+  if(!port||port<1||port>65535){ setStatus('Enter a valid port 1–65535'); return; }
+  if(tunnels.find(t=>t.port===port)){ setStatus(`Port ${port} already forwarded`); return; }
+  addTunnelObj({port,subdomain,proto,auth});
+}
+
+function addTunnelObj({port,subdomain,proto,auth}){
+  const id=Date.now();
+  const url=`https://${subdomain}.kaixu.app`;
+  const t={id,port,subdomain,proto,auth,url,active:true,requests:0,bytes:0,created:new Date().toISOString()};
+  tunnels.push(t);
+  renderTunnelList();
+  selectTunnel(id);
+  setStatus(`Tunnel open: ${url}`);
+  updateSB();
+  // simulate live request trickle
+  startTrickle(id);
+}
+
+function startTrickle(id){
+  const t=tunnels.find(x=>x.id===id); if(!t) return;
+  const interval=setInterval(()=>{
+    if(!t.active||!tunnels.find(x=>x.id===id)){ clearInterval(interval); return; }
+    t.requests++;
+    t.bytes+=Math.floor(Math.random()*4000)+200;
+    totalReqs++;
+    updateSB();
+    if(selectedTunnel===id) selectTunnel(id); // refresh stats
+  },3000+Math.random()*4000);
+}
+
+function renderTunnelList(){
+  const el=document.getElementById('portList');
+  el.innerHTML=tunnels.map(t=>`
+    <div class="port-item${selectedTunnel===t.id?' active':''}" onclick="selectTunnel(${t.id})">
+      <div class="port-num">:${t.port}</div>
+      <div class="port-label">${t.subdomain}</div>
+      <div class="port-status-row">
+        <div class="dot ${t.active?'dot-on':'dot-off'}"></div>
+        <span style="font-size:9px;color:#6040a0;">${t.active?'live':'closed'}</span>
+        ${t.active?'<span class="pub-badge">public</span>':''}
+      </div>
+      <div class="port-url">${t.url}</div>
+    </div>`).join('');
+  document.getElementById('tunnelCount').textContent=tunnels.filter(t=>t.active).length;
+}
+
+function selectTunnel(id){
+  selectedTunnel=id;
+  renderTunnelList();
+  const t=tunnels.find(x=>x.id===id); if(!t) return;
+  const bwStr = t.bytes>1048576?`${(t.bytes/1048576).toFixed(1)} MB`:t.bytes>1024?`${(t.bytes/1024).toFixed(1)} KB`:`${t.bytes} B`;
+  document.getElementById('detailArea').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--fg);">:${t.port} → ${t.subdomain}.kaixu.app</div>
+        <div style="font-size:11px;color:#7050a0;">Created ${new Date(t.created).toLocaleString()} · ${t.proto.toUpperCase()} · Auth: ${t.auth}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn btn-cyan btn-sm" onclick="openPublicUrl('${t.url}')">↗ Open</button>
+        <button class="btn btn-green btn-sm" onclick="copyUrl('${t.url}')">📋 Copy URL</button>
+        <button class="btn btn-red btn-sm" onclick="closeTunnel(${t.id})">✕ Close tunnel</button>
+      </div>
+    </div>
+
+    <div class="card tunnel-glow" style="margin-bottom:12px;">
+      <div class="card-title">Public URL</div>
+      <div class="url-display">
+        <span>${t.url}</span>
+        <button class="copy-btn" onclick="copyUrl('${t.url}')">Copy</button>
+      </div>
+      ${t.auth==='basic'?'<div style="margin-top:8px;font-size:11px;color:#7050a0;">🔒 Basic auth enabled — share credentials separately</div>':''}
+      ${t.auth==='token'?'<div style="margin-top:8px;font-size:11px;color:#7050a0;">🔒 Bearer token required</div>':''}
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">Stats</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val" style="color:var(--purple);">${t.requests}</div><div class="stat-lbl">Requests</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--cyan);">${bwStr}</div><div class="stat-lbl">Bandwidth</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--green);">${t.active?'ON':'OFF'}</div><div class="stat-lbl">Status</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--gold);">TLS</div><div class="stat-lbl">Encryption</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recent Requests</div>
+      <table class="req-table">
+        <thead><tr><th>Time</th><th>Method</th><th>Path</th><th>Status</th><th>Duration</th><th>IP</th></tr></thead>
+        <tbody>${FAKE_REQUESTS.map(r=>`
+          <tr class="req-row">
+            <td>${r.ts}</td>
+            <td style="color:var(--cyan);">${r.method}</td>
+            <td style="color:var(--fg);">${r.path}</td>
+            <td class="${r.status<400?'req-ok':'req-fail'}">${r.status}</td>
+            <td>${r.dur}ms</td>
+            <td style="color:#6040a0;">${r.ip}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function closeTunnel(id){
+  const t=tunnels.find(x=>x.id===id); if(!t) return;
+  t.active=false;
+  renderTunnelList();
+  setStatus(`Tunnel closed: ${t.url}`);
+  updateSB();
+  document.getElementById('detailArea').innerHTML='<div class="empty"><div style="font-size:36px;">🔌</div><div style="color:#8060a0;font-size:14px;margin-top:8px;">Tunnel closed</div></div>';
+  selectedTunnel=null;
+}
+
+function scanPorts(){
+  setStatus('Scanning for local servers…');
+  setTimeout(()=>{ setStatus(`Found ${DETECTED.length} running servers`); renderDetected(); },600);
+}
+
+function openPublicUrl(url){ window.open(url,'_blank'); }
+function copyUrl(url){
+  navigator.clipboard?.writeText(url).catch(()=>{});
+  setStatus(`Copied: ${url}`);
+}
+
+function updateSB(){
+  document.getElementById('sbTunnels').textContent=tunnels.filter(t=>t.active).length;
+  document.getElementById('sbReqs').textContent=totalReqs;
+  const totalBytes=tunnels.reduce((a,t)=>a+t.bytes,0);
+  document.getElementById('sbBw').textContent=totalBytes>1048576?`${(totalBytes/1048576).toFixed(1)} MB`:totalBytes>1024?`${(totalBytes/1024).toFixed(1)} KB`:`${totalBytes} B`;
+}
+function setStatus(msg){ document.getElementById('statusLabel').textContent=msg; }
+
+init();
+</script>
+</body>
+</html>

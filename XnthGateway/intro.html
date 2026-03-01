@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kAIxU Gateway 13 Intro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0b0914;
+            --accent-purple: #8A4FFF;
+            --accent-gold: #FFD700;
+            --glow-purple: rgba(138, 79, 255, 0.4);
+            --glow-gold: rgba(255, 215, 0, 0.5);
+            --text-main: #fcfcfc;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(138, 79, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.05) 0%, transparent 50%);
+        }
+
+        /* --- INNOVATIVE THREE-STAGE INTRO SEQUENCE --- */
+        #skyes-intro {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #05040a;
+            z-index: 9999;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: all;
+            animation: introBlast 0.8s cubic-bezier(0.8, 0, 0.2, 1) 4.5s forwards;
+        }
+
+        .intro-grid {
+            position: absolute; bottom: -50%; left: -50%; width: 200%; height: 200%;
+            background-image: 
+                linear-gradient(rgba(138, 79, 255, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(138, 79, 255, 0.3) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform: perspective(600px) rotateX(75deg) translateY(0);
+            opacity: 0;
+            animation: gridBoot 2s cubic-bezier(0.2, 0.8, 0.2, 1) 0s forwards;
+        }
+
+        .intro-scanner {
+            position: absolute; top: -10%; left: 0; width: 100%; height: 2px;
+            background: var(--accent-gold);
+            box-shadow: 0 0 30px 5px var(--glow-gold);
+            opacity: 0;
+            animation: laserScan 1.8s ease-in-out 0s forwards;
+        }
+
+        .intro-terminal {
+            position: absolute; top: 10%; left: 5%;
+            font-family: 'Fira Code', monospace;
+            color: var(--accent-purple);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            line-height: 1.8;
+            opacity: 0;
+            animation: terminalBoot 1.8s steps(20, end) 0s forwards;
+            text-shadow: 0 0 5px var(--glow-purple);
+        }
+
+        .intro-centerpiece { position: relative; display: flex; flex-direction: column; align-items: center; z-index: 2; }
+        .intro-logo {
+            max-width: 220px; opacity: 0; transform: scale(0.5) translateY(50px); filter: blur(20px);
+            animation: logoMaterialize 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) 1.8s forwards, logoPulse 2s ease-in-out 3.3s infinite alternate;
+        }
+        .intro-brand-text {
+            margin-top: 30px; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-main);
+            letter-spacing: -5px; opacity: 0; filter: blur(10px);
+            animation: textExpand 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 2.2s forwards;
+        }
+        .intro-brand-sub {
+            margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 9px; font-weight: 500; color: var(--accent-gold);
+            letter-spacing: 12px; opacity: 0; animation: subFade 1s ease-out 2.6s forwards; text-shadow: 0 0 10px var(--glow-gold);
+        }
+
+        .intro-whiteout {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--accent-gold);
+            mix-blend-mode: overlay; opacity: 0; z-index: 5;
+            animation: whiteoutFlash 0.8s ease-out 4.2s forwards;
+        }
+
+        @keyframes gridBoot { 0% { transform: perspective(600px) rotateX(75deg) translateY(-200px); opacity: 0; filter: hue-rotate(90deg); } 30% { opacity: 1; } 80% { opacity: 1; filter: hue-rotate(0deg); } 100% { transform: perspective(600px) rotateX(75deg) translateY(200px); opacity: 0; } }
+        @keyframes laserScan { 0% { top: -10%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 110%; opacity: 0; } }
+        @keyframes terminalBoot { 0% { opacity: 1; clip-path: inset(0 0 100% 0); } 90% { opacity: 1; clip-path: inset(0 0 0% 0); } 100% { opacity: 0; clip-path: inset(0 0 0% 0); } }
+        @keyframes logoMaterialize { 0% { opacity: 0; transform: scale(0.5) translateY(50px); filter: blur(20px) drop-shadow(0 0 0 transparent); } 100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0px) drop-shadow(0 0 30px var(--glow-purple)); } }
+        @keyframes logoPulse { 0% { filter: drop-shadow(0 0 30px var(--glow-purple)); transform: scale(1); } 100% { filter: drop-shadow(0 0 50px var(--glow-gold)); transform: scale(1.05); } }
+        @keyframes textExpand { 0% { opacity: 0; letter-spacing: -10px; filter: blur(10px); transform: scale(0.9); } 100% { opacity: 1; letter-spacing: 6px; filter: blur(0px); transform: scale(1); } }
+        @keyframes subFade { 0% { opacity: 0; transform: translateY(-10px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes whiteoutFlash { 0% { opacity: 0; } 50% { opacity: 0.8; } 100% { opacity: 0; } }
+        @keyframes introBlast { 0% { opacity: 1; transform: scale(1); filter: blur(0); } 100% { opacity: 0; transform: scale(3) translateZ(200px); filter: blur(20px); visibility: hidden; } }
+
+        .post-intro {
+            opacity: 0;
+            transition: opacity 0.6s ease 0.2s;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        body.app-ready .post-intro { opacity: 1; }
+    </style>
+</head>
+<body>
+    <!-- INNOVATIVE MULTI-STAGE INTRO -->
+    <div id="skyes-intro">
+        <div class="intro-grid"></div>
+        <div class="intro-scanner"></div>
+        <div class="intro-terminal" id="intro-terminal-text">
+            > SECURE CONNECTION ESTABLISHED<br>
+            > ROUTING TO kAIxU GATEWAY 13... [OK]<br>
+            > INITIALIZING NEURAL ENGINE... [OK]<br>
+            > LOADING kAIxU FRAMEWORK v13.0<br>
+            > DECRYPTING OFFLINE LEDGER... [OK]<br>
+            > MOUNTING FILE SYSTEM...
+        </div>
+        <div class="intro-whiteout"></div>
+        
+        <div class="intro-centerpiece">
+            <img src="https://cdn1.sharemyimage.com/2026/02/17/Logo-2-1.png" alt="kAIxU Gateway 13" class="intro-logo">
+            <div class="intro-brand-text">kAIxU GATEWAY 13</div>
+            <div class="intro-brand-sub">PRIME ACCESS NODE</div>
+        </div>
+    </div>
+
+    <div class="post-intro">Intro complete. kAIxU Gateway 13 shell intentionally removed.</div>
+
+    <script>
+        // Keep the original intro behavior intact; only the app shell is removed.
+        (() => {
+            const terminal = document.getElementById('intro-terminal-text');
+            let terminalInterval;
+            if (terminal) {
+                terminalInterval = setInterval(() => {
+                    terminal.innerHTML += `<br>> SYS_${Math.random().toString(16).substr(2, 8).toUpperCase()} ALLOCATED`;
+                }, 150);
+            }
+
+            setTimeout(() => {
+                if (terminalInterval) clearInterval(terminalInterval);
+                const intro = document.getElementById('skyes-intro');
+                if (intro) intro.remove();
+                document.body.classList.add('app-ready');
+            }, 5300);
+        })();
+    </script>
+</body>
+</html>

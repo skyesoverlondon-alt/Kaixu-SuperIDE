@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kAIxu Neural Space Pro</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Rendering Engines -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@1.0.2/lib/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    
+    <!-- Document Processing Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+        :root { --sidebar-bg: #0a0a0a; --main-bg: #0f0f0f; --canvas-bg: #141414; --accent: #3b82f6; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--main-bg); color: #ececec; overflow: hidden; }
+        
+        .canvas-closed #canvas-panel { transform: translateX(100%); width: 0; opacity: 0; pointer-events: none; }
+        .canvas-open #canvas-panel { transform: translateX(0); width: 50%; opacity: 1; pointer-events: all; }
+        #canvas-panel { transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1); border-left: 1px solid rgba(255,255,255,0.08); z-index: 60; }
+        
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 10px; }
+        
+        .prose { max-width: 100% !important; font-size: 15px; color: #d1d5db !important; }
+        .prose pre { background: #000 !important; border: 1px solid #222; padding: 0 !important; border-radius: 12px; }
+        
+        .glass-panel { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(10px); }
+        .action-btn { @apply p-2.5 rounded-xl hover:bg-white/5 transition-all text-gray-500 hover:text-white cursor-pointer flex items-center justify-center; }
+        .active-tab { @apply border-b-2 border-blue-500 text-blue-400; }
+        
+        @keyframes pulse-ring { 0% { transform: scale(.33); opacity: 1; } 80%, 100% { opacity: 0; } }
+        .status-dot-active::before { content: ''; display: block; width: 300%; height: 300%; box-sizing: border-box; margin-left: -100%; margin-top: -100%; border-radius: 45px; background-color: #3b82f6; animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+        .doc-chip { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); }
+        
+        .logo-img { width: 32px; height: 32px; object-fit: contain; }
+        .logo-img-large { width: 80px; height: 80px; object-fit: contain; }
+    </style>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#3b82f6"><link rel="apple-touch-icon" href="icon-192.png"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script></head>
+<body class="h-screen flex canvas-closed" id="app-body">
+
+    <!-- Knowledge Base Drawer -->
+    <div id="kb-drawer" class="fixed inset-y-0 left-0 w-80 bg-black/95 z-[100] transform -translate-x-full transition-transform duration-300 border-r border-white/10 p-6 flex flex-col shadow-2xl">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-sm font-black uppercase tracking-widest text-gray-400">Knowledge Base</h3>
+            <button onclick="toggleKB()" class="text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="pinned-items" class="flex-1 overflow-y-auto space-y-4"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="w-72 bg-[var(--sidebar-bg)] flex-shrink-0 flex flex-col border-r border-white/5 z-50">
+        <div class="p-6">
+            <button onclick="createNewChat()" class="w-full py-3.5 bg-white text-black rounded-2xl flex items-center justify-center gap-3 font-black text-sm hover:bg-gray-200 transition-all shadow-xl">
+                <i class="fa-solid fa-plus-circle"></i> New Session
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto px-4 space-y-2" id="history-list"></div>
+        <div class="p-4 mt-auto border-t border-white/5 space-y-2">
+            <button onclick="toggleKB()" class="w-full flex items-center gap-3 px-4 py-3 text-xs text-gray-400 hover:bg-white/5 rounded-xl transition-all font-bold">
+                <i class="fa-solid fa-bookmark text-amber-500"></i> Knowledge Base
+            </button>
+            <button onclick="toggleSettings()" class="w-full flex items-center gap-3 px-4 py-3 text-xs text-gray-400 hover:bg-white/5 rounded-xl transition-all font-bold">
+                <i class="fa-solid fa-microchip text-blue-500"></i> kAIxu Config
+            </button>
+            <div class="pt-4 flex items-center gap-3 px-2">
+                <img src="https://cdn1.sharemyimage.com/2026/02/15/Screenshot-2026-02-14-1.45.11-PM-3.png" alt="kAIxu Logo" class="w-8 h-8 object-contain rounded-lg">
+                <div class="flex-1 overflow-hidden">
+                    <div class="text-[11px] font-black truncate" id="user-uid">Accessing...</div>
+                    <div class="text-[9px] text-gray-500 uppercase tracking-tighter">Neural Workspace Pro</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex flex-col relative bg-[var(--main-bg)] overflow-hidden">
+        <header class="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/20 z-40">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <img src="https://cdn1.sharemyimage.com/2026/02/15/Screenshot-2026-02-14-1.45.11-PM-3.png" alt="kAIxu Logo" class="logo-img">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-black text-lg tracking-tighter" id="active-model">kAIxu Neural Space Pro</span>
+                            <div class="w-2.5 h-2.5 rounded-full bg-blue-500 status-dot-active ml-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div id="engine-status" class="hidden px-4 py-2 glass-panel rounded-full flex items-center gap-3 animate-pulse">
+                    <i class="fa-solid fa-brain text-blue-400 text-xs"></i>
+                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Processing...</span>
+                </div>
+                <button id="stop-btn" onclick="stopEngine()" class="hidden px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full text-[10px] font-black uppercase">Interrupt</button>
+            </div>
+        </header>
+
+        <div id="chat-window" class="flex-1 overflow-y-auto pt-10 pb-32">
+            <div id="welcome-view" class="h-full flex flex-col items-center justify-center text-center p-12 space-y-8 max-w-2xl mx-auto">
+                <img src="https://cdn1.sharemyimage.com/2026/02/15/Screenshot-2026-02-14-1.45.11-PM-3.png" alt="kAIxu Logo" class="logo-img-large shadow-2xl">
+                <div>
+                    <h2 class="text-5xl font-black tracking-tighter leading-tight">Neural Space Pro.</h2>
+                    <p class="text-gray-500 font-medium mt-4">Advanced neural intelligence for multi-modal analysis, documentation synthesis, and technical reasoning.</p>
+                </div>
+            </div>
+            <div id="messages-list" class="max-w-4xl mx-auto px-6 space-y-12"></div>
+        </div>
+
+        <footer class="p-6 md:p-10 relative bg-gradient-to-t from-[var(--main-bg)] to-transparent">
+            <div class="max-w-4xl mx-auto relative">
+                <div id="attachment-strip" class="hidden flex flex-wrap gap-2 mb-4 animate-fade"></div>
+                <div class="bg-[#1c1c1c] rounded-[2.5rem] shadow-2xl border border-white/5 flex flex-col overflow-hidden focus-within:border-white/15 transition-all">
+                    <textarea id="user-input" rows="1" placeholder="Consult kAIxu Neural Space..." class="w-full bg-transparent p-6 px-8 resize-none focus:outline-none max-h-[400px] text-[16px]" oninput="autoResize(this)"></textarea>
+                    <div class="flex items-center justify-between px-6 pb-6">
+                        <div class="flex gap-1">
+                            <input type="file" id="file-upload" class="hidden" accept="image/*,.pdf,.xlsx,.xls,.csv" multiple onchange="handleFiles(event)">
+                            <button onclick="document.getElementById('file-upload').click()" class="action-btn" title="Attach Data"><i class="fa-solid fa-paperclip text-sm"></i></button>
+                            <button onclick="toggleMode('edit')" id="edit-toggle" class="action-btn" title="Image Transform"><i class="fa-solid fa-wand-magic-sparkles text-sm"></i></button>
+                            <button onclick="toggleSearch()" id="search-btn" class="action-btn text-blue-400" title="Web Search"><i class="fa-solid fa-globe text-sm"></i></button>
+                        </div>
+                        <button id="send-btn" onclick="handleSend()" class="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 shadow-xl disabled:opacity-20"><i class="fa-solid fa-arrow-up text-xl"></i></button>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Canvas -->
+    <section id="canvas-panel" class="bg-[var(--canvas-bg)] flex flex-col shadow-2xl overflow-hidden relative">
+        <header class="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/40">
+            <div class="flex gap-4" id="canvas-tabs">
+                <button onclick="setCanvasMode('edit')" class="text-xs font-black uppercase tracking-widest active-tab pb-1">Editor</button>
+                <button id="preview-tab" onclick="setCanvasMode('preview')" class="text-xs font-black uppercase tracking-widest text-gray-500 pb-1">Live Run</button>
+            </div>
+            <button onclick="toggleWorkspace(false)" class="action-btn"><i class="fa-solid fa-xmark text-xs"></i></button>
+        </header>
+        <div class="flex-1 flex flex-col overflow-hidden relative" id="canvas-body">
+            <textarea id="canvas-editor" class="flex-1 bg-transparent p-10 font-mono text-sm leading-relaxed text-gray-300 resize-none outline-none"></textarea>
+            <iframe id="canvas-preview" class="hidden w-full h-full bg-white"></iframe>
+        </div>
+    </section>
+
+    <!-- Settings -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6">
+        <div class="bg-[#1a1a1a] border border-white/10 w-full max-w-xl rounded-[3rem] p-10 animate-fade">
+            <div class="flex justify-between items-center mb-10">
+                <div class="flex items-center gap-4">
+                    <img src="https://cdn1.sharemyimage.com/2026/02/15/Screenshot-2026-02-14-1.45.11-PM-3.png" alt="kAIxu Logo" class="w-10 h-10 object-contain">
+                    <h3 class="text-3xl font-black tracking-tighter">kAIxu Config</h3>
+                </div>
+                <button onclick="toggleSettings()"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">kAIxu API Key</label>
+                    <input type="password" id="api-key-config" class="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm outline-none focus:border-blue-500/50 transition-all" placeholder="Enter key for Space Pro access...">
+                    <div class="mt-2 text-right">
+                        <a href="https://skyesoverlondon.netlify.app/pages/services/real-intelligence/getkaixu-api" target="_blank" class="text-[10px] text-blue-400 hover:text-blue-300 font-bold">
+                            Request Neural Space API <i class="fa-solid fa-external-link"></i>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">System Instruction Blueprint</label>
+                    <textarea id="system-prompt" rows="3" class="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm outline-none" placeholder="Instruction to kAIxu..."></textarea>
+                </div>
+                <button onclick="saveSettings()" class="w-full py-5 bg-white text-black font-black rounded-3xl hover:bg-gray-200 transition-all">Synchronize Neural Config</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Setup
+        const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
+        const appId = window.__app_id || 'kaixu-nexus-v1';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // App State
+        let apiKey = "";
+        let user = null, currentChatId = null, activeMode = 'chat', isSearchOn = true, attachments = [], conversation = [], abortCtrl = null;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // --- ENGINE SETTINGS ---
+        function loadLocalStore() {
+            const systemPromptEl = document.getElementById('system-prompt');
+            const apiKeyEl = document.getElementById('api-key-config');
+            
+            const storedKey = localStorage.getItem('kaixu_api_key');
+            if (storedKey) {
+                apiKey = storedKey;
+                if (apiKeyEl) apiKeyEl.value = storedKey;
+            }
+            
+            if (systemPromptEl) {
+                systemPromptEl.value = localStorage.getItem('kaixu_sys') || "";
+            }
+        }
+
+        window.saveSettings = () => {
+            const systemPromptEl = document.getElementById('system-prompt');
+            const apiKeyEl = document.getElementById('api-key-config');
+            
+            if (apiKeyEl) {
+                const newKey = apiKeyEl.value.trim();
+                localStorage.setItem('kaixu_api_key', newKey);
+                apiKey = newKey;
+            }
+            
+            if (systemPromptEl) {
+                localStorage.setItem('kaixu_sys', systemPromptEl.value);
+            }
+            toggleSettings();
+        };
+
+        // --- UI HANDLERS ---
+        window.toggleWorkspace = (o) => { document.getElementById('app-body').classList.toggle('canvas-open', o); document.getElementById('app-body').classList.toggle('canvas-closed', !o); };
+        window.toggleSettings = () => document.getElementById('settings-modal').classList.toggle('hidden');
+        window.toggleKB = () => document.getElementById('kb-drawer').classList.toggle('-translate-x-full');
+        window.autoResize = (t) => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; };
+
+        // Authentication Observer
+        onAuthStateChanged(auth, (u) => { 
+            user = u; 
+            if (user) { 
+                const userUidEl = document.getElementById('user-uid');
+                if (userUidEl) userUidEl.textContent = user.uid.slice(0, 15); 
+                syncArchives(); 
+                loadLocalStore(); 
+            } else {
+                signInAnonymously(auth);
+            }
+        });
+
+        // File Processing
+        window.handleFiles = async (e) => {
+            const files = Array.from(e.target.files);
+            const strip = document.getElementById('attachment-strip');
+            if (strip) strip.classList.remove('hidden');
+
+            for (const file of files) {
+                const id = Math.random().toString(36).substring(2, 9);
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => { attachments.push({ id, type: 'image', base64: ev.target.result.split(',')[1], full: ev.target.result, name: file.name }); renderStrip(); };
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    const content = await parsePDF(file);
+                    attachments.push({ id, type: 'pdf', name: file.name, content });
+                    renderStrip();
+                } else if (file.name.match(/\.(xlsx|xls|csv)$/)) {
+                    const content = await parseSpreadsheet(file);
+                    attachments.push({ id, type: 'spreadsheet', name: file.name, content });
+                    renderStrip();
+                }
+            }
+            e.target.value = '';
+        };
+
+        async function parsePDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                fullText += textContent.items.map(s => s.str).join(" ") + "\n";
+            }
+            return fullText;
+        }
+
+        async function parseSpreadsheet(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer);
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            return XLSX.utils.sheet_to_csv(firstSheet);
+        }
+
+        function renderStrip() {
+            const strip = document.getElementById('attachment-strip');
+            if (!strip) return;
+            strip.innerHTML = '';
+            attachments.forEach(a => {
+                const div = document.createElement('div');
+                div.className = `relative w-24 h-24 group flex flex-col items-center justify-center rounded-2xl border border-white/10 overflow-hidden ${a.type !== 'image' ? 'doc-chip' : ''}`;
+                if (a.type === 'image') {
+                    div.innerHTML = `<img src="${a.full}" class="w-full h-full object-cover">`;
+                } else {
+                    div.innerHTML = `<i class="fa-solid ${a.type === 'pdf' ? 'fa-file-pdf text-red-400' : 'fa-file-excel text-green-400'} text-2xl mb-1"></i><span class="text-[8px] truncate px-2 w-full text-center">${a.name}</span>`;
+                }
+                div.innerHTML += `<button onclick="removeFile('${a.id}')" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"><i class="fa-solid fa-xmark"></i></button>`;
+                strip.appendChild(div);
+            });
+            if (attachments.length === 0) strip.classList.add('hidden');
+        }
+
+        window.removeFile = (id) => { attachments = attachments.filter(a => a.id !== id); renderStrip(); };
+
+        // Communication
+        window.handleSend = async () => {
+            const storedKey = localStorage.getItem('kaixu_api_key');
+            if (!storedKey) {
+                addMessageUI('model', "### Authentication Required\nAccessing the **Neural Space Pro** core requires a valid API key. Please input your activation key in the **kAIxu Config** (Settings) menu.");
+                toggleSettings();
+                return;
+            }
+            apiKey = storedKey;
+
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text && attachments.length === 0) return;
+
+            if (!currentChatId) {
+                const ref = await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'chats'), { title: text.slice(0, 30) || "Neural Stream", updatedAt: Timestamp.now() });
+                currentChatId = ref.id;
+            }
+
+            const welcomeView = document.getElementById('welcome-view');
+            if (welcomeView) welcomeView.classList.add('hidden');
+            
+            const currAtts = [...attachments];
+            addMessageUI('user', text, currAtts);
+            await saveMessage('user', text, currAtts);
+            
+            input.value = ''; attachments = []; renderStrip(); autoResize(input);
+            await runChat(text, currAtts);
+        };
+
+        async function runChat(prompt, atts) {
+            setLoading(true);
+            try {
+                const sys = localStorage.getItem('kaixu_sys') || "You are kAIxu, the core intelligence of the Neural Space Pro environment. You are optimized for research, data synthesis, and technical architecture.";
+                const parts = [{ text: prompt || "Neural handshake." }];
+                
+                atts.forEach(a => {
+                    if (a.type === 'image') parts.push({ inlineData: { mimeType: "image/png", data: a.base64 } });
+                    else parts.push({ text: `[NEURAL_INGEST: ${a.name} (${a.type.toUpperCase()})]\n${a.content}\n` });
+                });
+
+                const payload = { 
+                    contents: [...conversation, { role: "user", parts }], 
+                    systemInstruction: { parts: [{ text: sys }] }, 
+                    tools: isSearchOn ? [{ google_search: {} }] : [] 
+                };
+                
+                const res = await apiCall(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, payload, abortCtrl.signal);
+                
+                const text = res.candidates[0].content.parts[0].text;
+                addMessageUI('model', text);
+                await saveMessage('model', text);
+                conversation.push({ role: "user", parts: [{ text: prompt }] }, { role: "model", parts: [{ text: text }] });
+            } catch (err) { 
+                if (err.name !== 'AbortError') addMessageUI('model', "Neural Exception: " + err.message); 
+            } finally { 
+                setLoading(false); 
+            }
+        }
+
+        async function apiCall(url, body, signal) {
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
+            if (!r.ok) throw new Error(await r.text());
+            return await r.json();
+        }
+
+        function addMessageUI(role, text, atts = null) {
+            const list = document.getElementById('messages-list'), div = document.createElement('div');
+            div.className = `flex gap-6 py-10 animate-fade ${role === 'model' ? 'border-b border-white/[0.02]' : ''}`;
+            let html = `<div class="prose prose-invert prose-indigo prose-sm md:prose-base">${marked.parse(text)}</div>`;
+            div.innerHTML = `
+                <div class="w-12 h-12 rounded-xl flex-shrink-0 flex items-center justify-center ${role === 'user' ? 'bg-white/5' : 'bg-white text-black'}">
+                    ${role === 'model' ? `<img src="https://cdn1.sharemyimage.com/2026/02/15/Screenshot-2026-02-14-1.45.11-PM-3.png" class="w-8 h-8 object-contain">` : `<i class="fa-solid fa-user"></i>`}
+                </div>
+                <div class="flex-1 min-w-0">
+                    ${atts ? `<div class="flex flex-wrap gap-4 mb-4">${atts.map(a => `<div class="p-2 border border-white/10 rounded-lg text-[10px] bg-white/5"><i class="fa-solid fa-paperclip mr-2"></i>${a.name}</div>`).join('')}</div>` : ''}
+                    ${html}
+                    ${role === 'model' ? `<div class="mt-8 flex gap-5 opacity-40 hover:opacity-100"><button onclick="toCanvas(this)" class="text-[10px] font-black uppercase tracking-widest">Focus in Workspace</button></div>` : ''}
+                </div>`;
+            list.appendChild(div);
+            Prism.highlightAllUnder(div);
+            const chatWin = document.getElementById('chat-window');
+            if (chatWin) chatWin.scrollTo({ top: chatWin.scrollHeight, behavior: 'smooth' });
+        }
+
+        window.toCanvas = (btn) => {
+            const prose = btn.closest('.flex-1').querySelector('.prose');
+            if (prose) {
+                document.getElementById('canvas-editor').value = prose.innerText;
+                toggleWorkspace(true);
+            }
+        };
+
+        function setLoading(l) {
+            const status = document.getElementById('engine-status');
+            const stopBtn = document.getElementById('stop-btn');
+            const sendBtn = document.getElementById('send-btn');
+            if (status) status.classList.toggle('hidden', !l);
+            if (stopBtn) stopBtn.classList.toggle('hidden', !l);
+            if (sendBtn) sendBtn.disabled = l;
+            abortCtrl = l ? new AbortController() : null;
+        }
+
+        async function saveMessage(role, content, atts = null) {
+            if (!user || !currentChatId) return;
+            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'chats', currentChatId, 'messages'), { role, content, attachments: atts ? atts.map(a => ({ name: a.name, type: a.type })) : null, timestamp: Date.now() });
+            await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'chats', currentChatId), { updatedAt: Timestamp.now() });
+        }
+
+        async function syncArchives() {
+            if (!user) return;
+            onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'chats'), (snap) => {
+                const list = document.getElementById('history-list');
+                if (!list) return;
+                list.innerHTML = '';
+                snap.docs.forEach(chat => {
+                    const div = document.createElement('div');
+                    div.className = `p-3 text-xs cursor-pointer hover:bg-white/5 rounded-xl truncate text-gray-400 hover:text-white transition-colors`;
+                    div.textContent = chat.data().title || "Neural Session";
+                    div.onclick = () => loadSession(chat.id);
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        async function loadSession(id) {
+            currentChatId = id;
+            const welcomeView = document.getElementById('welcome-view');
+            const msgList = document.getElementById('messages-list');
+            if (welcomeView) welcomeView.classList.add('hidden');
+            if (msgList) msgList.innerHTML = '<div class="py-20 text-center text-gray-600 animate-pulse font-bold tracking-widest text-[10px]">RE-INITIALIZING kAIxu STREAM...</div>';
+            
+            const snap = await getDocs(collection(db, 'artifacts', appId, 'users', user.uid, 'chats', id, 'messages'));
+            const msgs = snap.docs.map(d => d.data()).sort((a, b) => a.timestamp - b.timestamp);
+            
+            if (msgList) msgList.innerHTML = '';
+            conversation = [];
+            msgs.forEach(m => {
+                addMessageUI(m.role, m.content, m.attachments);
+                conversation.push({ role: m.role, parts: [{ text: m.content }] });
+            });
+        }
+
+        window.createNewChat = () => { 
+            currentChatId = null; 
+            conversation = []; 
+            const msgList = document.getElementById('messages-list');
+            const welcomeView = document.getElementById('welcome-view');
+            if (msgList) msgList.innerHTML = ''; 
+            if (welcomeView) welcomeView.classList.remove('hidden'); 
+        };
+
+        window.stopEngine = () => { if (abortCtrl) abortCtrl.abort(); };
+
+        window.toggleSearch = () => {
+            isSearchOn = !isSearchOn;
+            const searchBtn = document.getElementById('search-btn');
+            if (searchBtn) searchBtn.classList.toggle('text-blue-400', isSearchOn);
+        };
+
+        window.toggleMode = (mode) => {
+            activeMode = (activeMode === mode) ? 'chat' : mode;
+            const editToggle = document.getElementById('edit-toggle');
+            if (editToggle) editToggle.classList.toggle('text-purple-400', activeMode === 'edit');
+        };
+
+        window.setCanvasMode = (m) => {
+            const editor = document.getElementById('canvas-editor');
+            const preview = document.getElementById('canvas-preview');
+            const tabs = document.querySelectorAll('#canvas-tabs button');
+            
+            tabs.forEach(t => {
+                const clickAttr = t.getAttribute('onclick');
+                t.classList.toggle('active-tab', clickAttr && clickAttr.includes(m));
+            });
+            
+            if (m === 'preview') {
+                if (editor) editor.classList.add('hidden');
+                if (preview) {
+                    preview.classList.remove('hidden');
+                    preview.srcdoc = editor.value;
+                }
+            } else {
+                if (editor) editor.classList.remove('hidden');
+                if (preview) preview.classList.add('hidden');
+            }
+        };
+
+        // Initialize marked with katex extension
+        marked.use(markedKatex({ throwOnError: false }));
+
+        // Event Listeners
+        const userInputEl = document.getElementById('user-input');
+        if (userInputEl) {
+            userInputEl.addEventListener('keydown', (e) => { 
+                if(e.key === 'Enter' && !e.shiftKey) { 
+                    e.preventDefault(); 
+                    handleSend(); 
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>kAIxU — Package Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--bg3:#1e0040;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg0);color:var(--fg);font-family:'Inter',sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+  .hdr{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid #2a0050;flex-shrink:0;}
+  .hdr-title{font-weight:700;font-size:15px;color:var(--orange);}
+  .hdr-sub{color:#8060a0;font-size:11px;}
+  .hdr-right{margin-left:auto;display:flex;gap:8px;}
+  .btn{padding:5px 12px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;transition:all .15s;}
+  .btn-green{background:rgba(79,255,176,.15);color:var(--green);border:1px solid rgba(79,255,176,.3);}
+  .btn-green:hover{background:rgba(79,255,176,.25);}
+  .btn-orange{background:rgba(255,159,67,.12);color:var(--orange);border:1px solid rgba(255,159,67,.3);}
+  .btn-orange:hover{background:rgba(255,159,67,.25);}
+  .btn-purple{background:rgba(162,67,255,.15);color:var(--purple);border:1px solid rgba(162,67,255,.3);}
+  .btn-purple:hover{background:rgba(162,67,255,.25);}
+  .btn-red{background:rgba(255,79,106,.12);color:var(--red);border:1px solid rgba(255,79,106,.3);}
+  .btn-red:hover{background:rgba(255,79,106,.25);}
+  .btn-sm{padding:3px 9px;font-size:11px;}
+  .layout{display:flex;flex:1;overflow:hidden;}
+  
+  /* TABS */
+  .tabs{display:flex;gap:0;background:var(--bg1);border-bottom:1px solid #1a0030;flex-shrink:0;}
+  .tab{padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:#6040a0;transition:all .15s;}
+  .tab:hover{color:var(--fg);}
+  .tab.active{color:var(--orange);border-bottom-color:var(--orange);}
+  
+  /* INSTALLED */
+  .panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+  .panel.active{display:flex;}
+  
+  .toolbar{padding:8px 14px;background:var(--bg1);border-bottom:1px solid #1a0030;display:flex;gap:8px;align-items:center;flex-shrink:0;}
+  .search-box{flex:1;background:var(--bg2);border:1px solid #3a0060;border-radius:4px;color:var(--fg);padding:6px 10px;font-family:inherit;font-size:12px;}
+  .search-box:focus{outline:none;border-color:var(--purple);}
+  .pm-select{background:var(--bg2);border:1px solid #3a0060;border-radius:4px;color:var(--fg);padding:5px 8px;font-family:inherit;font-size:12px;}
+  
+  .pkg-list{flex:1;overflow-y:auto;padding:8px;}
+  .pkg-list::-webkit-scrollbar{width:4px;}
+  .pkg-list::-webkit-scrollbar-thumb{background:#3a0060;}
+  
+  .pkg-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg1);border-radius:5px;border:1px solid #1a0030;margin-bottom:5px;cursor:pointer;transition:all .15s;}
+  .pkg-row:hover{background:var(--bg2);border-color:#3a0060;}
+  .pkg-name{font-family:'Share Tech Mono',monospace;font-weight:700;font-size:13px;color:var(--cyan);min-width:160px;}
+  .pkg-desc{flex:1;font-size:11px;color:#a090c0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pkg-ver{font-family:'Share Tech Mono',monospace;font-size:11px;color:#8060a0;min-width:60px;text-align:right;}
+  .pkg-latest{font-family:'Share Tech Mono',monospace;font-size:11px;min-width:60px;text-align:right;}
+  .pkg-latest.outdated{color:var(--orange);}
+  .pkg-latest.current{color:var(--green);}
+  .pkg-actions{display:flex;gap:5px;}
+  .update-badge{background:rgba(255,159,67,.15);color:var(--orange);border:1px solid rgba(255,159,67,.3);padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;}
+  .update-badge:hover{background:rgba(255,159,67,.3);}
+  .remove-btn{background:rgba(255,79,106,.08);color:var(--red);border:1px solid rgba(255,79,106,.2);padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;cursor:pointer;}
+  .remove-btn:hover{background:rgba(255,79,106,.2);}
+  .vuln-badge{background:rgba(255,79,106,.15);color:var(--red);border:1px solid rgba(255,79,106,.3);padding:2px 5px;border-radius:3px;font-size:9px;font-weight:700;}
+  .license-badge{padding:2px 5px;border-radius:3px;font-size:9px;font-weight:700;}
+  .lic-mit{background:rgba(79,255,176,.1);color:var(--green);}
+  .lic-apache{background:rgba(48,224,255,.1);color:var(--cyan);}
+  .lic-gpl{background:rgba(255,79,106,.1);color:var(--red);}
+  .lic-isc{background:rgba(162,67,255,.1);color:var(--purple);}
+  
+  /* SEARCH results */
+  .search-result{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg1);border-radius:5px;border:1px solid #1a0030;margin-bottom:5px;}
+  .sr-name{font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--cyan);min-width:160px;}
+  .sr-desc{flex:1;font-size:11px;color:#a090c0;}
+  .sr-meta{font-size:10px;color:#6040a0;text-align:right;}
+  .sr-install{padding:4px 10px;border-radius:4px;background:rgba(79,255,176,.12);color:var(--green);border:1px solid rgba(79,255,176,.25);cursor:pointer;font-size:11px;font-family:inherit;font-weight:600;}
+  .sr-install:hover{background:rgba(79,255,176,.22);}
+  
+  /* AUDIT */
+  .audit-item{padding:10px 12px;background:var(--bg1);border-radius:5px;border:1px solid #1a0030;margin-bottom:5px;}
+  .audit-hdr{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .audit-severity{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;}
+  .sev-critical{background:rgba(255,79,106,.2);color:var(--red);}
+  .sev-high{background:rgba(255,159,67,.15);color:var(--orange);}
+  .sev-moderate{background:rgba(255,211,106,.12);color:var(--gold);}
+  .sev-low{background:rgba(162,67,255,.1);color:var(--purple);}
+  .audit-pkg{font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--cyan);}
+  .audit-desc{font-size:11px;color:#a090c0;line-height:1.5;}
+  .audit-fix{font-size:10px;color:var(--green);margin-top:4px;}
+  
+  /* TERMINAL OUTPUT */
+  .term-output{flex:1;font-family:'Share Tech Mono',monospace;font-size:11px;padding:10px 14px;overflow-y:auto;line-height:1.5;background:var(--bg0);}
+  .term-output::-webkit-scrollbar{width:4px;}
+  .term-output::-webkit-scrollbar-thumb{background:#3a0060;}
+  .term-line{margin-bottom:1px;}
+  .term-line.ok{color:var(--green);}
+  .term-line.err{color:var(--red);}
+  .term-line.info{color:var(--cyan);}
+  .term-line.warn{color:var(--gold);}
+  .term-line.dim{color:#5040a0;}
+  .term-input-row{display:flex;gap:8px;padding:8px 14px;background:var(--bg1);border-top:1px solid #1a0030;flex-shrink:0;}
+  .term-input{flex:1;background:transparent;border:none;color:var(--green);font-family:'Share Tech Mono',monospace;font-size:12px;}
+  .term-input:focus{outline:none;}
+
+  .stat-row{display:flex;gap:20px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid #1a0030;flex-shrink:0;}
+  .stat{font-size:11px;color:#6040a0;}
+  .stat b{color:var(--fg);}
+  
+  .status-bar{padding:3px 14px;background:#060010;border-top:1px solid #1a0030;display:flex;gap:16px;font-size:10px;color:#5040a0;flex-shrink:0;}
+  .status-bar span b{color:var(--fg);}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="font-size:20px;">📦</div>
+  <div>
+    <div class="hdr-title">Package Manager</div>
+    <div class="hdr-sub">npm · yarn · pnpm · pip · cargo</div>
+  </div>
+  <div class="hdr-right">
+    <select class="pm-select" id="pmSelect" onchange="switchPM()">
+      <option value="npm">npm</option>
+      <option value="yarn">yarn</option>
+      <option value="pnpm">pnpm</option>
+      <option value="pip">pip</option>
+    </select>
+    <button class="btn btn-orange btn-sm" onclick="loadPackageJson()">📂 Load package.json</button>
+    <button class="btn btn-green btn-sm" onclick="updateAll()">⬆ Update All Safe</button>
+    <button class="btn btn-red btn-sm" onclick="runAudit()">🔍 Audit</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('installed',this)">Installed</div>
+  <div class="tab" onclick="switchTab('search',this)">Search Registry</div>
+  <div class="tab" onclick="switchTab('audit',this)">Security Audit</div>
+  <div class="tab" onclick="switchTab('terminal',this)">Terminal</div>
+</div>
+
+<!-- INSTALLED -->
+<div class="panel active" id="panel-installed">
+  <div class="toolbar">
+    <input class="search-box" id="filterInput" placeholder="Filter installed packages…" oninput="filterPkgs()"/>
+    <select class="pm-select" id="sortSelect" onchange="sortPkgs()">
+      <option value="name">Sort: Name</option>
+      <option value="outdated">Sort: Outdated first</option>
+      <option value="vuln">Sort: Vulnerable first</option>
+    </select>
+  </div>
+  <div class="stat-row" id="statRow">
+    <span class="stat">Total: <b id="totalPkgs">0</b></span>
+    <span class="stat">Outdated: <b id="outdatedPkgs" style="color:var(--orange)">0</b></span>
+    <span class="stat">Vulnerable: <b id="vulnPkgs" style="color:var(--red)">0</b></span>
+    <span class="stat">Dependencies: <b id="depPkgs">0</b></span>
+    <span class="stat">DevDependencies: <b id="devPkgs">0</b></span>
+  </div>
+  <div class="pkg-list" id="pkgList"></div>
+</div>
+
+<!-- SEARCH -->
+<div class="panel" id="panel-search">
+  <div class="toolbar">
+    <input class="search-box" id="npmSearchInput" placeholder="Search npm registry (e.g. express, zod, drizzle-orm)…" onkeydown="if(event.key==='Enter')npmSearch()"/>
+    <button class="btn btn-purple" onclick="npmSearch()">Search</button>
+    <button class="btn btn-purple btn-sm" onclick="aiSearchSuggest()">✦ AI Suggest</button>
+  </div>
+  <div class="pkg-list" id="searchResults">
+    <div style="color:#5040a0;text-align:center;margin-top:40px;font-size:12px;">Search for a package or use ✦ AI Suggest to describe what you need.</div>
+  </div>
+</div>
+
+<!-- AUDIT -->
+<div class="panel" id="panel-audit">
+  <div class="toolbar">
+    <button class="btn btn-red" onclick="runAudit()">🔍 Run npm audit</button>
+    <button class="btn btn-purple btn-sm" onclick="aiAuditExplain()">✦ AI Explain All</button>
+    <span style="margin-left:auto;font-size:11px;color:#6040a0;" id="auditSummaryLabel">Run audit to see vulnerabilities</span>
+  </div>
+  <div class="pkg-list" id="auditList">
+    <div style="color:#5040a0;text-align:center;margin-top:40px;font-size:12px;">Run audit to scan for vulnerabilities.</div>
+  </div>
+</div>
+
+<!-- TERMINAL -->
+<div class="panel" id="panel-terminal" style="flex-direction:column;">
+  <div class="term-output" id="termOutput">
+    <div class="term-line info">$ npm Package Manager Terminal</div>
+    <div class="term-line dim">Type a command and press Enter, or use the buttons above.</div>
+    <div class="term-line dim">Example: npm install express, npm update, npm ls</div>
+  </div>
+  <div class="term-input-row">
+    <span style="color:#6040a0;font-family:'Share Tech Mono',monospace;font-size:12px;">$</span>
+    <input class="term-input" id="termInput" placeholder="npm install lodash" onkeydown="if(event.key==='Enter')runCmd()"/>
+    <button class="btn btn-green btn-sm" onclick="runCmd()">Run</button>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span>PM: <b id="pmLabel">npm</b></span>
+  <span>Status: <b id="statusLabel">Idle</b></span>
+  <span>Node: <b>20.x</b></span>
+</div>
+
+<script>
+const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+
+const DEMO_PACKAGES = [
+  {name:'express',version:'4.18.2',latest:'4.21.2',desc:'Fast, unopinionated web framework',license:'MIT',vuln:false,dev:false,size:'209kB'},
+  {name:'zod',version:'3.22.4',latest:'3.23.8',desc:'TypeScript-first schema validation',license:'MIT',vuln:false,dev:false,size:'53kB'},
+  {name:'drizzle-orm',version:'0.29.1',latest:'0.30.10',desc:'Headless TypeScript ORM',license:'Apache-2.0',vuln:false,dev:false,size:'312kB'},
+  {name:'jose',version:'5.2.4',latest:'5.2.4',desc:'Universal JWT/JWK/JWS/JWE library',license:'MIT',vuln:false,dev:false,size:'89kB'},
+  {name:'bcryptjs',version:'2.4.3',latest:'2.4.3',desc:'Optimized bcrypt password hashing',license:'MIT',vuln:false,dev:false,size:'22kB'},
+  {name:'cors',version:'2.8.5',latest:'2.8.5',desc:'CORS middleware for express',license:'MIT',vuln:false,dev:false,size:'14kB'},
+  {name:'dotenv',version:'16.0.3',latest:'16.4.5',desc:'Loads environment variables from .env',license:'BSD-2-Clause',vuln:false,dev:false,size:'11kB'},
+  {name:'lodash',version:'4.17.19',latest:'4.17.21',desc:'Utility library delivering modularity',license:'MIT',vuln:true,dev:false,size:'531kB'},
+  {name:'typescript',version:'5.2.2',latest:'5.4.5',desc:'TypeScript language server',license:'Apache-2.0',vuln:false,dev:true,size:'22MB'},
+  {name:'jest',version:'29.7.0',latest:'29.7.0',desc:'Delightful JavaScript testing',license:'MIT',vuln:false,dev:true,size:'5.2MB'},
+  {name:'ts-jest',version:'29.1.2',latest:'29.2.0',desc:'TypeScript support for Jest',license:'MIT',vuln:false,dev:true,size:'1.1MB'},
+  {name:'eslint',version:'8.54.0',latest:'9.3.0',desc:'Pluggable JS linter',license:'MIT',vuln:false,dev:true,size:'3.8MB'},
+  {name:'prettier',version:'3.1.0',latest:'3.2.5',desc:'Opinionated code formatter',license:'MIT',vuln:false,dev:true,size:'8.9MB'},
+];
+
+const AUDIT_ITEMS = [
+  {severity:'high',name:'lodash',version:'4.17.19',title:'Prototype Pollution in lodash',cve:'CVE-2021-23337',via:'lodash',range:'<4.17.21',fix:'npm audit fix'},
+  {severity:'moderate',name:'semver',version:'6.3.0',title:'Regular Expression DoS in semver',cve:'CVE-2022-25883',via:'typescript>semver',range:'>=6.0.0 <6.3.1',fix:'npm audit fix'},
+];
+
+const SEARCH_MOCK = {
+  'express':[
+    {name:'express',version:'4.21.2',desc:'Fast, unopinionated, minimalist web framework',weekly:'35M',license:'MIT'},
+    {name:'express-validator',version:'7.0.1',desc:'Express middleware for validator.js',weekly:'2.8M',license:'MIT'},
+    {name:'express-rate-limit',version:'7.3.1',desc:'Rate limiter for express routes',weekly:'2.1M',license:'MIT'},
+  ],
+  'default':[
+    {name:'axios',version:'1.7.2',desc:'Promise based HTTP client for browser and node',weekly:'52M',license:'MIT'},
+    {name:'lodash',version:'4.17.21',desc:'Utility library delivering consistency',weekly:'45M',license:'MIT'},
+    {name:'dayjs',version:'1.11.11',desc:'Minimalist date library (2kB)',weekly:'20M',license:'MIT'},
+  ]
+};
+
+let pkgs = [...DEMO_PACKAGES];
+let activeTab = 'installed';
+let pm = 'npm';
+
+function init(){
+  renderPkgs(pkgs);
+  updateStats();
+}
+
+function switchTab(name,el){
+  activeTab=name;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+function switchPM(){
+  pm = document.getElementById('pmSelect').value;
+  document.getElementById('pmLabel').textContent=pm;
+}
+
+function loadPackageJson(){
+  // In real use this would read the workspace file
+  setStatus('Loaded package.json (demo data)');
+  renderPkgs(pkgs);
+  updateStats();
+}
+
+function filterPkgs(){
+  const q = document.getElementById('filterInput').value.toLowerCase();
+  renderPkgs(pkgs.filter(p=>p.name.includes(q)||p.desc.toLowerCase().includes(q)));
+}
+
+function sortPkgs(){
+  const s = document.getElementById('sortSelect').value;
+  if(s==='name') pkgs.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(s==='outdated') pkgs.sort((a,b)=>(a.version===a.latest?1:-1)-(b.version===b.latest?1:-1));
+  else if(s==='vuln') pkgs.sort((a,b)=>(b.vuln?1:0)-(a.vuln?1:0));
+  filterPkgs();
+}
+
+function renderPkgs(list){
+  const el = document.getElementById('pkgList');
+  if(!list.length){ el.innerHTML='<div style="color:#5040a0;text-align:center;margin-top:40px;">No packages found.</div>'; return; }
+  el.innerHTML = list.map(p=>{
+    const licClass = p.license==='MIT'?'lic-mit':p.license.startsWith('Apache')?'lic-apache':p.license.startsWith('GPL')?'lic-gpl':'lic-isc';
+    const outdated = p.version!==p.latest;
+    return `<div class="pkg-row">
+      <span class="pkg-name">${p.name}</span>
+      <span class="pkg-desc">${p.desc}</span>
+      <span class="license-badge ${licClass}">${p.license}</span>
+      ${p.vuln?'<span class="vuln-badge">⚠ CVE</span>':''}
+      ${p.dev?'<span style="font-size:9px;color:#6040a0;background:#0d001a;padding:2px 5px;border-radius:3px;">dev</span>':''}
+      <span class="pkg-ver">${p.version}</span>
+      <span class="pkg-latest ${outdated?'outdated':'current'}">${p.latest}</span>
+      <div class="pkg-actions">
+        ${outdated?`<span class="update-badge" onclick="updatePkg('${p.name}')">↑ Update</span>`:''}
+        <span class="remove-btn" onclick="removePkg('${p.name}')">✕</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats(){
+  document.getElementById('totalPkgs').textContent=pkgs.length;
+  document.getElementById('outdatedPkgs').textContent=pkgs.filter(p=>p.version!==p.latest).length;
+  document.getElementById('vulnPkgs').textContent=pkgs.filter(p=>p.vuln).length;
+  document.getElementById('depPkgs').textContent=pkgs.filter(p=>!p.dev).length;
+  document.getElementById('devPkgs').textContent=pkgs.filter(p=>p.dev).length;
+}
+
+function updatePkg(name){
+  const p = pkgs.find(x=>x.name===name);
+  if(!p) return;
+  termLog(`$ npm install ${name}@latest`,'info');
+  termLog(`  installing ${name}@${p.latest}…`,'dim');
+  setTimeout(()=>{
+    p.version=p.latest;
+    termLog(`  + ${name}@${p.latest}`,'ok');
+    renderPkgs(pkgs);
+    updateStats();
+    setStatus(`Updated ${name} to ${p.latest}`);
+  },800);
+  switchTab('terminal',document.querySelectorAll('.tab')[3]);
+}
+
+function updateAll(){
+  const outdated = pkgs.filter(p=>p.version!==p.latest);
+  if(!outdated.length){ setStatus('All packages up to date'); return; }
+  termLog('$ npm update','info');
+  outdated.forEach(p=>{
+    termLog(`  updating ${p.name} ${p.version} → ${p.latest}`,'dim');
+    setTimeout(()=>{p.version=p.latest; renderPkgs(pkgs); updateStats();},800+Math.random()*400);
+  });
+  setTimeout(()=>{ termLog(`  ✓ ${outdated.length} packages updated`,'ok'); setStatus('All safe updates applied'); },1200);
+  switchTab('terminal',document.querySelectorAll('.tab')[3]);
+}
+
+function removePkg(name){
+  termLog(`$ npm uninstall ${name}`,'info');
+  setTimeout(()=>{
+    pkgs = pkgs.filter(p=>p.name!==name);
+    termLog(`  - removed ${name}`,'ok');
+    renderPkgs(pkgs); updateStats(); setStatus(`Removed ${name}`);
+  },600);
+  switchTab('terminal',document.querySelectorAll('.tab')[3]);
+}
+
+function npmSearch(){
+  const q = document.getElementById('npmSearchInput').value.trim()||'express';
+  setStatus(`Searching npm for "${q}"…`);
+  const results = SEARCH_MOCK[q]||SEARCH_MOCK['default'];
+  const el = document.getElementById('searchResults');
+  el.innerHTML = results.map(r=>`
+    <div class="search-result">
+      <span class="sr-name">${r.name}</span>
+      <span class="sr-desc">${r.desc}</span>
+      <div class="sr-meta"><b>${r.weekly}</b>/week<br/>${r.license}</div>
+      <span class="sr-install" onclick="installPkg('${r.name}','${r.version}','${r.desc}','${r.license}')">+ Install</span>
+    </div>`).join('');
+  setStatus('Search complete');
+}
+
+function installPkg(name,version,desc,license){
+  termLog(`$ npm install ${name}`,'info');
+  termLog(`  downloading ${name}@${version}…`,'dim');
+  setTimeout(()=>{
+    if(!pkgs.find(p=>p.name===name)){
+      pkgs.push({name,version,latest:version,desc,license,vuln:false,dev:false,size:'?'});
+    }
+    termLog(`  + ${name}@${version}`,'ok');
+    renderPkgs(pkgs); updateStats(); setStatus(`Installed ${name}@${version}`);
+  },900);
+  switchTab('terminal',document.querySelectorAll('.tab')[3]);
+}
+
+async function aiSearchSuggest(){
+  const q = document.getElementById('npmSearchInput').value.trim();
+  if(!q){ document.getElementById('searchResults').innerHTML='<div style="color:#ff4f6a;text-align:center;margin-top:40px;">Describe what you need first.</div>'; return; }
+  document.getElementById('searchResults').innerHTML='<div style="color:var(--purple);text-align:center;margin-top:40px;">✦ kAIxU is finding the best package…</div>';
+  const token = getToken();
+  if(!token){ document.getElementById('searchResults').innerHTML='<div style="color:#ff4f6a;text-align:center;margin-top:40px;">No gateway token. Save it in Secrets Vault.</div>'; return; }
+  try{
+    const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:`Recommend the best npm package for: "${q}". Reply with package name, one-line description, and why it's the best choice. Be concise.`}],max_tokens:200,app_id:'kaixu-pkgmgr'})});
+    const d=await r.json();
+    const text=d.output_text||'';
+    document.getElementById('searchResults').innerHTML=`<div style="padding:20px;font-size:13px;line-height:1.7;color:var(--fg);background:var(--bg1);border-radius:6px;border:1px solid #2a0050;">${text.replace(/\n/g,'<br/>')}</div>`;
+  }catch(e){ document.getElementById('searchResults').innerHTML=`<div style="color:#ff4f6a;text-align:center;margin-top:40px;">Error: ${e.message}</div>`; }
+}
+
+function runAudit(){
+  setStatus('Running audit…');
+  setTimeout(()=>{
+    const el=document.getElementById('auditList');
+    document.getElementById('auditSummaryLabel').textContent=`${AUDIT_ITEMS.length} vulnerabilities found (${AUDIT_ITEMS.filter(x=>x.severity==='high').length} high)`;
+    el.innerHTML=AUDIT_ITEMS.map(a=>`
+      <div class="audit-item">
+        <div class="audit-hdr">
+          <span class="audit-severity sev-${a.severity}">${a.severity.toUpperCase()}</span>
+          <span class="audit-pkg">${a.name}@${a.version}</span>
+          <span style="font-size:10px;color:#6040a0;">${a.cve}</span>
+        </div>
+        <div class="audit-desc">${a.title}<br/><span style="color:#6040a0;">Via: ${a.via} · Range: ${a.range}</span></div>
+        <div class="audit-fix">Fix: <span style="font-family:'Share Tech Mono',monospace;">${a.fix}</span>
+          <button class="btn btn-green btn-sm" style="margin-left:8px;" onclick="runCmd('${a.fix}')">Apply</button>
+        </div>
+      </div>`).join('');
+    setStatus('Audit complete');
+    // mark lodash as vuln
+    pkgs.find(p=>p.name==='lodash')?.(p=>{ p.vuln=true; })&&renderPkgs(pkgs);
+  },600);
+}
+
+async function aiAuditExplain(){
+  const token=getToken();
+  if(!token){setStatus('No token');return;}
+  // placeholder
+  setStatus('✦ kAIxU explainig vulnerabilities…');
+  setTimeout(()=>setStatus('See audit items above for CVE details'),1000);
+}
+
+function runCmd(cmd){
+  const c = cmd||document.getElementById('termInput').value.trim();
+  if(!c) return;
+  document.getElementById('termInput').value='';
+  termLog(`$ ${c}`,'info');
+  // Simulate
+  const parts=c.split(' ');
+  const action=parts.slice(0,2).join(' ');
+  setTimeout(()=>{
+    if(action==='npm install'||action==='npm i'){
+      const pkg=parts[2];
+      termLog(`  added ${pkg||'packages'}…`,'dim');
+      setTimeout(()=>termLog(`  + ${pkg||'packages'} installed`,'ok'),400);
+    } else if(action==='npm update'){
+      termLog('  checking outdated packages…','dim');
+      setTimeout(()=>{ termLog('  ✓ updated 3 packages','ok'); updateAll(); },500);
+    } else if(action==='npm audit'||action==='npm audit fix'){
+      termLog('  scanning for vulnerabilities…','dim');
+      setTimeout(()=>{ termLog('  found 2 vulnerabilities (1 high, 1 moderate)','warn'); runAudit(); },500);
+    } else if(action==='npm ls'){
+      pkgs.slice(0,5).forEach(p=>termLog(`  ${p.name}@${p.version}`,'dim'));
+      termLog(`  ... and ${pkgs.length-5} more`,'dim');
+    } else {
+      termLog('  command simulated (real execution requires terminal access)','warn');
+    }
+    setStatus('Done');
+  },300);
+}
+
+function termLog(msg,cls=''){
+  const out=document.getElementById('termOutput');
+  const div=document.createElement('div');
+  div.className=`term-line ${cls}`;
+  div.textContent=msg;
+  out.appendChild(div);
+  out.scrollTop=out.scrollHeight;
+}
+
+function getToken(){ try{return JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token||'';}catch(e){return '';} }
+function setStatus(msg){ document.getElementById('statusLabel').textContent=msg; }
+
+init();
+</script>
+</body>
+</html>

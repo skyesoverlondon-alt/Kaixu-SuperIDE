@@ -6,10 +6,20 @@ let _replicaPool;
 function getPool() {
   if (_pool) return _pool;
 
-  // Netlify-Neon integration sets DATABASE_URL; fall back to manual NEON_DATABASE_URL
-  const connectionString = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
+  // Netlify-Neon integration can set any of these variable names depending on version:
+  const connectionString =
+    process.env.DATABASE_URL ||
+    process.env.NEON_DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.NETLIFY_DATABASE_URL ||
+    process.env.PG_CONNECTION_STRING ||
+    process.env.PGCONNSTRING;
+
   if (!connectionString) {
-    throw new Error('Missing DATABASE_URL (set via Netlify-Neon integration or manually as NEON_DATABASE_URL)');
+    throw new Error(
+      'Missing database connection string. Add DATABASE_URL in Netlify → Site configuration → Environment variables. ' +
+      'Value comes from Neon console → Connect → Connection string (Node.js).'
+    );
   }
 
   _pool = new Pool({

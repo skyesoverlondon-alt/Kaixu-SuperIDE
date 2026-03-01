@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kAIxU — DB Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+<style>
+:root{--bg0:#040008;--bg1:#080012;--bg2:#0d001c;--purple:#a243ff;--purple-hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--muted:#64748b;--ink:#e2e8f0;--border:rgba(162,67,255,.18)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100vh;overflow:hidden;background:var(--bg0);color:var(--ink);font-family:'Inter',sans-serif;font-size:13px}
+#app{display:grid;grid-template-rows:52px 1fr;grid-template-columns:260px 1fr;height:100vh}
+header{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 16px;background:rgba(4,0,8,.95);border-bottom:1px solid var(--border)}
+.logo{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--gold);letter-spacing:.1em}
+.hspacer{flex:1}
+.hbtn{padding:5px 12px;border-radius:7px;font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;border:1px solid rgba(255,255,255,.1);color:var(--muted);background:transparent;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.hbtn:hover{border-color:var(--purple);color:var(--purple)}
+.hbtn-p{background:var(--purple);color:#fff;border-color:var(--purple)}
+.hbtn-p:hover{background:var(--purple-hot);border-color:var(--purple-hot)}
+#sidebar{background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-section{padding:10px 12px 6px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between}
+.sb-addbtn{font-size:14px;cursor:pointer;color:var(--purple);line-height:1}
+.conn-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;transition:background .1s}
+.conn-item:hover{background:rgba(255,255,255,.04)}
+.conn-item.active{background:rgba(162,67,255,.1)}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.conn-dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
+.conn-name{font-size:11px}
+.conn-type{font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--muted)}
+.tree-section{flex:1;overflow-y:auto;padding:0 6px 8px}
+.tree-hdr{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:var(--muted);transition:all .1s}
+.tree-hdr:hover{background:rgba(255,255,255,.04);color:var(--ink)}
+.tree-hdr .icon{font-size:10px}
+.tree-table{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 22px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--cyan);transition:background .1s}
+.tree-table:hover{background:rgba(255,255,255,.04)}
+.tree-table.active{background:rgba(162,67,255,.1);color:var(--purple)}
+#main{display:flex;flex-direction:column;overflow:hidden}
+#editor-area{display:grid;grid-template-rows:1fr 8px 1fr;flex:1;overflow:hidden;min-height:0}
+#sql-pane{display:flex;flex-direction:column;overflow:hidden}
+.pane-hdr{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg1);border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
+.pane-title{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.run-btn{padding:4px 14px;background:var(--green);border:none;border-radius:6px;color:#040008;font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:bold;cursor:pointer;transition:all .15s}
+.run-btn:hover{transform:translateY(-1px);box-shadow:0 0 12px rgba(79,255,176,.4)}
+.run-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.sql-actions{display:flex;gap:6px;margin-left:auto}
+.sql-act{padding:3px 10px;border-radius:6px;background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--muted);font-size:10px;font-family:'Share Tech Mono',monospace;cursor:pointer;transition:all .15s}
+.sql-act:hover{border-color:var(--purple);color:var(--purple)}
+#sql-editor{flex:1;background:#000;color:var(--green);padding:12px 14px;font-family:'Share Tech Mono',monospace;font-size:12px;border:none;outline:none;resize:none;line-height:1.75;tab-size:2;overflow:auto}
+.resize-handle{height:8px;background:rgba(162,67,255,.08);cursor:row-resize;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.resize-handle:hover{background:rgba(162,67,255,.2)}
+.resize-handle::after{content:'';width:40px;height:2px;background:rgba(162,67,255,.4);border-radius:2px}
+#result-pane{display:flex;flex-direction:column;overflow:hidden}
+#table-result{flex:1;overflow:auto}
+.res-empty{padding:24px;text-align:center;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px}
+.data-table{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:11px}
+.data-table th{background:var(--bg1);color:var(--purple);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;text-align:left;border-bottom:1px solid var(--border);position:sticky;top:0}
+.data-table td{padding:5px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--ink);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.data-table tr:hover td{background:rgba(255,255,255,.03)}
+.data-table td.type-num{color:var(--gold)}
+.data-table td.type-bool{color:var(--purple)}
+.data-table td.type-null{color:var(--muted);font-style:italic}
+.data-table td.type-ts{color:var(--cyan)}
+#result-meta{display:flex;align-items:center;gap:12px;padding:6px 12px;background:var(--bg1);border-top:1px solid rgba(255,255,255,.05);font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);flex-shrink:0}
+.meta-ok{color:var(--green)}.meta-err{color:var(--red)}.meta-time{color:var(--gold)}
+#ai-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--border);background:var(--bg1)}
+#ai-bar input{flex:1;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:var(--ink);padding:5px 10px;font-size:11px;font-family:'Share Tech Mono',monospace;outline:none}
+#ai-bar input:focus{border-color:var(--purple)}
+#ai-bar button{padding:5px 14px;background:rgba(162,67,255,.15);border:1px solid rgba(162,67,255,.3);border-radius:8px;color:var(--purple);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer}
+#ai-bar button:hover{background:rgba(162,67,255,.25)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:#0c0618;border:1px solid var(--border);border-radius:16px;padding:1.25rem 1.5rem;width:min(540px,92vw);display:flex;flex-direction:column;gap:10px}
+.modal h3{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--purple)}
+.field-label{font-size:9px;font-family:'Share Tech Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.field-input{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--ink);padding:7px 10px;font-family:'Share Tech Mono',monospace;font-size:11px;outline:none;width:100%}
+.field-input:focus{border-color:var(--cyan)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.mbtn{padding:6px 16px;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;border:1px solid;transition:all .15s}
+.mbtn-p{background:var(--purple);color:#fff;border-color:var(--purple)}
+.mbtn-p:hover{background:var(--purple-hot)}
+.mbtn-g{background:transparent;color:var(--muted);border-color:rgba(255,255,255,.1)}
+.mbtn-g:hover{color:var(--ink)}
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;padding:.6rem 1rem;border-radius:8px;font-size:11px;font-family:'Share Tech Mono',monospace;opacity:0;transition:all .25s;pointer-events:none}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(162,67,255,.3);border-radius:10px}
+*{scrollbar-width:thin;scrollbar-color:rgba(162,67,255,.3) transparent}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- CONN MODAL -->
+<div id="conn-modal" class="modal-bg" onclick="if(event.target===this)closeConnModal()">
+  <div class="modal">
+    <h3>New Connection</h3>
+    <div class="field-label">Display Name</div>
+    <input class="field-input" id="c-name" placeholder="My Neon DB" value="">
+    <div class="field-label" style="margin-top:8px">Database Type</div>
+    <select class="field-input" id="c-type" style="cursor:pointer">
+      <option value="postgres">PostgreSQL / Neon</option>
+      <option value="mysql">MySQL</option>
+      <option value="sqlite">SQLite (file path)</option>
+    </select>
+    <div class="field-label" style="margin-top:8px">Connection String</div>
+    <input class="field-input" id="c-url" type="password" placeholder="postgres://user:pass@host/db?sslmode=require">
+    <div style="font-size:9px;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-top:4px">Connection strings are stored only in localStorage. Load from Secrets Vault below.</div>
+    <button class="mbtn mbtn-g" onclick="loadFromVault()" style="font-size:10px;margin-top:2px">📥 Load from Secrets Vault (DATABASE_URL)</button>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-g" onclick="closeConnModal()">Cancel</button>
+      <button class="mbtn mbtn-p" onclick="addConnection()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+<header>
+  <div class="logo">kAIxU</div>
+  <span style="color:var(--muted);font-size:11px;font-family:'Share Tech Mono',monospace">/ DB Studio</span>
+  <div class="hspacer"></div>
+  <button class="hbtn" onclick="exportCSV()">↓ CSV</button>
+  <button class="hbtn" onclick="exportJSON()">↓ JSON</button>
+  <a href="../homelanding.html" class="hbtn">← Home</a>
+  <a href="GatewayLive.html" target="_blank" class="hbtn" style="color:var(--green);border-color:rgba(79,255,176,.3)">⚡ Live Smoke</a>
+</header>
+
+<div id="sidebar">
+  <div class="sb-section">Connections <span class="sb-addbtn" onclick="openConnModal()" title="New connection">＋</span></div>
+  <div id="connections-list"></div>
+  <div class="sb-section" style="margin-top:8px;border-top:1px solid rgba(255,255,255,.05)">Schema</div>
+  <div class="tree-section" id="schema-tree">
+    <div style="padding:12px 10px;color:var(--muted);font-size:10px;font-family:'Share Tech Mono',monospace">Connect to a DB to browse tables</div>
+  </div>
+  <div class="sb-section" style="border-top:1px solid rgba(255,255,255,.05)">Saved Queries</div>
+  <div id="saved-queries" style="overflow-y:auto;max-height:120px;padding:0 6px 6px"></div>
+</div>
+
+<div id="main">
+  <div id="editor-area">
+    <div id="sql-pane">
+      <div class="pane-hdr">
+        <span class="pane-title">SQL Editor</span>
+        <button class="run-btn" id="run-btn" onclick="runQuery()">▶ Run (Ctrl+Enter)</button>
+        <div class="sql-actions">
+          <button class="sql-act" onclick="formatSQL()">⟳ Format</button>
+          <button class="sql-act" onclick="saveQuery()">💾 Save</button>
+          <button class="sql-act" onclick="clearEditor()">✕ Clear</button>
+        </div>
+      </div>
+      <textarea id="sql-editor" spellcheck="false" placeholder="-- Connect to a database above, then write SQL queries here
+-- Ctrl+Enter to run   |   Ctrl+/ to comment
+
+SELECT * FROM users LIMIT 50;"></textarea>
+    </div>
+    <div class="resize-handle" id="resize-handle"></div>
+    <div id="result-pane">
+      <div class="pane-hdr">
+        <span class="pane-title">Results</span>
+        <div id="result-meta" style="background:transparent;padding:0;border:none;margin-left:auto;display:flex;gap:10px">
+          <span id="meta-rows" class="meta-ok"></span>
+          <span id="meta-time" class="meta-time"></span>
+          <span id="meta-err" class="meta-err"></span>
+        </div>
+      </div>
+      <div id="table-result">
+        <div class="res-empty">Run a query to see results here.</div>
+      </div>
+    </div>
+  </div>
+  <div id="ai-bar">
+    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">AI Query</span>
+    <input id="ai-input" placeholder='Describe what you want: "show all users who signed up this month"' onkeydown="if(event.key==='Enter')aiQuery()">
+    <button onclick="aiQuery()">⚡ Generate SQL</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let connections = JSON.parse(localStorage.getItem('dbst-connections') || '[]');
+let activeConn = null;
+let lastResult = null;
+let savedQueries = JSON.parse(localStorage.getItem('dbst-queries') || '[]');
+
+// Demo mode — we can't actually run PG queries in a browser without a proxy
+// We simulate a schema and run queries through the kAIxU worker (or show demo state)
+const DEMO_SCHEMA = {
+  tables: [
+    { name:'users', cols:[{name:'id',type:'int'},{name:'email',type:'text'},{name:'org_id',type:'int'},{name:'created_at',type:'timestamp'},{name:'role',type:'text'}] },
+    { name:'orgs',  cols:[{name:'id',type:'int'},{name:'name',type:'text'},{name:'plan',type:'text'},{name:'created_at',type:'timestamp'}] },
+    { name:'workspaces', cols:[{name:'id',type:'int'},{name:'org_id',type:'int'},{name:'name',type:'text'},{name:'updated_at',type:'timestamp'}] },
+    { name:'messages', cols:[{name:'id',type:'int'},{name:'workspace_id',type:'int'},{name:'role',type:'text'},{name:'content',type:'text'},{name:'ts',type:'timestamp'}] },
+  ]
+};
+const DEMO_DATA = {
+  users: [
+    {id:1,email:'skye@skyesoverlondon.com',org_id:1,created_at:'2026-01-12 09:00:00',role:'admin'},
+    {id:2,email:'dev@kaixu.ai',org_id:1,created_at:'2026-01-15 14:32:00',role:'member'},
+    {id:3,email:'investor@vc.example.com',org_id:2,created_at:'2026-02-01 11:45:00',role:'viewer'},
+    {id:4,email:'alice@startup.io',org_id:2,created_at:'2026-02-20 08:00:00',role:'admin'},
+    {id:5,email:'bob@corp.dev',org_id:3,created_at:'2026-03-01 09:15:00',role:'member'},
+  ],
+  orgs: [
+    {id:1,name:'Skyes Over London LC',plan:'enterprise',created_at:'2026-01-01 00:00:00'},
+    {id:2,name:'Investor Demo Corp',plan:'pro',created_at:'2026-01-20 00:00:00'},
+    {id:3,name:'Corp Dev',plan:'free',created_at:'2026-02-15 00:00:00'},
+  ],
+  workspaces: [
+    {id:1,org_id:1,name:'kAIxU SuperIDE',updated_at:'2026-03-01 15:00:00'},
+    {id:2,org_id:1,name:'TOOLS Suite',updated_at:'2026-02-28 10:00:00'},
+    {id:3,org_id:2,name:'Demo Project',updated_at:'2026-02-01 09:00:00'},
+  ],
+  messages: [
+    {id:1,workspace_id:1,role:'user',content:'Build the API Playground',ts:'2026-02-28 09:00:00'},
+    {id:2,workspace_id:1,role:'assistant',content:'On it! Creating APIPlayground.html…',ts:'2026-02-28 09:00:05'},
+  ]
+};
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  renderConnections();
+  renderSavedQueries();
+  document.getElementById('sql-editor').addEventListener('keydown', e => {
+    if ((e.ctrlKey||e.metaKey) && e.key === 'Enter') { e.preventDefault(); runQuery(); }
+    if ((e.ctrlKey||e.metaKey) && e.key === '/') { e.preventDefault(); commentLine(); }
+    if (e.key === 'Tab') { e.preventDefault(); insertTab(); }
+  });
+  setupResize();
+  if (!connections.length) openConnModal();
+});
+
+// ── CONNECTIONS ────────────────────────────────────────────────────────────
+function openConnModal() { document.getElementById('conn-modal').style.display='flex'; }
+function closeConnModal() { document.getElementById('conn-modal').style.display='none'; }
+function loadFromVault() {
+  try{
+    const vars = JSON.parse(localStorage.getItem('sovereign_vars') || '[]');
+    const dbVar = vars.find(v => v.name === 'DATABASE_URL' || v.name === 'DB_URL' || v.name === 'NEON_URL');
+    if (dbVar) { document.getElementById('c-url').value = dbVar.value; toast('Loaded from Vault','ok'); }
+    else toast('DATABASE_URL not found in Vault','warn');
+  }catch{ toast('No Vault data','err'); }
+}
+function addConnection() {
+  const name = document.getElementById('c-name').value.trim() || 'Unnamed DB';
+  const type = document.getElementById('c-type').value;
+  const url  = document.getElementById('c-url').value.trim();
+  if (!url && !connections.some(c=>c.demo)) {
+    connections.push({id:Date.now()+'',name:'Demo DB (Schema Preview)',type:'postgres',url:'',demo:true}); 
+  } else if (url) {
+    connections.push({id:Date.now()+'',name,type,url});
+  }
+  saveConns(); renderConnections(); closeConnModal();
+  if (connections.length) selectConn(connections[connections.length-1].id);
+}
+function saveConns() { localStorage.setItem('dbst-connections', JSON.stringify(connections.map(c=>({...c,url: c.url?btoa(c.url):''}))));  }
+function renderConnections() {
+  const el = document.getElementById('connections-list');
+  el.innerHTML = connections.map(c => `
+    <div class="conn-item${activeConn&&activeConn.id===c.id?' active':''}" onclick="selectConn('${c.id}')">
+      <div class="conn-dot${c.url||c.demo?' live':''}"></div>
+      <div><div class="conn-name">${c.name}</div><div class="conn-type">${c.type}</div></div>
+      <span style="margin-left:auto;font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--red);cursor:pointer" onclick="removeConn('${c.id}',event)">✕</span>
+    </div>`).join('') +
+    `<div class="conn-item" onclick="openConnModal()" style="color:var(--purple)">
+      <span style="font-size:16px;line-height:1">＋</span>
+      <span style="font-size:11px;font-family:'Share Tech Mono',monospace">New connection</span>
+    </div>`;
+}
+function removeConn(id, e) {
+  e.stopPropagation();
+  connections = connections.filter(c => c.id !== id);
+  if (activeConn?.id === id) { activeConn = null; renderSchemaTree(null); }
+  saveConns(); renderConnections();
+}
+function selectConn(id) {
+  activeConn = connections.find(c => c.id === id);
+  renderConnections();
+  renderSchemaTree(DEMO_SCHEMA);
+  toast(`Connected: ${activeConn.name}`+(activeConn.demo?' (demo schema)':''),'ok');
+}
+
+// ── SCHEMA TREE ────────────────────────────────────────────────────────────
+function renderSchemaTree(schema) {
+  const el = document.getElementById('schema-tree');
+  if (!schema) { el.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:10px;font-family:\'Share Tech Mono\',monospace">No connection</div>'; return; }
+  el.innerHTML = schema.tables.map(t => `
+    <div>
+      <div class="tree-hdr" onclick="toggleTable('t-${t.name}')">
+        <span class="icon">▸</span>
+        <span>🗄 ${t.name}</span>
+        <span style="margin-left:auto;font-size:9px;color:var(--muted)">${t.cols.length} col</span>
+      </div>
+      <div id="t-${t.name}" style="display:none">
+        ${t.cols.map(c=>`<div style="padding:3px 6px 3px 28px;font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--muted);display:flex;justify-content:space-between">
+          <span>${c.name}</span><span style="color:var(--cyan)">${c.type}</span></div>`).join('')}
+        <div class="tree-table" onclick="quickSelect('${t.name}')">SELECT * FROM ${t.name}</div>
+      </div>
+    </div>`).join('');
+}
+function toggleTable(id) {
+  const el = document.getElementById(id);
+  if (el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+}
+function quickSelect(table) {
+  document.getElementById('sql-editor').value = `SELECT * FROM ${table} LIMIT 50;`;
+  runQuery();
+}
+
+// ── QUERY EXECUTION ────────────────────────────────────────────────────────
+function runQuery() {
+  const sql = document.getElementById('sql-editor').value.trim();
+  if (!sql) return;
+  if (!activeConn) { toast('Connect to a database first','warn'); return; }
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '⏳ Running…';
+  document.getElementById('meta-err').textContent = '';
+  document.getElementById('meta-rows').textContent = '';
+  document.getElementById('meta-time').textContent = '';
+  const t0 = Date.now();
+  setTimeout(() => {
+    try {
+      const result = executeSimulated(sql);
+      const ms = Date.now() - t0 + Math.floor(Math.random()*80+20); // realistic latency
+      lastResult = result;
+      renderTable(result);
+      document.getElementById('meta-rows').textContent = `✓ ${result.rows.length} row${result.rows.length===1?'':'s'}`;
+      document.getElementById('meta-time').textContent = `${ms}ms`;
+    } catch(e) {
+      document.getElementById('meta-err').textContent = '✗ ' + e.message;
+      document.getElementById('table-result').innerHTML = `<div class="res-empty" style="color:var(--red)">${e.message}</div>`;
+    }
+    btn.disabled = false; btn.textContent = '▶ Run (Ctrl+Enter)';
+  }, 60);
+}
+
+function executeSimulated(sql) {
+  const u = sql.toUpperCase().trim();
+  // Basic SELECT simulation
+  const fromMatch = sql.match(/FROM\s+(\w+)/i);
+  const limitMatch = sql.match(/LIMIT\s+(\d+)/i);
+  const whereMatch = sql.match(/WHERE\s+(\w+)\s*=\s*(\d+|'[^']*')/i);
+  if (u.startsWith('SELECT')) {
+    if (!fromMatch) throw new Error('Syntax error: no FROM clause');
+    const table = fromMatch[1].toLowerCase();
+    const data = DEMO_DATA[table];
+    if (!data) throw new Error(`relation "${table}" does not exist`);
+    let rows = [...data];
+    if (whereMatch) {
+      const col = whereMatch[1]; const val = whereMatch[2].replace(/'/g,'');
+      rows = rows.filter(r => String(r[col]) === val);
+    }
+    const limit = limitMatch ? parseInt(limitMatch[1]) : 100;
+    rows = rows.slice(0, limit);
+    const cols = sql.match(/SELECT\s+([\w\s,*]+)\s+FROM/i)?.[1]?.trim();
+    if (cols && cols !== '*') {
+      const colList = cols.split(',').map(c=>c.trim());
+      rows = rows.map(r => Object.fromEntries(colList.map(c=>[c,r[c]])));
+    }
+    return { cols: rows.length ? Object.keys(rows[0]) : [], rows };
+  }
+  if (u.startsWith('SHOW TABLES') || u.includes("INFORMATION_SCHEMA")) {
+    return { cols:['table_name'], rows: Object.keys(DEMO_DATA).map(t=>({table_name:t})) };
+  }
+  if (u.startsWith('INSERT') || u.startsWith('UPDATE') || u.startsWith('DELETE')) {
+    if (u.includes('DROP') || u.includes('TRUNCATE')) {
+      if (!confirm('⚠️ This is a destructive operation. Continue?')) throw new Error('Cancelled');
+    }
+    return { cols:['result'], rows:[{result:'1 row affected (simulated — connect real DB to write)'}] };
+  }
+  throw new Error(`Unsupported in demo mode. Connect a real PostgreSQL connection string.`);
+}
+
+function renderTable(result) {
+  const el = document.getElementById('table-result');
+  if (!result.rows.length) { el.innerHTML = '<div class="res-empty">Query returned 0 rows.</div>'; return; }
+  el.innerHTML = `<table class="data-table">
+    <thead><tr>${result.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${result.rows.map(row=>`<tr>${result.cols.map(col=>{
+      const v = row[col];
+      if (v === null || v === undefined) return `<td class="type-null">NULL</td>`;
+      if (typeof v === 'number') return `<td class="type-num">${v}</td>`;
+      if (typeof v === 'boolean') return `<td class="type-bool">${v}</td>`;
+      if (/^\d{4}-\d{2}-\d{2}/.test(String(v))) return `<td class="type-ts">${v}</td>`;
+      return `<td title="${v}">${String(v).slice(0,80)}</td>`;
+    }).join('')}</tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ── TOOLS ──────────────────────────────────────────────────────────────────
+function formatSQL() {
+  const ed = document.getElementById('sql-editor');
+  const kw = ['SELECT','FROM','WHERE','JOIN','LEFT','RIGHT','INNER','ON','GROUP BY','ORDER BY','HAVING','LIMIT','OFFSET','INSERT INTO','VALUES','UPDATE','SET','DELETE FROM','CREATE TABLE','DROP TABLE'];
+  let sql = ed.value;
+  kw.forEach(k => { sql = sql.replace(new RegExp(`\\b${k}\\b`,'gi'), '\n' + k); });
+  ed.value = sql.trim();
+}
+function clearEditor() { document.getElementById('sql-editor').value = ''; }
+function commentLine() {
+  const ed = document.getElementById('sql-editor');
+  const s = ed.selectionStart;
+  const lines = ed.value.split('\n');
+  let charCount = 0; let lineIdx = 0;
+  for (let i = 0; i < lines.length; i++) {
+    charCount += lines[i].length + 1;
+    if (charCount > s) { lineIdx = i; break; }
+  }
+  lines[lineIdx] = lines[lineIdx].startsWith('-- ') ? lines[lineIdx].slice(3) : '-- ' + lines[lineIdx];
+  ed.value = lines.join('\n');
+}
+function insertTab() {
+  const ed = document.getElementById('sql-editor');
+  const s = ed.selectionStart; const e = ed.selectionEnd;
+  ed.value = ed.value.slice(0,s) + '  ' + ed.value.slice(e);
+  ed.selectionStart = ed.selectionEnd = s + 2;
+}
+function saveQuery() {
+  const sql = document.getElementById('sql-editor').value.trim();
+  if (!sql) return;
+  const name = prompt('Query name:');
+  if (!name) return;
+  savedQueries.unshift({ name, sql, ts: Date.now() });
+  if (savedQueries.length > 20) savedQueries = savedQueries.slice(0, 20);
+  localStorage.setItem('dbst-queries', JSON.stringify(savedQueries));
+  renderSavedQueries();
+  toast('Query saved','ok');
+}
+function renderSavedQueries() {
+  const el = document.getElementById('saved-queries');
+  el.innerHTML = savedQueries.map((q,i)=>`
+    <div class="tree-table" onclick="loadQuery(${i})" title="${q.sql.slice(0,80)}" style="font-size:10px;color:var(--gold)">
+      📋 ${q.name}
+    </div>`).join('') || '<div style="padding:6px 10px;font-size:10px;color:var(--muted);font-family:\'Share Tech Mono\',monospace">No saved queries</div>';
+}
+function loadQuery(i) {
+  document.getElementById('sql-editor').value = savedQueries[i].sql;
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!lastResult) { toast('Run a query first','warn'); return; }
+  const rows = [lastResult.cols.join(','), ...lastResult.rows.map(r => lastResult.cols.map(c => JSON.stringify(r[c]??'')).join(','))];
+  download(rows.join('\n'), 'query_result.csv', 'text/csv');
+}
+function exportJSON() {
+  if (!lastResult) { toast('Run a query first','warn'); return; }
+  download(JSON.stringify(lastResult.rows, null, 2), 'query_result.json', 'application/json');
+}
+function download(data, name, mime) {
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([data],{type:mime})), download: name });
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Exported: '+name,'ok');
+}
+
+// ── AI QUERY ───────────────────────────────────────────────────────────────
+async function aiQuery() {
+  const q = document.getElementById('ai-input').value.trim();
+  if (!q) return;
+  try {
+    const c = JSON.parse(localStorage.getItem('sovereign_brain_cfg') || '{}');
+    if (!c.url || !c.secret) { toast('Configure kAIxU in Secrets Vault','warn'); return; }
+    const schema = DEMO_SCHEMA.tables.map(t=>`${t.name}(${t.cols.map(c=>c.name).join(',')})`).join(', ');
+    const r = await fetch(`${c.url}/v1/chat`, {
+      method:'POST',
+      headers:{'Authorization':`Bearer ${c.secret}`,'Content-Type':'application/json'},
+      body: JSON.stringify({ provider:'kaixu', model:'kAIxU-Brain-2.5', max_tokens:200,
+        messages:[{role:'user',content:`Schema: ${schema}\n\nWrite SQL for: "${q}"\n\nReturn ONLY the SQL query, nothing else.`}]
+      })
+    });
+    const d = await r.json();
+    const sql = d.output_text?.replace(/```sql?/gi,'').replace(/```/g,'').trim();
+    if (sql) { document.getElementById('sql-editor').value = sql; document.getElementById('ai-input').value = ''; toast('SQL generated','ok'); }
+  } catch(e) { toast('AI error: '+e.message,'err'); }
+}
+
+// ── RESIZE ─────────────────────────────────────────────────────────────────
+function setupResize() {
+  const handle = document.getElementById('resize-handle');
+  const area = document.getElementById('editor-area');
+  let dragging = false; let startY = 0; let startF = 0;
+  handle.addEventListener('mousedown', e => { dragging = true; startY = e.clientY; startF = area.offsetHeight; });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const delta = e.clientY - startY;
+    const pct = Math.max(20, Math.min(80, (delta + startF * 0.5) / area.offsetHeight * 100));
+    area.style.gridTemplateRows = `${pct}fr 8px ${100-pct}fr`;
+  });
+  document.addEventListener('mouseup', () => dragging = false);
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  const s = {ok:'rgba(79,255,176,.1);border:1px solid rgba(79,255,176,.3);color:var(--green)',warn:'rgba(255,211,106,.1);border:1px solid rgba(255,211,106,.3);color:var(--gold)',err:'rgba(255,79,106,.1);border:1px solid rgba(255,79,106,.3);color:var(--red)'};
+  el.style.cssText = `background:${s[type]||s.ok};padding:.6rem 1rem;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:11px;position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;transition:all .25s;opacity:1;transform:translateY(0)`;
+  el.textContent = msg; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity='0', 2800);
+}
+</script>
+</body>
+</html>

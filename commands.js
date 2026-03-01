@@ -45,6 +45,42 @@ var _paletteVisible = false;
 var _paletteSelected = 0;
 var _paletteFiltered = [];
 
+// ─── Keybinding conflict detection ────────────────────────────────────────
+function _normalizeKb(kb) {
+  return String(kb || '')
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/control/g, 'ctrl')
+    .replace(/command/g, 'ctrl')
+    .replace(/meta/g, 'ctrl')
+    .replace(/option/g, 'alt');
+}
+
+function checkKeybindingConflicts() {
+  const byKb = new Map();
+  for (const cmd of COMMANDS) {
+    const raw = cmd.kb || cmd.keybinding || '';
+    if (!raw) continue;
+    const norm = _normalizeKb(raw);
+    if (!norm) continue;
+    if (!byKb.has(norm)) byKb.set(norm, []);
+    byKb.get(norm).push(cmd);
+  }
+
+  const conflicts = Array.from(byKb.entries()).filter(([, arr]) => arr.length > 1);
+  if (!conflicts.length) return [];
+
+  conflicts.forEach(([kb, arr]) => {
+    const labels = arr.map(c => c.label || c.id).join(' | ');
+    console.warn(`[kAIxU] Keybinding conflict on "${kb}": ${labels}`);
+  });
+
+  if (typeof toast === 'function') {
+    toast(`Keybinding conflicts detected (${conflicts.length}) — check console`, 'error');
+  }
+  return conflicts;
+}
+
 // ─── Open palette ──────────────────────────────────────────────────────────
 async function openCommandPalette() {
   const modal = document.getElementById('cmd-palette');
@@ -385,6 +421,12 @@ function initCommands() {
     if (ctrl && e.shiftKey && e.key.toLowerCase() === 'k') {
       e.preventDefault(); openShortcutsModal(); return;
     }
+    if (ctrl && e.shiftKey && e.key.toLowerCase() === 'v') {
+      if (typeof openPasteModal === 'function') {
+        e.preventDefault(); openPasteModal();
+      }
+      return;
+    }
     if (ctrl && e.key === '\\') {
       e.preventDefault(); toggleSplit(); return;
     }
@@ -425,6 +467,9 @@ function initCommands() {
       e.preventDefault(); formatDocument(); return;
     }
   });
+
+  // Run once now; app.js runs it again after all modules finish registering commands.
+  checkKeybindingConflicts();
 }
 
 // ─── Format document ──────────────────────────────────────────────────────

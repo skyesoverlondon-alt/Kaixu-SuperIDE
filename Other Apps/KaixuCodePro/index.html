@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kAIxu CodeStudio | SOLEnterprises</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+    <script>
+        window.exports = undefined;
+        window.module = undefined;
+        window.define = undefined;
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body { margin: 0; overflow: hidden; background-color: #000; color: #d4d4d4; font-family: 'JetBrains Mono', monospace; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.6); }
+        
+        /* --- KILLER INTRO STYLES --- */
+        .glitch-text {
+            text-shadow: 0.05em 0 0 rgba(255, 0, 0, 0.75),
+                        -0.025em -0.05em 0 rgba(0, 255, 0, 0.75),
+                        0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
+            animation: glitch 500ms infinite;
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 0.05em 0 0 rgba(255,0,0,.75), -0.05em -0.025em 0 rgba(0,255,0,.75), -0.025em 0.05em 0 rgba(0,0,255,.75); }
+            14% { text-shadow: 0.05em 0 0 rgba(255,0,0,.75), -0.05em -0.025em 0 rgba(0,255,0,.75), -0.025em 0.05em 0 rgba(0,0,255,.75); }
+            15% { text-shadow: -0.05em -0.025em 0 rgba(255,0,0,.75), 0.025em 0.025em 0 rgba(0,255,0,.75), -0.05em -0.05em 0 rgba(0,0,255,.75); }
+            49% { text-shadow: -0.05em -0.025em 0 rgba(255,0,0,.75), 0.025em 0.025em 0 rgba(0,255,0,.75), -0.05em -0.05em 0 rgba(0,0,255,.75); }
+            50% { text-shadow: 0.025em 0.05em 0 rgba(255,0,0,.75), 0.05em 0 0 rgba(0,255,0,.75), 0 -0.05em 0 rgba(0,0,255,.75); }
+            99% { text-shadow: 0.025em 0.05em 0 rgba(255,0,0,.75), 0.05em 0 0 rgba(0,255,0,.75), 0 -0.05em 0 rgba(0,0,255,.75); }
+            100% { text-shadow: -0.025em 0 0 rgba(255,0,0,.75), -0.025em -0.025em 0 rgba(0,255,0,.75), -0.025em -0.05em 0 rgba(0,0,255,.75); }
+        }
+
+        .logo-pulse {
+            animation: logoScale 3s ease-in-out forwards, logoGlow 2s infinite alternate;
+        }
+
+        @keyframes logoScale {
+            0% { transform: scale(0.5); filter: blur(20px); opacity: 0; }
+            100% { transform: scale(1); filter: blur(0); opacity: 1; }
+        }
+
+        @keyframes logoGlow {
+            from { filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.4)); }
+            to { filter: drop-shadow(0 0 30px rgba(168, 85, 247, 0.8)); }
+        }
+
+        .matrix-canvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.15;
+            z-index: 1;
+        }
+
+        /* --- APP WORKSPACE REVEAL --- */
+        .workspace-entrance {
+            animation: appZoom 1.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        }
+
+        @keyframes appZoom {
+            from { transform: scale(1.1); opacity: 0; filter: blur(10px); }
+            to { transform: scale(1); opacity: 1; filter: blur(0); }
+        }
+
+        .glass {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .sidebar-item .item-actions { display: none; }
+        .sidebar-item:hover .item-actions { display: flex; }
+    </style>
+
+    <!-- PWA (Offline Installable) -->
+    <link rel="manifest" href="./manifest.webmanifest">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="kAIxu CodeStudio">
+    <link rel="apple-touch-icon" href="./assets/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./assets/icon-512.png">
+
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const Icon = ({ name, className = "", onClick, title }) => (
+            <span onClick={onClick} title={title} className={`material-symbols-outlined flex items-center justify-center cursor-pointer ${className}`} style={{ userSelect: 'none' }}>
+                {name}
+            </span>
+        );
+
+        const INITIAL_FS = [
+            {
+                id: 'root-1',
+                name: 'src',
+                type: 'folder',
+                children: [
+                    { id: 'f-1', name: 'main.js', type: 'file', language: 'javascript', content: `// kAIxu CodeStudio System Online\n// Authorization: SOLEnterprises\n\nconsole.log("Welcome to the workspace. Execute to view outputs.");` },
+                    { id: 'f-2', name: 'global.css', type: 'file', language: 'css', content: `body {\n  background-color: #050505;\n  color: #a855f7;\n  font-family: sans-serif;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n\nh1 {\n  text-shadow: 0 0 20px rgba(168, 85, 247, 0.8);\n}` }
+                ]
+            },
+            { id: 'f-3', name: 'index.html', type: 'file', language: 'html', content: `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { background: #111; color: #fff; font-family: sans-serif; text-align: center; margin-top: 20%; }\n    h1 { color: #a855f7; }\n  </style>\n</head>\n<body>\n  <h1>kAIxu Live Preview Environment</h1>\n  <p>Modify HTML/CSS and click 'Live Preview' to render securely in-app.</p>\n</body>\n</html>` }
+        ];
+
+        // Extracted TreeItem to prevent React unmount/remount rendering bugs
+        const TreeItem = ({ node, level = 0, activeFileId, setActiveFileId, setPreviewOpen, openNewFolderModal, openNewFileModal, openRenameModal, openDeleteModal }) => {
+            const isFolder = node.type === 'folder';
+            const isActive = activeFileId === node.id;
+            
+            return (
+                <div className="flex flex-col">
+                    <div 
+                        style={{ paddingLeft: `${level * 12 + 12}px` }}
+                        className={`sidebar-item group flex items-center py-1.5 cursor-pointer text-xs transition-all rounded-md mb-0.5 ${isActive ? 'bg-purple-600/20 text-purple-300 border-l-2 border-purple-500' : 'hover:bg-white/5 text-gray-400'}`}
+                        onClick={() => {
+                            if (!isFolder) {
+                                setActiveFileId(node.id);
+                                setPreviewOpen(false); // Reset preview on file switch
+                            }
+                        }}
+                    >
+                        <Icon name={isFolder ? 'folder' : (node.language === 'html' ? 'html' : 'description')} className="text-sm mr-2 opacity-50" />
+                        <span className="flex-1 truncate">{node.name}</span>
+                        <div className="item-actions flex gap-1 pr-2">
+                            <Icon name="edit" className="text-xs hover:text-purple-400" onClick={(e) => openRenameModal(e, node.id, node.name)} title="Rename" />
+                            {isFolder && <Icon name="create_new_folder" className="text-xs hover:text-white" onClick={(e) => { e.stopPropagation(); openNewFolderModal(node.id); }} title="New Folder" />}
+                            {isFolder && <Icon name="note_add" className="text-xs hover:text-white" onClick={(e) => { e.stopPropagation(); openNewFileModal(node.id); }} title="New File" />}
+                            <Icon name="delete" className="text-xs hover:text-red-400" onClick={(e) => openDeleteModal(e, node.id, node.name)} title="Delete" />
+                        </div>
+                    </div>
+                    {isFolder && node.children.map(child => (
+                        <TreeItem 
+                            key={child.id} 
+                            node={child} 
+                            level={level + 1} 
+                            activeFileId={activeFileId} 
+                            setActiveFileId={setActiveFileId} 
+                            setPreviewOpen={setPreviewOpen}
+                            openNewFolderModal={openNewFolderModal} 
+                            openNewFileModal={openNewFileModal} 
+                            openRenameModal={openRenameModal} 
+                            openDeleteModal={openDeleteModal} 
+                        />
+                    ))}
+                </div>
+            );
+        };
+
+        function App() {
+            // --- Intro Logic (Restored) ---
+            const [introStage, setIntroStage] = useState(0); // 0: Matrix, 1: Logo, 2: App
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const t1 = setTimeout(() => setIntroStage(1), 2000);
+                const t2 = setTimeout(() => setIntroStage(2), 5500);
+                return () => { clearTimeout(t1); clearTimeout(t2); };
+            }, []);
+
+            useEffect(() => {
+                if (introStage === 0 && canvasRef.current) {
+                    const canvas = canvasRef.current;
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    const chars = "01KAIXUSOLENTERPRISES01";
+                    const fontSize = 14;
+                    const columns = canvas.width / fontSize;
+                    const drops = Array(Math.floor(columns)).fill(1);
+
+                    const draw = () => {
+                        ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = "#A855F7";
+                        ctx.font = fontSize + "px monospace";
+                        for (let i = 0; i < drops.length; i++) {
+                            const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                            drops[i]++;
+                        }
+                    };
+                    const interval = setInterval(draw, 33);
+                    return () => clearInterval(interval);
+                }
+            }, [introStage]);
+
+            // --- VFS & Workspace State ---
+            const [fs, setFs] = useState(() => JSON.parse(localStorage.getItem('kaixu_fs_v4')) || INITIAL_FS);
+            const [activeFileId, setActiveFileId] = useState(localStorage.getItem('kaixu_active_v4') || 'f-1');
+            const [apiKey, setApiKey] = useState(localStorage.getItem('kaixu_api_key') || '');
+            const KAIXU_GATE_URL = 'https://kaixusi.skyesoverlondon.workers.dev';
+            const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('kaixu_settings')) || { fontSize: 14 });
+            
+            const [activeLeftPanel, setActiveLeftPanel] = useState('explorer'); 
+            const [showAiPanel, setShowAiPanel] = useState(true);
+            const [terminalOpen, setTerminalOpen] = useState(true);
+            const [previewOpen, setPreviewOpen] = useState(false); // New state for in-app HTML preview
+            const [terminalLogs, setTerminalLogs] = useState(['> kAIxu System Online', '> Waiting for commands...']);
+            
+            const [searchQuery, setSearchQuery] = useState('');
+            const [searchResults, setSearchResults] = useState([]);
+            const [chatInput, setChatInput] = useState('');
+            const [messages, setMessages] = useState([{ role: 'system', text: 'System ready. kAIxu Boost initialized.' }]);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [showInlineAssist, setShowInlineAssist] = useState(false);
+            const [inlinePrompt, setInlinePrompt] = useState('');
+            const [selectionRange, setSelectionRange] = useState({ start: 0, end: 0 });
+            
+            const [modalConfig, setModalConfig] = useState({ isOpen: false, type: null, targetId: null, parentId: null, targetName: null, inputValue: '' });
+
+            const textareaRef = useRef(null);
+            const messagesEndRef = useRef(null);
+            const fileInputRef = useRef(null);
+
+            // --- VFS Helpers ---
+            const findFile = (nodes, id) => {
+                for (const node of nodes) {
+                    if (node.id === id) return node;
+                    if (node.children) {
+                        const found = findFile(node.children, id);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            };
+
+            const getAllFiles = (nodes) => {
+                let all = [];
+                nodes.forEach(n => {
+                    if (n.type === 'file') all.push(n);
+                    if (n.children) all = all.concat(getAllFiles(n.children));
+                });
+                return all;
+            };
+
+            const activeFile = findFile(fs, activeFileId);
+            const flatFiles = getAllFiles(fs);
+
+            // Persistence
+            useEffect(() => {
+                if (introStage === 2) {
+                    localStorage.setItem('kaixu_fs_v4', JSON.stringify(fs));
+                    localStorage.setItem('kaixu_active_v4', activeFileId);
+                    localStorage.setItem('kaixu_api_key', apiKey);
+                    localStorage.setItem('kaixu_settings', JSON.stringify(settings));
+                }
+            }, [fs, activeFileId, apiKey, settings, introStage]);
+
+            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+            // --- Modal & File Handlers ---
+            const closeModal = () => setModalConfig({ isOpen: false, type: null, targetId: null, parentId: null, targetName: null, inputValue: '' });
+            const openNewFileModal = (parentId) => setModalConfig({ isOpen: true, type: 'new_file', parentId, targetId: null, targetName: null, inputValue: '' });
+            const openNewFolderModal = (parentId) => setModalConfig({ isOpen: true, type: 'new_folder', parentId, targetId: null, targetName: null, inputValue: '' });
+            const openRenameModal = (e, id, name) => { e.stopPropagation(); setModalConfig({ isOpen: true, type: 'rename', targetId: id, targetName: name, parentId: null, inputValue: name }); };
+            const openDeleteModal = (e, id, name) => { e.stopPropagation(); setModalConfig({ isOpen: true, type: 'delete', targetId: id, targetName: name, parentId: null, inputValue: '' }); };
+            const openResetModal = () => setModalConfig({ isOpen: true, type: 'reset', targetId: null, parentId: null, targetName: null, inputValue: '' });
+
+            const confirmModal = () => {
+                const { type, targetId, parentId, inputValue } = modalConfig;
+                
+                if ((type === 'new_file' || type === 'new_folder') && inputValue.trim()) {
+                    const ext = inputValue.split('.').pop().toLowerCase();
+                    const langs = { js: 'javascript', css: 'css', html: 'html', py: 'python', json: 'json' };
+                    const newNode = { 
+                        id: Date.now().toString(), 
+                        name: inputValue.trim(), 
+                        type: type === 'new_folder' ? 'folder' : 'file',
+                        language: type === 'new_file' ? (langs[ext] || 'text') : undefined, 
+                        content: type === 'new_file' ? '' : undefined,
+                        children: type === 'new_folder' ? [] : undefined
+                    };
+
+                    if (!parentId) {
+                        setFs([...fs, newNode]);
+                    } else {
+                        const appendToParent = (nodes) => nodes.map(n => {
+                            if (n.id === parentId) return { ...n, children: [...n.children, newNode] };
+                            if (n.children) return { ...n, children: appendToParent(n.children) };
+                            return n;
+                        });
+                        setFs(appendToParent(fs));
+                    }
+                    if (type === 'new_file') {
+                        setActiveFileId(newNode.id);
+                        setPreviewOpen(false);
+                    }
+                } 
+                else if (type === 'rename' && inputValue.trim()) {
+                    const renameNode = (nodes) => nodes.map(n => {
+                        if (n.id === targetId) return { ...n, name: inputValue.trim() };
+                        if (n.children) return { ...n, children: renameNode(n.children) };
+                        return n;
+                    });
+                    setFs(renameNode(fs));
+                } 
+                else if (type === 'delete') {
+                    const removeNode = (nodes, idToRemove) => {
+                        return nodes.filter(n => n.id !== idToRemove).map(n => {
+                            if (n.children) return { ...n, children: removeNode(n.children, idToRemove) };
+                            return n;
+                        });
+                    };
+                    const newFs = removeNode(fs, targetId);
+                    setFs(newFs);
+                    if (activeFileId === targetId) {
+                        const newFlat = getAllFiles(newFs);
+                        setActiveFileId(newFlat[0]?.id || null);
+                        setPreviewOpen(false);
+                    }
+                } 
+                else if (type === 'reset') { 
+                    localStorage.clear(); 
+                    window.location.reload(); 
+                }
+                closeModal();
+            };
+
+            const updateFileContent = (id, content) => {
+                const mapContent = (nodes) => nodes.map(n => {
+                    if (n.id === id) return { ...n, content };
+                    if (n.children) return { ...n, children: mapContent(n.children) };
+                    return n;
+                });
+                setFs(mapContent(fs));
+            };
+
+            const executeSearch = (query) => {
+                setSearchQuery(query);
+                if (!query.trim()) return setSearchResults([]);
+                const results = [];
+                flatFiles.forEach(file => {
+                    const lines = file.content.split('\n');
+                    lines.forEach((line, i) => {
+                        if (line.toLowerCase().includes(query.toLowerCase())) {
+                            results.push({ fileId: file.id, fileName: file.name, line: i + 1, content: line.trim() });
+                        }
+                    });
+                });
+                setSearchResults(results);
+            };
+
+            const handleExportActiveFile = () => {
+                if(!activeFile) return;
+                const blob = new Blob([activeFile.content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = activeFile.name;
+                a.click();
+                URL.revokeObjectURL(url);
+                setTerminalLogs(prev => [...prev, `> Exported ${activeFile.name}`]);
+            };
+
+            const handleExportProject = () => {
+                const projectData = JSON.stringify(fs, null, 2);
+                const blob = new Blob([projectData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'kaixu-workspace.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                setTerminalLogs(prev => [...prev, `> Exported full workspace.`]);
+            };
+
+            const handleImportProject = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const importedFiles = JSON.parse(event.target.result);
+                        if (Array.isArray(importedFiles) && importedFiles.length > 0) {
+                            setFs(importedFiles);
+                            const allFiles = [];
+                            const getFiles = (nodes) => nodes.forEach(n => { if (n.type === 'file') allFiles.push(n); if (n.children) getFiles(n.children); });
+                            getFiles(importedFiles);
+                            setActiveFileId(allFiles[0]?.id || null);
+                            setPreviewOpen(false);
+                            setTerminalLogs(prev => [...prev, `> Imported workspace successfully.`]);
+                        } else {
+                            throw new Error("Invalid workspace format");
+                        }
+                    } catch (err) {
+                        setTerminalLogs(prev => [...prev, `> Failed to import workspace: ${err.message}`]);
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = null;
+            };
+
+            // TRUE JS RUNTIME - NO EXTERNAL BROWSER POPUPS
+            const handleRunCode = () => {
+                setTerminalOpen(true);
+                setTerminalLogs(prev => [...prev, `> Running ${activeFile?.name || 'Nothing'}...`]);
+                if (activeFile?.language === 'javascript') {
+                    const originalLog = console.log;
+                    try {
+                        console.log = (...args) => setTerminalLogs(prev => [...prev, `[LOG] ${args.join(' ')}`]);
+                        new Function(activeFile.content)();
+                    } catch (e) { 
+                        setTerminalLogs(prev => [...prev, `Error: ${e.message}`]); 
+                    } finally {
+                        console.log = originalLog;
+                    }
+                } else {
+                    setTerminalLogs(prev => [...prev, `> System: Native execution for '${activeFile?.language}' is limited. Select Live Preview for HTML.`]); 
+                }
+            };
+
+            // --- AI Logic ---
+            const renderMessageContent = (text) => {
+                const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+                const parts = [];
+                let lastIndex = 0; let match;
+                while ((match = codeBlockRegex.exec(text)) !== null) {
+                    if (match.index > lastIndex) parts.push(<p key={lastIndex} className="whitespace-pre-wrap mb-2">{text.slice(lastIndex, match.index)}</p>);
+                    const content = match[2];
+                    parts.push(
+                        <div key={match.index} className="my-4 rounded-lg overflow-hidden border border-white/10 bg-black/40 shadow-xl">
+                            <div className="flex justify-between items-center px-4 py-2 bg-white/5 border-b border-white/5">
+                                <span className="text-[10px] uppercase font-bold text-purple-400">{match[1] || 'code'}</span>
+                                <button onClick={() => updateFileContent(activeFileId, content)} className="text-[10px] bg-purple-600 hover:bg-purple-500 px-3 py-1 rounded text-white font-bold transition-colors">Apply</button>
+                            </div>
+                            <pre className="p-4 text-xs font-mono overflow-x-auto text-gray-300"><code>{content}</code></pre>
+                        </div>
+                    );
+                    lastIndex = match.index + match[0].length;
+                }
+                if (lastIndex < text.length) parts.push(<p key={lastIndex} className="whitespace-pre-wrap">{text.slice(lastIndex)}</p>);
+                return parts;
+            };
+
+            const callAi = async (promptText) => {
+                if (!apiKey) return "kAIxU Gate key missing. Setup required in Settings.";
+                setIsGenerating(true);
+                try {
+                    const res = await fetch(`${KAIXU_GATE_URL}/v1/chat`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            provider: 'gemini',
+                            model: 'gemini-2.5-flash',
+                            messages: [{ role: 'user', content: promptText }],
+                            max_tokens: 1200,
+                            app_id: 'kaixu-codepro'
+                        })
+                    });
+                    if (!res.ok) throw new Error("HTTP Error");
+                    const data = await res.json();
+                    return data.output_text || data.choices?.[0]?.message?.content || "No response.";
+                } catch (e) { return "Error connecting to kAIxu."; }
+                finally { setIsGenerating(false); }
+            };
+
+            const handleChatSubmit = async () => {
+                if (!chatInput.trim() || !apiKey) return;
+                const userText = chatInput;
+                setChatInput('');
+                setMessages(prev => [...prev, { role: 'user', text: userText }]);
+                const prompt = `You are kAIxu Boost. Provide code ONLY in markdown blocks.\nContext File: ${activeFile?.name}\nCode:\n${activeFile?.content || ''}\nUser: ${userText}`;
+                const response = await callAi(prompt);
+                setMessages(prev => [...prev, { role: 'system', text: response }]);
+            };
+
+            const handleQuickAction = async (action) => {
+                if (!apiKey) {
+                    setTerminalLogs(prev => [...prev, `> AI Error: kAIxU Gate key missing.`]);
+                    return;
+                }
+                const ctx = `\nCODE:\n${activeFile?.content || ''}\n`;
+                const prompts = {
+                    explain: `Explain the following code in simple terms: ${ctx}`,
+                    refactor: `Refactor the following code to be cleaner and more efficient. Return the COMPLETE refactored code in a single markdown block: ${ctx}`,
+                    debug: `Find and fix bugs in this code. Return the COMPLETE fixed code in a single markdown block: ${ctx}`,
+                    generate: `Write a completely new example demonstrating an advanced concept. Return ONLY the code in a markdown block.`
+                };
+                setIsGenerating(true);
+                setMessages(prev => [...prev, { role: 'user', text: `Action: ${action.toUpperCase()}` }]);
+                const response = await callAi(prompts[action]);
+                setMessages(prev => [...prev, { role: 'system', text: response }]);
+            };
+
+            const submitInlineAssist = async () => {
+                setShowInlineAssist(false);
+                const { start, end } = selectionRange;
+                const selectedText = activeFile.content.substring(start, end);
+                const prompt = `TASK: ${inlinePrompt}\nReplace selected code: "${selectedText}"\nFILE_TYPE: ${activeFile.language}\nFULL_CONTENT: \n${activeFile.content}\nINSTRUCTION: Return ONLY raw code to replace selection. No markdown.`;
+                const result = await callAi(prompt);
+                // Strip markdown backticks if AI ignores instruction
+                let cleanResult = result.replace(/```\w*\n/g, '').replace(/```/g, '');
+                updateFileContent(activeFileId, activeFile.content.substring(0, start) + cleanResult + activeFile.content.substring(end));
+                setInlinePrompt('');
+            };
+
+            if (introStage < 2) {
+                return (
+                    <div className="fixed inset-0 bg-black z-[1000] flex flex-col items-center justify-center overflow-hidden">
+                        <canvas ref={canvasRef} className="matrix-canvas"></canvas>
+                        
+                        {introStage === 0 && (
+                            <div className="z-10 flex flex-col items-center">
+                                <h1 className="text-5xl font-bold glitch-text tracking-[0.5em] text-purple-500 mb-2 uppercase">kAIxu</h1>
+                                <div className="text-[10px] font-mono text-purple-300 opacity-50 tracking-widest uppercase mt-4">Initializing Core Systems...</div>
+                            </div>
+                        )}
+
+                        {introStage === 1 && (
+                            <div className="z-10 flex flex-col items-center logo-pulse">
+                                <img src="./assets/logo.png" alt="Logo" className="w-72 h-auto" />
+                                <div className="mt-10 flex flex-col items-center gap-3">
+                                    <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
+                                        <div className="h-full bg-purple-600" style={{ width: '100%', transition: 'width 3s linear' }}></div>
+                                    </div>
+                                    <span className="text-[10px] text-gray-500 font-bold tracking-[0.4em] uppercase">SOLEnterprises // Authorized Access</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+
+            return (
+                <div className="h-screen w-full flex bg-cover bg-center workspace-entrance relative" style={{ backgroundImage: "linear-gradient(rgba(10, 10, 10, 0.8), rgba(10, 10, 10, 0.8)), url('./assets/bg.jpeg')" }}>
+                    <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleImportProject} />
+                    
+                    {/* Activity Bar */}
+                    <div className="w-14 flex flex-col items-center py-6 glass border-r border-white/5 select-none z-20">
+                        <div className="flex flex-col gap-8">
+                            <Icon name="folder" className={`text-2xl hover:text-purple-400 transition-colors ${activeLeftPanel === 'explorer' ? 'text-purple-500' : 'text-gray-500'}`} onClick={() => setActiveLeftPanel('explorer')} title="Explorer" />
+                            <Icon name="search" className={`text-2xl hover:text-purple-400 transition-colors ${activeLeftPanel === 'search' ? 'text-purple-500' : 'text-gray-500'}`} onClick={() => setActiveLeftPanel('search')} title="Search" />
+                        </div>
+                        <div className="mt-auto flex flex-col gap-8 mb-4">
+                            <Icon name="auto_awesome" className={`text-2xl hover:text-purple-400 transition-colors ${showAiPanel ? 'text-purple-400 animate-pulse' : 'text-gray-500'}`} onClick={() => setShowAiPanel(!showAiPanel)} title="kAIxu Boost" />
+                            <Icon name="settings" className={`text-2xl hover:text-purple-400 transition-colors ${activeLeftPanel === 'settings' ? 'text-purple-500' : 'text-gray-500'}`} onClick={() => setActiveLeftPanel('settings')} title="Settings" />
+                            <Icon name="info" className={`text-2xl hover:text-purple-400 transition-colors ${activeLeftPanel === 'about' ? 'text-purple-500' : 'text-gray-500'}`} onClick={() => setActiveLeftPanel('about')} title="About Network" />
+                        </div>
+                    </div>
+
+                    {/* Left Sidebar Panel */}
+                    {activeLeftPanel && (
+                        <div className="w-72 glass flex flex-col shrink-0 z-10 border-none shadow-[10px_0_30px_rgba(0,0,0,0.5)]">
+                            <div className="p-4 flex justify-between items-center border-b border-white/5">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{activeLeftPanel}</span>
+                                {activeLeftPanel === 'explorer' && (
+                                    <div className="flex gap-2">
+                                        <Icon name="create_new_folder" className="text-lg hover:text-white" onClick={() => openNewFolderModal(null)} title="New Folder" />
+                                        <Icon name="note_add" className="text-lg hover:text-white" onClick={() => openNewFileModal(null)} title="New File" />
+                                        <Icon name="download" className="text-lg hover:text-white" onClick={handleExportProject} title="Export Workspace" />
+                                        <Icon name="upload" className="text-lg hover:text-white" onClick={() => fileInputRef.current?.click()} title="Import Workspace" />
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-2">
+                                {activeLeftPanel === 'explorer' && fs.map(node => (
+                                    <TreeItem 
+                                        key={node.id} 
+                                        node={node} 
+                                        activeFileId={activeFileId}
+                                        setActiveFileId={setActiveFileId}
+                                        setPreviewOpen={setPreviewOpen}
+                                        openNewFolderModal={openNewFolderModal}
+                                        openNewFileModal={openNewFileModal}
+                                        openRenameModal={openRenameModal}
+                                        openDeleteModal={openDeleteModal}
+                                    />
+                                ))}
+                                
+                                {activeLeftPanel === 'search' && (
+                                    <div className="flex flex-col h-full">
+                                        <div className="flex items-center bg-black/40 border border-white/10 rounded-lg p-2 mb-4">
+                                            <Icon name="search" className="w-4 text-gray-500 mr-2" />
+                                            <input type="text" placeholder="Find in files..." className="bg-transparent border-none outline-none text-sm text-white w-full py-1" value={searchQuery} onChange={(e) => executeSearch(e.target.value)} />
+                                            {searchQuery && <Icon name="close" className="w-4 h-4 text-gray-400 cursor-pointer hover:text-white" onClick={() => executeSearch('')} />}
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto">
+                                            {searchResults.length > 0 ? (
+                                                searchResults.map((res, i) => (
+                                                    <div key={i} className="mb-2 p-2 rounded hover:bg-[#37373d]/60 cursor-pointer" onClick={() => { setActiveFileId(res.fileId); setPreviewOpen(false); }}>
+                                                        <div className="text-[10px] text-purple-400 font-bold mb-1 flex items-center">
+                                                            <Icon name="insert_drive_file" className="w-3 h-3 mr-1" />
+                                                            {res.fileName} <span className="text-gray-400 font-normal ml-2">Line {res.line}</span>
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-200 font-mono truncate">{res.content}</div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-center text-gray-500 text-xs mt-4">
+                                                    {searchQuery ? "No results found." : "Type to search your code."}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeLeftPanel === 'settings' && (
+                                    <div className="p-4 space-y-6">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">kAIxU Gate Key</label>
+                                                <a href="https://skyesoverlondon.netlify.app/pages/services/real-intelligence/getkaixu-api" target="_blank" className="text-[9px] text-purple-500 underline">Request</a>
+                                            </div>
+                                            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white focus:border-purple-500 outline-none" placeholder="kaixu_gate_key..." />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex justify-between">Font Size <span>{settings.fontSize}px</span></label>
+                                            <input type="range" min="10" max="24" value={settings.fontSize} onChange={e => setSettings({...settings, fontSize: parseInt(e.target.value)})} className="w-full" />
+                                        </div>
+                                        <button onClick={openResetModal} className="w-full py-2 mt-8 bg-red-900/20 text-red-400 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-red-500/20 hover:bg-red-900/40">Wipe Workspace</button>
+                                    </div>
+                                )}
+
+                                {activeLeftPanel === 'about' && (
+                                    <div className="p-2 space-y-2">
+                                        {[
+                                            {n:'Web Division', u:'https://solenterprises.org/pages/skyeweb', i:'language', c:'purple'},
+                                            {n:'Business Dev', u:'https://skyesoverlondon.netlify.app/', i:'hub', c:'blue'},
+                                            {n:'Founders', u:'https://solenterprises.org/pages/leadership-hub', i:'shield_person', c:'emerald'},
+                                            {n:'Contact', u:'https://13thsole.netlify.app/pages/contact-hub', i:'alternate_email', c:'amber'}
+                                        ].map(l => (
+                                            <a key={l.n} href={l.u} target="_blank" className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl border border-transparent hover:border-white/5 transition-all">
+                                                <Icon name={l.i} className={`text-${l.c}-500`} />
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-bold text-gray-200">{l.n}</span>
+                                                    <span className="text-[9px] text-gray-600 uppercase">Authorized Link</span>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Main Editor Space */}
+                    <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
+                        {/* Tabs */}
+                        <div className="h-10 flex bg-black/40 backdrop-blur-md border-b border-white/5 overflow-x-auto no-scrollbar shrink-0">
+                            {flatFiles.map(f => (
+                                <div key={f.id} onClick={() => { setActiveFileId(f.id); setPreviewOpen(false); }} className={`flex items-center px-4 h-full min-w-[120px] text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-all border-r border-white/5 ${activeFileId === f.id ? 'bg-white/5 text-purple-400 border-t-2 border-t-purple-500' : 'text-gray-500 hover:bg-white/5'}`}>
+                                    <span className="truncate">{f.name}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Breadcrumbs & Actions */}
+                        <div className="h-12 flex items-center justify-between px-6 bg-black/20 border-b border-white/5 shrink-0">
+                            <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                                KAIXU <Icon name="chevron_right" className="text-[10px]" /> <span className="text-purple-400">{activeFile?.name || 'IDLE'}</span>
+                            </div>
+                            <div className="flex gap-4">
+                                <button onClick={() => setTerminalOpen(!terminalOpen)} className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded text-[10px] uppercase font-bold hover:bg-white/10 transition-all text-gray-300"><Icon name="terminal" className="text-sm" /> Console</button>
+                                <button onClick={handleExportActiveFile} disabled={!activeFile} className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded text-[10px] uppercase font-bold hover:bg-white/10 transition-all text-gray-300 disabled:opacity-50"><Icon name="download" className="text-sm" /> Export</button>
+                                
+                                {activeFile?.language === 'html' ? (
+                                    <button onClick={() => setPreviewOpen(!previewOpen)} className="flex items-center gap-2 px-4 py-1 bg-purple-600 hover:bg-purple-500 rounded text-[10px] uppercase font-bold transition-all shadow-lg shadow-purple-500/20 text-white disabled:opacity-50">
+                                        <Icon name={previewOpen ? "code" : "preview"} className="text-sm" /> {previewOpen ? "Edit Code" : "Live Preview"}
+                                    </button>
+                                ) : (
+                                    <button onClick={handleRunCode} disabled={!activeFile} className="flex items-center gap-2 px-4 py-1 bg-purple-600 hover:bg-purple-500 rounded text-[10px] uppercase font-bold transition-all shadow-lg shadow-purple-500/20 text-white disabled:opacity-50">
+                                        <Icon name="play_arrow" className="text-sm" /> Run Script
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Editor Core */}
+                        <div className="flex-1 flex overflow-hidden">
+                            <div className="flex-1 relative flex">
+                                {activeFile ? (
+                                    previewOpen && activeFile.language === 'html' ? (
+                                        <div className="flex-1 bg-white">
+                                            <iframe 
+                                                title="Preview"
+                                                srcDoc={activeFile.content}
+                                                className="w-full h-full border-none"
+                                                sandbox="allow-scripts allow-modals allow-same-origin"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="w-12 bg-black/40 text-right pr-3 pt-6 text-[10px] font-mono text-gray-600 select-none border-r border-white/5">
+                                                {activeFile.content.split('\n').map((_, i) => <div key={i}>{i+1}</div>)}
+                                            </div>
+                                            <textarea 
+                                                ref={textareaRef} 
+                                                value={activeFile.content} 
+                                                onChange={e => updateFileContent(activeFileId, e.target.value)} 
+                                                onKeyDown={e => {
+                                                    if ((e.ctrlKey || e.metaKey) && e.code === 'KeyI') { 
+                                                        e.preventDefault(); 
+                                                        setSelectionRange({ start: e.target.selectionStart, end: e.target.selectionEnd }); 
+                                                        setShowInlineAssist(true); 
+                                                    }
+                                                    if (e.key === 'Tab') { 
+                                                        e.preventDefault(); 
+                                                        const s = e.target.selectionStart; 
+                                                        updateFileContent(activeFileId, activeFile.content.substring(0, s) + "  " + activeFile.content.substring(e.target.selectionEnd)); 
+                                                        setTimeout(() => { textareaRef.current.selectionStart = textareaRef.current.selectionEnd = s + 2; }, 0); 
+                                                    }
+                                                }}
+                                                style={{ fontSize: `${settings.fontSize}px` }} 
+                                                className="flex-1 bg-transparent text-gray-200 font-mono leading-relaxed p-6 outline-none resize-none" 
+                                                spellCheck="false" 
+                                            />
+                                        </>
+                                    )
+                                ) : (
+                                    <div className="flex-1 flex flex-col items-center justify-center opacity-20 text-gray-400">
+                                        <Icon name="code_blocks" className="text-6xl mb-4" />
+                                        <span className="text-sm uppercase font-bold tracking-[0.5em]">No File Selected</span>
+                                    </div>
+                                )}
+
+                                {/* Inline AI Prompt */}
+                                {showInlineAssist && !previewOpen && (
+                                    <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] bg-black/90 backdrop-blur-2xl border border-purple-500/50 rounded-2xl shadow-2xl p-4 z-50">
+                                        <div className="flex items-center gap-3">
+                                            <Icon name="auto_awesome" className="text-purple-400 animate-pulse" />
+                                            <input autoFocus value={inlinePrompt} onChange={e => setInlinePrompt(e.target.value)} onKeyDown={e => { if(e.key==='Enter') submitInlineAssist(); if(e.key==='Escape') setShowInlineAssist(false); }} placeholder="Instruct kAIxu to modify selection..." className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-gray-600" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Terminal Console */}
+                            {terminalOpen && (
+                                <div className="h-full w-[400px] bg-black/80 backdrop-blur-3xl border-l border-white/5 flex flex-col shrink-0">
+                                    <div className="px-5 py-3 border-b border-white/5 bg-white/5 text-[9px] font-bold text-gray-500 uppercase tracking-widest flex justify-between items-center">
+                                        Output Console
+                                        <Icon name="close" className="text-sm hover:text-white" onClick={() => setTerminalOpen(false)} />
+                                    </div>
+                                    <div className="flex-1 p-5 font-mono text-[11px] overflow-y-auto text-green-400/80 space-y-2">
+                                        {terminalLogs.map((l, i) => <div key={i} className="break-words">{l}</div>)}
+                                        <div className="flex items-center text-purple-400"><span className="animate-pulse">_</span></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* kAIxu Boost AI Sidebar */}
+                    {showAiPanel && (
+                        <div className="w-[450px] glass border-l border-white/5 flex flex-col z-40 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] shrink-0">
+                            <div className="h-14 flex items-center justify-between px-6 border-b border-white/5">
+                                <div className="flex items-center gap-3 text-purple-400 font-black uppercase text-[10px] tracking-widest">
+                                    <Icon name="auto_awesome" /> <span>kAIxu Boost</span>
+                                </div>
+                                <Icon name="close" className="text-sm text-gray-500 hover:text-white" onClick={() => setShowAiPanel(false)} />
+                            </div>
+                            
+                            <div className="p-4 grid grid-cols-4 gap-2 border-b border-white/5 bg-white/5">
+                                {['explain', 'refactor', 'debug', 'generate'].map(action => (
+                                    <button key={action} disabled={!activeFile} onClick={() => handleQuickAction(action)} className="flex flex-col items-center justify-center p-3 bg-white/5 rounded-xl border border-white/5 hover:border-purple-500/40 hover:bg-purple-500/10 transition-all group disabled:opacity-20">
+                                        <Icon name={action === 'explain' ? 'chat' : action === 'refactor' ? 'bolt' : action === 'debug' ? 'bug_report' : 'edit_note'} className="text-purple-400 mb-1" />
+                                        <span className="text-[8px] font-bold text-gray-500 uppercase tracking-tighter group-hover:text-gray-200">{action}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                {messages.map((m, i) => (
+                                    <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end pl-12' : 'items-start pr-12'}`}>
+                                        <div className={`p-4 rounded-2xl text-[12px] leading-relaxed shadow-2xl ${m.role === 'user' ? 'bg-purple-600/90 text-white rounded-br-none' : 'bg-black/60 text-gray-200 border border-white/10 rounded-bl-none w-full'}`}>
+                                            {m.role === 'user' ? m.text : renderMessageContent(m.text)}
+                                        </div>
+                                        <span className="text-[8px] font-black text-gray-600 mt-2 uppercase tracking-[0.2em]">{m.role === 'system' ? 'kAIxu Engine' : 'Dev'}</span>
+                                    </div>
+                                ))}
+                                {isGenerating && <div className="text-[10px] text-purple-500 animate-pulse font-bold tracking-[0.2em]">PROCESSING QUERY...</div>}
+                                <div ref={messagesEndRef} />
+                            </div>
+                            
+                            <div className="p-4 bg-black/40 border-t border-white/5">
+                                <div className="relative">
+                                    <textarea value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(); } }} placeholder="Input instruction or query..." disabled={!apiKey} className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs text-gray-200 focus:border-purple-500 outline-none resize-none h-24 disabled:opacity-30" />
+                                    <button onClick={handleChatSubmit} disabled={!apiKey || !chatInput.trim()} className="absolute right-3 bottom-3 p-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white disabled:opacity-20"><Icon name="send" className="text-sm" /></button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Unified Modal Overlay */}
+                    {modalConfig.isOpen && (
+                        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-md">
+                            <div className="bg-[#111] border border-white/10 p-8 rounded-3xl shadow-2xl w-96 flex flex-col gap-6">
+                                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.4em] text-center border-b border-white/5 pb-4">{modalConfig.type?.replace('_', ' ')}</h3>
+                                {(modalConfig.type?.includes('new') || modalConfig.type === 'rename') ? (
+                                    <input autoFocus value={modalConfig.inputValue} onChange={e => setModalConfig({...modalConfig, inputValue: e.target.value})} onKeyDown={e => e.key === 'Enter' && confirmModal()} className="w-full bg-black/60 border border-white/10 rounded-xl p-4 text-xs text-white focus:border-purple-500 outline-none font-mono" placeholder="Enter node name..." />
+                                ) : <p className="text-xs text-gray-500 text-center uppercase tracking-widest leading-relaxed">Confirm permanent modification of workspace state?</p>}
+                                <div className="flex gap-4">
+                                    <button onClick={closeModal} className="flex-1 text-[10px] font-bold text-gray-600 uppercase tracking-widest hover:text-white transition-all">Abort</button>
+                                    <button onClick={confirmModal} className={`flex-1 py-3 rounded-xl text-[10px] font-black text-white uppercase tracking-widest ${modalConfig.type === 'delete' || modalConfig.type === 'reset' ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-600 hover:bg-purple-500'}`}>Authorize</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+  <script>
+    // PWA Service Worker Registration
+    (function(){
+      if (!('serviceWorker' in navigator)) return;
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+          .catch(function(err){ console.warn('SW registration failed', err); });
+      });
+    })();
+  </script>
+
+</body>
+</html>

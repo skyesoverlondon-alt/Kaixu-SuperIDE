@@ -5,15 +5,15 @@ const logger = require('./_lib/logger')('ai-edit');
 const { checkQuota, recordUsage } = require('./_lib/quota');
 const { checkRateLimit } = require('./_lib/ratelimit');
 
-const XNTH_GATE_CHAT = 'https://skyesol.netlify.app/.netlify/functions/gateway-chat';
-const DEFAULT_MODEL   = 'kAIxU-flash';
+const DEFAULT_MODEL = 'kAIxU-flash';
+const getWorkerUrl  = () => (process.env.KAIXUSI_WORKER_URL || '').replace(/\/+$/, '');
 
 // Map IDE branded model names → XnthGateway { provider, model } pairs.
 // Override via env: KAIXU_FLASH_PROVIDER / KAIXU_FLASH_MODEL / KAIXU_PRO_PROVIDER / KAIXU_PRO_MODEL
 const MODEL_MAP = {
   'kAIxU-flash': {
     provider: process.env.KAIXU_FLASH_PROVIDER || 'gemini',
-    model:    process.env.KAIXU_FLASH_MODEL    || 'gemini-2.0-flash-exp',
+    model:    process.env.KAIXU_FLASH_MODEL    || 'gemini-2.5-flash',
   },
   'kAIxU-pro': {
     provider: process.env.KAIXU_PRO_PROVIDER || 'anthropic',
@@ -26,10 +26,12 @@ function resolveModel(brandedName) {
 }
 
 function getGateEnv() {
-  const token = process.env.KAIXU_VIRTUAL_KEY || '';
+  const token = process.env.KAIXUSI_SECRET || '';
   const defaultModel = process.env.KAIXU_DEFAULT_MODEL || DEFAULT_MODEL;
-  if (!token) throw new Error('Missing KAIXU_VIRTUAL_KEY');
-  return { token, defaultModel };
+  if (!token) throw new Error('Missing KAIXUSI_SECRET');
+  const url = getWorkerUrl();
+  if (!url) throw new Error('Missing KAIXUSI_WORKER_URL');
+  return { token, defaultModel, url };
 }
 
 function agentSystemPrompt() {
@@ -68,19 +70,29 @@ function safeJsonParse(text) {
   return null;
 }
 
-async function gateGenerate({ provider, model, messages }) {
-  const { token } = getGateEnv();
-  const res = await fetch(XNTH_GATE_CHAT, {
+async function gateGenerate({ provider, model, messages, userId, workspaceId, orgId }) {
+  const { token, url } = getGateEnv();
+  const res = await fetch(`${url}/v1/chat`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ provider, model, messages, max_tokens: 8192, temperature: 0 })
+    body: JSON.stringify({
+      provider,
+      model,
+      messages,
+      max_tokens:   8192,
+      temperature:  0,
+      user_id:      userId      || null,
+      workspace_id: workspaceId || null,
+      org_id:       orgId       || null,
+      app_id:       'kaixu-superide',
+    }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Gate error (HTTP ${res.status})`);
-  // XnthGateway non-streaming response: { output_text, provider, model, usage, month }
+  // KaixuSI worker response: { output_text, provider, model, usage, latency_ms, kaixusi: true }
   return {
     text:  data.output_text || '',
     usage: data.usage || {},
@@ -88,15 +100,18 @@ async function gateGenerate({ provider, model, messages }) {
   };
 }
 
-async function generateJsonOnce({ provider, model, messages }) {
+async function generateJsonOnce({ provider, model, messages, userId, workspaceId, orgId }) {
   return await gateGenerate({
     provider,
     model,
     messages: [{ role: 'system', content: agentSystemPrompt() }, ...messages],
+    userId,
+    workspaceId,
+    orgId,
   });
 }
 
-async function repairToJson({ provider, model, raw }) {
+async function repairToJson({ provider, model, raw, userId, workspaceId, orgId }) {
   return await gateGenerate({
     provider,
     model,
@@ -104,6 +119,9 @@ async function repairToJson({ provider, model, raw }) {
       { role: 'system', content: 'Convert the following into VALID JSON that matches the exact schema previously specified. Output JSON only.' },
       { role: 'user',   content: `RAW_OUTPUT_START\n${raw}\nRAW_OUTPUT_END` },
     ],
+    userId,
+    workspaceId,
+    orgId,
   });
 }
 
@@ -220,11 +238,11 @@ exports.handler = async (event) => {
     const { provider, model: resolvedModel } = resolveModel(brandedName);
     usedModel = `${provider}/${resolvedModel}`;
 
-    const first = await generateJsonOnce({ provider, model: resolvedModel, messages: msgs });
+    const first = await generateJsonOnce({ provider, model: resolvedModel, messages: msgs, userId, workspaceId, orgId: quotaOrgId });
     usageData = first.usage;
     let obj = safeJsonParse(first.text);
     if (!validateAgentObject(obj)) {
-      const repaired = await repairToJson({ provider, model: resolvedModel, raw: first.text });
+      const repaired = await repairToJson({ provider, model: resolvedModel, raw: first.text, userId, workspaceId, orgId: quotaOrgId });
       obj = safeJsonParse(repaired.text);
     }
 
