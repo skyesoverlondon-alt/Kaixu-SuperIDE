@@ -20,7 +20,8 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 const EMBED_MODEL = 'text-embedding-004';
 
 function getGeminiKey(env) {
-  return env.KAIXU_GEMINI_API_KEY || null;
+  const k = (env.KAIXU_GEMINI_API_KEY || '').trim();
+  return k || null;
 }
 
 // KAIXU_OPEN_GATE = "true" means no token auth required on the Worker
@@ -80,7 +81,7 @@ export default {
       const { model, system, messages, generationConfig, output } = body;
       const geminiModel = model || DEFAULT_MODEL;
       const apiKey = getGeminiKey(env);
-      if (!apiKey) return Response.json({ ok: false, error: 'Gemini API key not configured on Worker' }, { status: 500, headers: corsHeaders });
+      if (!apiKey) return Response.json({ ok: false, error: 'Gemini API key not configured on Worker', debug: { keyExists: 'KAIXU_GEMINI_API_KEY' in env, keyLength: (env.KAIXU_GEMINI_API_KEY||'').length } }, { status: 500, headers: corsHeaders });
 
       // Build Gemini contents array from messages
       const contents = (messages || []).map(m => ({
