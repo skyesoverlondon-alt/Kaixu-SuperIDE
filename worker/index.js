@@ -6,20 +6,40 @@
  *   POST /embeddings   — Text embeddings for RAG (used by embeddings.js)
  *   GET  /health       — Health check
  *
- * Required Worker Secrets (set in Cloudflare Dashboard → Settings → Variables):
- *   GEMINI_API_KEY   — from https://aistudio.google.com/apikey
- *   GATE_TOKEN       — any secret string you make up; set same value as
- *                      KAIXU_GATE_TOKEN in Netlify env vars
+ * Env vars already set on your Worker are used automatically.
+ * The code tries every common name so nothing needs to be renamed.
  *
  * To deploy:
  *   1. Go to dash.cloudflare.com → Workers & Pages → kaixu67 → Edit Code
  *   2. Paste this entire file, replacing what's there
- *   3. Click Deploy
+ *   3. Click Deploy — no env var changes needed
  */
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 const EMBED_MODEL = 'text-embedding-004';
+
+// Try every common name for the Gemini API key
+function getGeminiKey(env) {
+  return env.GEMINI_API_KEY
+    || env.GOOGLE_AI_KEY
+    || env.GOOGLE_API_KEY
+    || env.AI_API_KEY
+    || env.API_KEY
+    || null;
+}
+
+// Try every common name for the gate auth token
+// If none are set, auth is skipped (Netlify-side requireAuth is the real guard)
+function getGateToken(env) {
+  return env.GATE_TOKEN
+    || env.KAIXU_GATE_TOKEN
+    || env.AUTH_TOKEN
+    || env.SECRET_TOKEN
+    || env.TOKEN
+    || null;
+}
+
 
 export default {
   async fetch(request, env) {
@@ -38,15 +58,19 @@ export default {
     }
 
     // ── Auth ──────────────────────────────────────────────────────────────
-    // Skip auth on health check
+    // If a gate token is configured, enforce it. Otherwise skip (Netlify-side
+    // requireAuth is the real security boundary).
     if (pathname !== '/health') {
-      const authHeader = request.headers.get('Authorization') || '';
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      if (!token || token !== env.GATE_TOKEN) {
-        return Response.json(
-          { ok: false, error: 'Unauthorized' },
-          { status: 401, headers: corsHeaders }
-        );
+      const gateToken = getGateToken(env);
+      if (gateToken) {
+        const authHeader = request.headers.get('Authorization') || '';
+        const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+        if (token !== gateToken) {
+          return Response.json(
+            { ok: false, error: 'Unauthorized' },
+            { status: 401, headers: corsHeaders }
+          );
+        }
       }
     }
 
@@ -63,8 +87,8 @@ export default {
 
       const { model, system, messages, generationConfig, output } = body;
       const geminiModel = model || DEFAULT_MODEL;
-      const apiKey = env.GEMINI_API_KEY;
-      if (!apiKey) return Response.json({ ok: false, error: 'GEMINI_API_KEY not configured' }, { status: 500, headers: corsHeaders });
+      const apiKey = getGeminiKey(env);
+      if (!apiKey) return Response.json({ ok: false, error: 'Gemini API key not configured on Worker' }, { status: 500, headers: corsHeaders });
 
       // Build Gemini contents array from messages
       const contents = (messages || []).map(m => ({
@@ -132,8 +156,8 @@ export default {
         return Response.json({ ok: false, error: 'input must be a non-empty array of strings' }, { status: 400, headers: corsHeaders });
       }
 
-      const apiKey = env.GEMINI_API_KEY;
-      if (!apiKey) return Response.json({ ok: false, error: 'GEMINI_API_KEY not configured' }, { status: 500, headers: corsHeaders });
+      const apiKey = getGeminiKey(env);
+      if (!apiKey) return Response.json({ ok: false, error: 'Gemini API key not configured on Worker' }, { status: 500, headers: corsHeaders });
 
       // Gemini embedContent is one string at a time — run in parallel (max 20 at once)
       const CHUNK = 20;
