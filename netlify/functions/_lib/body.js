@@ -15,4 +15,11 @@ async function readJson(event) {
   }
 }
 
-module.exports = { readJson };
+// Synchronous variant — throws on error, returns parsed object
+function parseBody(event) {
+  let raw = event.body || '{}';
+  if (event.isBase64Encoded) raw = Buffer.from(raw, 'base64').toString('utf8');
+  return JSON.parse(raw);
+}
+
+module.exports = { readJson, parseBody };

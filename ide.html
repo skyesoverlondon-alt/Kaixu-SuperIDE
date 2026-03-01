@@ -40,13 +40,13 @@
         <button id="paste-import-btn" title="Import from pasted text">📋 Paste</button>
         <button id="sync-cloud" title="Sync workspace to Neon">Sync</button>
         <!-- Search / palette / split / format / settings -->
-        <button id="search-panel-btn" title="Search workspace (Ctrl+Shift+F)">🔍</button>
-        <button id="split-btn" title="Toggle split pane (Ctrl+\)">⬜⬜</button>
-        <button id="cmd-palette-btn" title="Command palette (Ctrl+Shift+P)">⌘</button>
-        <button id="format-btn" title="Format document (Shift+Alt+F)">{ }</button>
-        <button id="settings-btn" title="Settings">⚙</button>
+        <button id="search-panel-btn" aria-label="Search workspace" title="Search workspace (Ctrl+Shift+F)">🔍</button>
+        <button id="split-btn" aria-label="Toggle split pane" title="Toggle split pane (Ctrl+\)">⬜⬜</button>
+        <button id="cmd-palette-btn" aria-label="Command palette" title="Command palette (Ctrl+Shift+P)">⌘</button>
+        <button id="format-btn" aria-label="Format document" title="Format document (Shift+Alt+F)">{ }</button>
+        <button id="settings-btn" aria-label="Settings" title="Settings">⚙</button>
         <!-- Commits -->
-        <input id="commit-message" placeholder="Commit message…" />
+        <input id="commit-message" aria-label="Commit message" placeholder="Commit message…" />
         <button id="commit-button">Commit</button>
         <button id="history-button">History</button>
         <button id="revert-button">Revert</button>
@@ -56,42 +56,56 @@
         <button id="ai-settings" title="AI + Agent settings">AI Settings</button>
         <label><input type="checkbox" id="diff-safety" checked />Diff Safety</label>
         <!-- Template selection -->
-        <select id="template-select">
+        <select id="template-select" aria-label="Select template">
           <option value="">Template…</option>
         </select>
         <button id="apply-template" title="Browse template library">Apply</button>
         <button id="save-as-template-btn" title="Save current workspace as a template">Save as Template</button>
-        <button id="tutorial" title="Tutorial">Tutorial</button>
+        <button id="deploy-btn" aria-label="Trigger Netlify deploy" title="Trigger Netlify deploy">&#x1F680; Deploy</button>
+        <button id="demo-loader-btn" aria-label="Load a demo project" title="Load a demo project">&#x1F4C2; Demo</button>
+        <button id="tutorial" aria-label="Open tutorial" title="Tutorial">Tutorial</button>
         <div class="userChip" id="userChip">Not signed in</div>
-        <button id="authBtn">Sign in</button>
+        <button id="authBtn" aria-label="Sign in or manage account">Sign in</button>
         <!-- Preview controls -->
-        <button id="preview-toggle">Toggle Preview</button>
-        <button id="preview-detach">Detach</button>
+        <button id="preview-toggle" aria-label="Toggle preview">Toggle Preview</button>
+        <button id="preview-detach" aria-label="Detach preview to new window">Detach</button>
+        <!-- Presence bar -->
+        <div id="presence-bar" class="presence-bar" title="Active collaborators"></div>
+        <!-- Share, admin, agent memory -->
+        <button id="share-preview-btn" aria-label="Share workspace read-only link" title="Share workspace (read-only link)">&#x1F517; Share</button>
+        <button id="admin-panel-btn" aria-label="Admin panel" title="Admin panel">&#x1F6E1; Admin</button>
+        <button id="agent-memory-btn" aria-label="Agent memory" title="Agent memory (workspace conventions)">&#x1F9E0; Memory</button>
+        <button id="watch-mode-btn" aria-label="Toggle watch mode" title="Watch mode: auto AI pass on save">&#x1F441; Watch: OFF</button>
+        <button id="billing-btn" aria-label="Plans and billing" title="Plans &amp; Billing">&#x1F4B3; Upgrade</button>
+        <button id="help-btn" aria-label="Help and documentation" title="Help &amp; Documentation (?)">&#x2753; Help</button>
       </header>
       <main>
         <aside id="side">
-          <div class="sideTabs">
-            <button class="tabBtn active" data-tab="files">Files</button>
-            <button class="tabBtn" data-tab="chat">Chat</button>
-            <button class="tabBtn" data-tab="scm">Source</button>
-            <button class="tabBtn" data-tab="outline">Outline</button>
-            <button class="tabBtn" data-tab="problems">Problems<span id="problems-badge" class="badge hidden"></span></button>
+          <div class="sideTabs" role="tablist" aria-label="IDE panels">
+            <button class="tabBtn active" role="tab" data-tab="files" aria-selected="true">Files</button>
+            <button class="tabBtn" role="tab" aria-selected="false" data-tab="chat">Chat</button>
+            <button class="tabBtn" role="tab" aria-selected="false" data-tab="scm">Source</button>
+            <button class="tabBtn" role="tab" aria-selected="false" data-tab="tasks">Tasks</button>
+            <button class="tabBtn" role="tab" aria-selected="false" data-tab="activity" id="activity-tab-btn">Activity</button>
+            <button class="tabBtn" role="tab" aria-selected="false" data-tab="github" id="github-tab-btn">GitHub<span id="github-badge" class="badge hidden"></span></button>
+            <button class="tabBtn" role="tab" aria-selected="false" data-tab="outline">Outline</button>
+            <button class="tabBtn" role="tab" aria-selected="false" data-tab="problems">Problems<span id="problems-badge" class="badge hidden"></span></button>
           </div>
 
-          <div id="files-pane" class="pane">
+          <div id="files-pane" role="tabpanel" aria-label="Files" class="pane">
             <div class="orgBar">
-              <select id="orgSelect" title="Organization"></select>
-              <button id="newOrgBtn" title="Create org">+ Org</button>
-              <select id="wsSelect" title="Workspace"></select>
-              <button id="newWsBtn" title="Create workspace">+ WS</button>
+              <select id="orgSelect" aria-label="Select organization" title="Organization"></select>
+              <button id="newOrgBtn" aria-label="Create organization" title="Create org">+ Org</button>
+              <select id="wsSelect" aria-label="Select workspace" title="Workspace"></select>
+              <button id="newWsBtn" aria-label="Create workspace" title="Create workspace">+ WS</button>
             </div>
 
             <div id="file-tree"></div>
           </div>
 
-          <div id="chat-pane" class="pane hidden">
+          <div id="chat-pane" role="tabpanel" aria-label="Chat" class="pane hidden">
             <div class="chatTop">
-              <select id="chatScope" title="Agent scope">
+              <select id="chatScope" aria-label="Agent scope" title="Agent scope">
                 <option value="active">Active file</option>
                 <option value="selected">Selected files</option>
                 <option value="all" selected>Entire workspace</option>
@@ -99,6 +113,20 @@
               <label title="Apply edits immediately"><input type="checkbox" id="autoApplyEdits" checked />Auto-apply</label>
               <label title="Commit after apply"><input type="checkbox" id="commitAfterApply" checked />Commit</label>
               <label title="Autosave while typing"><input type="checkbox" id="autoSave" checked />Autosave</label>
+              <label title="Agent writes a plan first, then executes on confirmation"><input type="checkbox" id="planMode" />Plan first</label>
+            </div>
+            <div class="chatModes">
+              <select id="toolMode" aria-label="Tool mode" title="Tool mode">
+                <option value="default">&#x1F916; Default</option>
+                <option value="refactor">&#x267B; Refactor</option>
+                <option value="security">&#x1F512; Security Scan</option>
+                <option value="performance">&#x26A1; Performance</option>
+                <option value="seo">&#x1F50D; SEO</option>
+              </select>
+              <label title="Watch mode: AI auto-fixes each save"><input type="checkbox" id="watchMode" />Watch</label>
+              <button id="loop-mode-btn" aria-label="Loop mode" title="Run AI in a loop until task is complete">&#x1F500; Loop</button>
+              <input id="loopCount" aria-label="Max loop iterations" type="number" value="3" min="1" max="10" title="Max loop iterations" style="width:40px" />
+              <span id="loop-status" class="muted" style="font-size:11px"></span>
             </div>
             <div id="chatTimeline" class="chatTimeline"></div>
             <div class="chatComposer">
@@ -107,20 +135,106 @@
             </div>
           </div>
 
-          <div id="history-pane" class="pane hidden"></div>
+          <div id="history-pane" class="pane hidden">
+            <!-- Branch + stash controls (scm.js) -->
+            <div class="scm-top">
+              <select id="branch-selector" aria-label="Active branch" title="Active branch"></select>
+              <button id="branch-manage-btn" aria-label="Manage branches" title="Manage branches">&#x2387; Branches</button>
+              <button id="scm-tags-btn" aria-label="Manage tags" title="Manage tags">&#x1F3F7; Tags</button>
+              <button id="scm-blame-btn" aria-label="Show file blame" title="Show blame for active file">&#x1F4CB; Blame</button>
+              <button id="scm-review-btn" aria-label="Request code review" title="Request code review">&#x1F50D; Review</button>
+            </div>
+            <div class="scm-stash-bar">
+              <input id="stash-message" aria-label="Stash message" placeholder="Stash message…" />
+              <button id="stash-push-btn" aria-label="Stash current changes" title="Stash current changes">&#x1F4E5; Stash</button>
+            </div>
+            <div id="stash-list" class="stash-list"></div>
+            <hr class="scm-divider" />
+            <!-- Commit history (diff.js) -->
+          </div>
+
+          <!-- Tasks / Issues pane -->
+          <div id="tasks-pane" role="tabpanel" aria-label="Tasks" class="pane hidden">
+            <div class="pane-toolbar">
+              <span style="font-size:13px;font-weight:600;color:#c4b5fd">Tasks &amp; Issues</span>
+              <button id="task-new-btn" aria-label="New task" class="toolbar-sm-btn" title="New task">+ New</button>
+              <button id="task-refresh-btn" aria-label="Refresh tasks" class="toolbar-sm-btn" title="Refresh">&#x21BB;</button>
+            </div>
+            <div class="task-filter-bar">
+              <select id="task-filter-status" aria-label="Filter by status">
+                <option value="">All Status</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+              <select id="task-filter-priority" aria-label="Filter by priority">
+                <option value="">All Priority</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div id="tasks-list" class="tasks-list"></div>
+          </div>
+
+          <!-- Activity pane (collab.js) -->
+          <div id="activity-pane" role="tabpanel" aria-label="Activity" class="pane hidden">
+            <div class="pane-toolbar">
+              <span style="font-size:13px;font-weight:600;color:#c4b5fd">Activity Feed</span>
+              <button id="activity-refresh-btn" aria-label="Refresh activity" class="toolbar-sm-btn" title="Refresh">&#x21BB;</button>
+            </div>
+            <div id="activity-feed" class="activity-feed"></div>
+          </div>
+
+          <!-- GitHub pane -->
+          <div id="github-pane" role="tabpanel" aria-label="Github" class="pane hidden">
+            <!-- Not connected state -->
+            <div id="gh-disconnected" class="gh-section">
+              <div class="gh-hero">⬡ GitHub</div>
+              <p class="gh-hint">Connect a repo to push &amp; pull directly from the IDE.</p>
+              <button id="gh-connect-btn" class="gh-primary-btn">Connect Repository</button>
+            </div>
+
+            <!-- Connected state -->
+            <div id="gh-connected" class="gh-section hidden">
+              <div class="gh-repo-header">
+                <span id="gh-repo-label" class="gh-repo-name"></span>
+                <span id="gh-branch-label" class="gh-branch-chip"></span>
+              </div>
+              <div id="gh-status-bar" class="gh-status-bar">
+                <span id="gh-status-text" class="gh-status-text">Checking…</span>
+                <button id="gh-refresh-btn" aria-label="Refresh GitHub status" class="gh-icon-btn" title="Refresh status">↻</button>
+              </div>
+              <div class="gh-actions">
+                <div class="gh-commit-row">
+                  <input id="gh-commit-msg" aria-label="Commit message" class="gh-commit-input" placeholder="Commit message…" />
+                </div>
+                <button id="gh-push-btn" class="gh-primary-btn">⬆ Push</button>
+                <button id="gh-pull-btn" class="gh-secondary-btn">⬇ Pull</button>
+              </div>
+              <div id="gh-push-progress" class="gh-progress hidden">
+                <div id="gh-progress-bar" class="gh-progress-bar"><div id="gh-progress-fill" class="gh-progress-fill"></div></div>
+                <span id="gh-progress-label" class="gh-progress-label">Preparing…</span>
+              </div>
+              <div class="gh-footer">
+                <a id="gh-repo-link" href="#" target="_blank" rel="noopener" class="gh-link">Open on GitHub ↗</a>
+                <button id="gh-disconnect-btn" class="gh-danger-btn" title="Disconnect repo">Disconnect</button>
+              </div>
+            </div>
+          </div>
 
           <!-- Outline pane -->
-          <div id="outline-pane" class="pane hidden">
+          <div id="outline-pane" role="tabpanel" aria-label="Outline" class="pane hidden">
             <div class="pane-toolbar">
-              <input id="outline-filter" placeholder="Filter symbols…" />
+              <input id="outline-filter" aria-label="Filter outline symbols" placeholder="Filter symbols…" />
             </div>
             <div id="outline-list"></div>
           </div>
 
           <!-- Problems pane -->
-          <div id="problems-pane" class="pane hidden">
+          <div id="problems-pane" role="tabpanel" aria-label="Problems" class="pane hidden">
             <div class="pane-toolbar">
-              <select id="problems-filter">
+              <select id="problems-filter" aria-label="Filter problems">
                 <option value="all">All</option>
                 <option value="error">Errors</option>
                 <option value="warning">Warnings</option>
@@ -132,6 +246,17 @@
           </div>
         </aside>
         <section id="editor-section">
+          <!-- Email verification banner -->
+          <div id="email-verify-banner" class="email-verify-banner hidden">
+            &#x2709; Please verify your email address.
+            <button id="resend-verify-btn" class="link-btn">Resend email</button>
+            <button id="email-verify-banner-close" title="Dismiss">&#x2715;</button>
+          </div>
+          <!-- Secrets scanner warning banner -->
+          <div id="secrets-banner" class="secrets-banner hidden">
+            ⚠️ Possible secret detected in this file — avoid committing API keys or tokens.
+            <button id="secrets-banner-close" title="Dismiss">✕</button>
+          </div>
           <!-- Search panel (hidden initially, toggled by Ctrl+Shift+F) -->
           <div id="search-panel" class="hidden">
             <div class="search-panel-header">
@@ -151,20 +276,28 @@
           <div id="editor-container">
             <!-- Pane 0 -->
             <div class="editor-pane" id="pane-0">
-              <div class="tab-bar" id="tab-bar-0"></div>
+              <div class="tab-bar" id="tabs-0"></div>
               <div class="breadcrumb" id="breadcrumb-0"></div>
-              <div class="file-viewer hidden" id="viewer-0"></div>
+              <div class="file-viewer hidden" id="file-viewer-0"></div>
               <textarea class="editor-area" id="editor-0" spellcheck="false" placeholder="Open a file to start editing…"></textarea>
             </div>
             <!-- Split drag handle (hidden until split active) -->
             <div id="split-handle" class="hidden"></div>
             <!-- Pane 1 -->
             <div class="editor-pane hidden" id="pane-1">
-              <div class="tab-bar" id="tab-bar-1"></div>
+              <div class="tab-bar" id="tabs-1"></div>
               <div class="breadcrumb" id="breadcrumb-1"></div>
-              <div class="file-viewer hidden" id="viewer-1"></div>
+              <div class="file-viewer hidden" id="file-viewer-1"></div>
               <textarea class="editor-area" id="editor-1" spellcheck="false" placeholder="Open a file in split pane…"></textarea>
             </div>
+          </div>
+          <!-- Blame overlay (scm.js) -->
+          <div id="blame-pane" class="blame-pane hidden">
+            <div class="blame-header">
+              <span>Blame: <span id="blame-file-label"></span></span>
+              <button id="blame-close-btn" title="Close blame">&#x2715;</button>
+            </div>
+            <div id="blame-content" class="blame-content"></div>
           </div>
           <!-- Status bar -->
           <div id="status-bar">
@@ -176,7 +309,28 @@
           </div>
         </section>
         <section id="preview-section" class="pane hidden">
-          <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+          <div id="preview-toolbar">
+            <select id="preview-entry" title="Preview entrypoint"></select>
+            <input id="preview-route" aria-label="Preview route" placeholder="/route…" title="SPA route (injected as window.__ROUTE__)" style="width:90px" />
+            <div class="preview-device-btns">
+              <button class="dev-btn active" data-w="100%" title="Desktop">&#x1F5A5;</button>
+              <button class="dev-btn" data-w="768px" title="Tablet">&#x1F4F1;&#x1F4F1;</button>
+              <button class="dev-btn" data-w="375px" title="Mobile">&#x1F4F1;</button>
+            </div>
+            <button id="preview-new-tab-btn" aria-label="Open preview in new tab" title="Open preview in new tab">&#x1F5D7;</button>
+            <button id="preview-console-toggle" title="Toggle console">&#x25BC; Console</button>
+            <button id="preview-refresh-btn" title="Refresh preview">&#x21BB;</button>
+          </div>
+          <div id="preview-frame-wrap">
+            <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-modals"></iframe>
+          </div>
+          <div id="preview-console" class="hidden">
+            <div id="preview-console-toolbar">
+              <span class="console-title">Console</span>
+              <button id="preview-console-clear" title="Clear">&#x1F5D1;</button>
+            </div>
+            <div id="preview-console-log"></div>
+          </div>
         </section>
       </main>
     </div>
@@ -230,6 +384,16 @@
             </select>
           </label>
           <label><input type="checkbox" id="set-format-save" /> Format on Save</label>
+          <label>Theme
+            <select id="set-theme">
+              <option value="dark">Dark (default)</option>
+              <option value="ultra-dark">Ultra Dark</option>
+              <option value="purple-gold">Purple &amp; Gold</option>
+            </select>
+          </label>
+          <label style="margin-top:10px">Netlify Deploy Hook URL
+            <input id="set-deploy-hook" placeholder="https://api.netlify.com/build_hooks/…" style="width:100%" />
+          </label>
         </div>
         <h4>Keyboard Shortcuts</h4>
         <table class="shortcuts-table">
@@ -283,6 +447,7 @@
             <button id="loginSubmit">Login</button>
             <button id="authClose">Close</button>
           </div>
+          <div style="text-align:right;margin-top:8px"><button class="link-btn" id="forgot-pw-btn">Forgot password?</button></div>
         </div>
 
         <div id="authSignup" class="authPanel hidden">
@@ -296,6 +461,43 @@
         </div>
 
         <div class="muted" id="authStatus" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Password Reset Modal -->
+    <div id="reset-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:420px">
+        <h3>Reset Password</h3>
+        <div id="reset-step-1">
+          <p style="color:#9080c0;font-size:13px;margin:0 0 12px">Enter your email and we'll send a reset link.</p>
+          <input id="reset-email" placeholder="Email" style="width:100%" />
+          <div class="dialog-buttons" style="margin-top:12px">
+            <button id="reset-request-btn">Send Reset Link</button>
+            <button id="reset-cancel">Cancel</button>
+          </div>
+        </div>
+        <div id="reset-step-2" class="hidden">
+          <p style="color:#9080c0;font-size:13px;margin:0 0 12px">Enter the token and choose a new password.</p>
+          <input id="reset-token" placeholder="Reset token" style="width:100%;margin-bottom:8px" />
+          <input id="reset-new-pass" type="password" placeholder="New password (8+ chars)" style="width:100%" />
+          <div class="dialog-buttons" style="margin-top:12px">
+            <button id="reset-confirm-btn">Set New Password</button>
+            <button id="reset-cancel2">Cancel</button>
+          </div>
+        </div>
+        <div id="reset-status" class="muted" style="margin-top:10px;min-height:18px"></div>
+      </div>
+    </div>
+
+    <!-- Demo Project Loader Modal -->
+    <div id="demo-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:540px">
+        <h3>&#x1F4C2; Load a Demo Project</h3>
+        <p style="color:#9080c0;font-size:13px;margin:0 0 16px">Choose a starter to load into your workspace. Existing files are kept.</p>
+        <div id="demo-project-list" class="demo-list"></div>
+        <div class="dialog-buttons" style="margin-top:16px">
+          <button id="demo-modal-close">Close</button>
+        </div>
       </div>
     </div>
 
@@ -365,6 +567,30 @@
       </div>
     </div>
 
+    <!-- Go-to-Symbol Modal -->
+    <div id="goto-symbol-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:480px;">
+        <h3>Go to Symbol</h3>
+        <input id="goto-symbol-input" placeholder="Type symbol name…" autocomplete="off" spellcheck="false" />
+        <div id="goto-symbol-list" class="goto-symbol-list"></div>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div id="shortcuts-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:560px;">
+        <h3>Keyboard Shortcuts</h3>
+        <input id="shortcuts-filter" placeholder="Search shortcuts…" style="width:100%;margin-bottom:12px;" />
+        <table id="shortcuts-table" class="shortcuts-table shortcuts-table-full">
+          <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+          <tbody id="shortcuts-tbody"></tbody>
+        </table>
+        <div class="dialog-buttons" style="margin-top:14px;">
+          <button id="shortcuts-close">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Snippet Manager Modal -->
     <div id="snippets-modal" class="dialog hidden">
       <div class="dialog-content" style="max-width:820px;width:95vw;">
@@ -415,17 +641,377 @@
       </div>
     </div>
 
+    <!-- GitHub Connect Modal -->
+    <div id="gh-connect-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:480px;width:95vw;">
+        <h3>⬡ Connect GitHub Repository</h3>
+        <p class="gh-modal-hint">Use a GitHub <strong>Fine-grained Personal Access Token</strong> scoped to <em>Contents: Read &amp; Write</em> on the target repo. The token is stored encrypted in your workspace — never exposed to the browser.</p>
+        <label class="snip-label">Personal Access Token (PAT)
+          <input id="gh-pat-input" type="password" placeholder="github_pat_…" autocomplete="off" />
+        </label>
+        <label class="snip-label">Owner (username or org)
+          <input id="gh-owner-input" placeholder="e.g. skyesoverlondon" />
+        </label>
+        <label class="snip-label">Repository name
+          <input id="gh-repo-input" placeholder="e.g. my-website" />
+        </label>
+        <label class="snip-label">Branch
+          <input id="gh-branch-input" placeholder="main" value="main" />
+        </label>
+        <div id="gh-connect-status" class="gh-modal-status"></div>
+        <div class="dialog-buttons">
+          <button id="gh-connect-save-btn" class="gh-primary-btn">Connect</button>
+          <button id="gh-connect-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onboarding Checklist Modal -->
+    <div id="onboarding-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:480px;width:95vw;">
+        <h3>🚀 Get Started with kAIxU</h3>
+        <p style="color:#9080c0;font-size:13px;margin:0 0 16px">Complete these steps to unlock the full IDE.</p>
+        <div id="onboarding-list" class="onboarding-list">
+          <div class="onboard-item" data-step="upload">
+            <span class="onboard-check"></span>
+            <div class="onboard-text"><strong>1. Upload or create a file</strong><br><span>Use New File or drag &amp; drop a folder.</span></div>
+          </div>
+          <div class="onboard-item" data-step="preview">
+            <span class="onboard-check"></span>
+            <div class="onboard-text"><strong>2. Toggle preview</strong><br><span>Click "Toggle Preview" to see your site live.</span></div>
+          </div>
+          <div class="onboard-item" data-step="chat">
+            <span class="onboard-check"></span>
+            <div class="onboard-text"><strong>3. Chat with kAIxU AI</strong><br><span>Open the Chat tab and ask it to build something.</span></div>
+          </div>
+          <div class="onboard-item" data-step="commit">
+            <span class="onboard-check"></span>
+            <div class="onboard-text"><strong>4. Commit your work</strong><br><span>Enter a commit message and click Commit.</span></div>
+          </div>
+          <div class="onboard-item" data-step="github">
+            <span class="onboard-check"></span>
+            <div class="onboard-text"><strong>5. Connect GitHub</strong><br><span>Open the GitHub tab and push your project.</span></div>
+          </div>
+        </div>
+        <div id="onboarding-complete-msg" class="hidden" style="text-align:center;padding:16px;color:#60d080;font-weight:600;">🎉 All done — you're set up!</div>
+        <div class="dialog-buttons" style="margin-top:16px;">
+          <button id="onboarding-close">Got it</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Branch Management Modal -->
+    <div id="branch-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:460px;">
+        <h3>&#x2387; Branch Management</h3>
+        <div class="branch-create-row">
+          <input id="branch-name-input" placeholder="New branch name…" />
+          <button id="branch-create-btn">Create</button>
+        </div>
+        <div id="branch-list" class="branch-list"></div>
+        <div class="dialog-buttons" style="margin-top:14px;">
+          <button id="branch-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent Memory Modal -->
+    <div id="agent-memory-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:580px;">
+        <h3>&#x1F9E0; Agent Memory</h3>
+        <p class="muted" style="margin:0 0 10px">Write conventions, rules, or preferences for this workspace. The AI reads this before every task.</p>
+        <textarea id="agent-memory-input" style="width:100%;height:240px;resize:vertical;font-family:monospace;font-size:13px;" placeholder="e.g. Always use TypeScript. Prefer functional components. Avoid lodash."></textarea>
+        <div class="dialog-buttons" style="margin-top:12px;">
+          <button id="agent-memory-save-btn">Save Memory</button>
+          <button id="agent-memory-modal-close">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Preview Modal -->
+    <div id="share-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:480px;">
+        <h3>&#x1F517; Share Workspace (Read-Only)</h3>
+        <p class="muted" style="margin:0 0 12px">Create a signed link that lets anyone view the workspace files without signing in.</p>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+          <label>Expires in
+            <select id="share-expiry">
+              <option value="24">24 hours</option>
+              <option value="48" selected>48 hours</option>
+              <option value="168">7 days</option>
+              <option value="720">30 days</option>
+            </select>
+          </label>
+          <button id="share-create-btn">Generate Link</button>
+        </div>
+        <div id="share-link-output" class="share-link-output hidden">
+          <input id="share-link-input" readonly style="width:100%" />
+          <button id="share-link-copy" title="Copy">&#x1F4CB; Copy</button>
+        </div>
+        <div class="dialog-buttons" style="margin-top:14px;">
+          <button id="share-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions Modal -->
+    <div id="sessions-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:620px;width:95vw;">
+        <h3>&#x1F513; Active Sessions</h3>
+        <p class="muted" style="margin:0 0 12px">Revoke sessions to sign out other devices.</p>
+        <div id="sessions-list" class="sessions-list"></div>
+        <div class="dialog-buttons" style="margin-top:14px;">
+          <button id="sessions-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="admin-modal" class="dialog hidden">
+      <div class="dialog-content" style="max-width:900px;width:96vw;">
+        <h3>&#x1F6E1; Admin Panel</h3>
+        <div class="admin-tab-bar">
+          <button class="admin-tab-btn active" data-admin-tab="usage">Usage</button>
+          <button class="admin-tab-btn" data-admin-tab="members">Members</button>
+          <button class="admin-tab-btn" data-admin-tab="invites">Invites</button>
+          <button class="admin-tab-btn" data-admin-tab="webhooks">Webhooks</button>
+          <button class="admin-tab-btn" data-admin-tab="notifications">Notifications</button>
+          <button class="admin-tab-btn" data-admin-tab="settings">Settings</button>
+        </div>
+        <!-- Org selector -->
+        <div style="margin:8px 0;">
+          <label>Org: <select id="admin-org-select"></select></label>
+          <button id="admin-load-btn" style="margin-left:8px;">Load</button>
+        </div>
+
+        <!-- Usage tab -->
+        <div id="admin-tab-usage" class="admin-tab-pane">
+          <div id="admin-usage-grid" class="admin-usage-grid"></div>
+          <canvas id="admin-usage-chart" width="600" height="160" style="margin-top:12px;max-width:100%"></canvas>
+          <div style="margin-top:12px;">
+            AI Kill Switch: <span id="admin-ai-status" style="font-weight:600"></span>
+            <button id="admin-kill-switch-btn" style="margin-left:8px;" title="Toggle AI for this org">Toggle</button>
+          </div>
+        </div>
+
+        <!-- Members tab -->
+        <div id="admin-tab-members" class="admin-tab-pane hidden">
+          <div id="admin-members-list"></div>
+        </div>
+
+        <!-- Invites tab -->
+        <div id="admin-tab-invites" class="admin-tab-pane hidden">
+          <div class="invite-create-form" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input id="invite-email-input" placeholder="Email (optional)" style="flex:1" />
+            <select id="invite-role-select">
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+              <option value="viewer">Viewer</option>
+            </select>
+            <button id="invite-create-btn">Create Invite</button>
+          </div>
+          <div id="invite-link-output" class="hidden" style="margin-bottom:12px;">
+            <input id="invite-link-input" readonly style="width:100%" />
+            <button id="invite-link-copy">&#x1F4CB; Copy</button>
+          </div>
+          <div id="admin-invites-list"></div>
+        </div>
+
+        <!-- Webhooks tab -->
+        <div id="admin-tab-webhooks" class="admin-tab-pane hidden">
+          <div class="webhook-create-form" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            <input id="webhook-url-input" placeholder="https://…" style="flex:1" />
+            <select id="webhook-events-select" multiple style="height:60px;min-width:140px;">
+              <option value="ws.save" selected>ws.save</option>
+              <option value="ws.create">ws.create</option>
+              <option value="member.joined">member.joined</option>
+              <option value="member.removed">member.removed</option>
+            </select>
+            <button id="webhook-create-btn">Add Webhook</button>
+          </div>
+          <div id="admin-webhooks-list"></div>
+        </div>
+
+        <!-- Notifications tab -->
+        <div id="admin-tab-notifications" class="admin-tab-pane hidden">
+          <h4 style="margin:0 0 10px">Notification Preferences</h4>
+          <p style="font-size:12px;opacity:.6;margin:0 0 12px">Configure Slack or email alerts for org events.</p>
+          <div id="notif-prefs-list" style="margin-bottom:12px;min-height:40px;font-size:13px;opacity:.6">Loading…</div>
+          <div style="border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;background:rgba(255,255,255,.03)">
+            <h5 style="margin:0 0 8px">Add / Update Channel</h5>
+            <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <select id="notif-channel-select" aria-label="Notification channel" style="flex:0 0 auto">
+                <option value="slack">Slack</option>
+                <option value="email">Email</option>
+                <option value="webhook">Custom Webhook</option>
+              </select>
+              <input id="notif-channel-input" placeholder="Slack webhook URL / email / webhook URL" style="flex:1;min-width:200px" aria-label="Channel endpoint" />
+            </div>
+            <div style="font-size:11px;opacity:.5;margin-bottom:8px">Events: task.created, review.requested, ws.shared, invite.accepted, member.joined, subscription.changed</div>
+            <button id="notif-save-btn" style="font-size:12px">Save Preference</button>
+          </div>
+        </div>
+
+        <!-- Settings tab -->
+        <div id="admin-tab-settings" class="admin-tab-pane hidden">
+          <h4 style="margin:0 0 10px">Compliance Export</h4>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <button id="export-audit-csv-btn">&#x2B07; Export CSV</button>
+            <button id="export-audit-json-btn">&#x2B07; Export JSON</button>
+          </div>
+          <div style="margin-bottom:16px">
+            <button id="export-soc2-btn" title="Generate SOC 2 evidence pack (JSON)">&#x1F4CB; Export SOC 2 Evidence Pack</button>
+          </div>
+          <h4 style="margin:0 0 10px">Sessions</h4>
+          <button id="view-sessions-btn">View Active Sessions</button>
+          <h4 style="margin:0 0 10px;margin-top:16px">Email Verification</h4>
+          <button id="resend-verify-admin-btn">Resend Verification Email</button>
+        </div>
+
+        <div class="dialog-buttons" style="margin-top:16px;">
+          <button id="admin-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MFA Setup Modal ───────────────────────────────────────────────────── -->
+    <div id="mfa-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-dialog" style="max-width:400px">
+        <h3>Two-Factor Authentication</h3>
+        <div id="mfa-setup-view">
+          <p style="font-size:13px;margin:0 0 12px;opacity:.8">Scan the QR code with Google Authenticator, Authy, or any TOTP app.</p>
+          <div id="mfa-qr-wrap" style="text-align:center;padding:16px 0">
+            <canvas id="mfa-qr-canvas" width="160" height="160" style="display:none;border-radius:8px"></canvas>
+            <div id="mfa-qr-placeholder" style="width:160px;height:160px;margin:0 auto;background:#222;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;opacity:.5">Loading…</div>
+          </div>
+          <div style="font-size:11px;opacity:.6;margin-bottom:12px;word-break:break-all;text-align:center" id="mfa-secret-display"></div>
+          <label style="font-size:12px">Enter the 6-digit code to confirm setup:</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <input id="mfa-token-input" aria-label="One-time password" maxlength="6" placeholder="000000" style="flex:1;letter-spacing:4px;font-size:18px;text-align:center" />
+            <button id="mfa-enable-btn">Enable MFA</button>
+          </div>
+          <div id="mfa-status" style="font-size:12px;margin-top:8px;min-height:18px;color:#4ade80"></div>
+        </div>
+        <div id="mfa-enabled-view" class="hidden">
+          <div style="text-align:center;padding:20px;font-size:14px">
+            <div style="font-size:32px;margin-bottom:8px">&#x2705;</div>
+            <div style="color:#4ade80">MFA is enabled on your account</div>
+          </div>
+          <label style="font-size:12px">Enter your current code to disable MFA:</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <input id="mfa-disable-token-input" maxlength="6" placeholder="000000" style="flex:1;letter-spacing:4px;font-size:18px;text-align:center" />
+            <button id="mfa-disable-btn" style="background:#dc2626">Disable</button>
+          </div>
+          <div id="mfa-disable-status" style="font-size:12px;margin-top:8px;min-height:18px;color:#f87171"></div>
+        </div>
+        <div class="dialog-buttons" style="margin-top:16px">
+          <button id="mfa-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Help Modal ────────────────────────────────────────────────────────── -->
+    <div id="help-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-dialog" style="max-width:560px;max-height:80vh;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <h3 style="margin:0">&#x2753; Help &amp; Documentation</h3>
+          <button id="help-modal-close" style="margin-left:auto">&#x2715;</button>
+        </div>
+        <input id="help-search" aria-label="Search help topics" placeholder="Search docs…" style="margin-bottom:12px" />
+        <div id="help-results" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+
+    <!-- ── Task Create/Edit Modal ─────────────────────────────────────────── -->
+    <div id="task-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-dialog" style="max-width:440px">
+        <h3 id="task-modal-title">New Task</h3>
+        <input type="hidden" id="task-edit-id" />
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input id="task-title-input" placeholder="Task title…" />
+          <textarea id="task-desc-input" placeholder="Description (optional)…" rows="3" style="resize:vertical"></textarea>
+          <div style="display:flex;gap:8px">
+            <select id="task-priority-select" style="flex:1">
+              <option value="low">Low Priority</option>
+              <option value="medium" selected>Medium Priority</option>
+              <option value="high">High Priority</option>
+            </select>
+            <select id="task-status-select" style="flex:1">
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+          <input id="task-due-input" type="date" title="Due date" />
+        </div>
+        <div class="dialog-buttons" style="margin-top:16px">
+          <button id="task-save-btn">Save Task</button>
+          <button id="task-modal-close">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Review Request Modal ───────────────────────────────────────────── -->
+    <div id="review-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-dialog" style="max-width:500px;max-height:80vh;display:flex;flex-direction:column">
+        <h3>&#x1F50D; Code Reviews</h3>
+        <div id="review-list-view" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+        <div style="border-top:1px solid #333;padding-top:12px">
+          <h4 style="margin:0 0 8px">New Review Request</h4>
+          <input id="review-title-input" placeholder="Review title…" style="margin-bottom:8px;width:100%;box-sizing:border-box" />
+          <textarea id="review-desc-input" placeholder="Describe what to review…" rows="3" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
+        </div>
+        <div class="dialog-buttons" style="margin-top:12px">
+          <button id="review-submit-btn">Request Review</button>
+          <button id="review-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tags Modal ─────────────────────────────────────────────────────── -->
+    <div id="tags-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-dialog" style="max-width:380px">
+        <h3>&#x1F3F7; Tags</h3>
+        <div id="tags-list" style="margin-bottom:12px;display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto"></div>
+        <div style="display:flex;gap:8px">
+          <input id="tag-name-input" placeholder="v1.0.0" style="flex:1" />
+          <input id="tag-message-input" placeholder="Message (optional)" style="flex:1" />
+          <button id="tag-create-btn">Create Tag</button>
+        </div>
+        <div class="dialog-buttons" style="margin-top:12px">
+          <button id="tags-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ZIP Import Progress Modal ─────────────────────────────────────── -->
+    <!-- ── Billing modal ── -->
+    <div id="billing-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="billing-modal-title">
+      <div class="modal-dialog" style="max-width:560px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 id="billing-modal-title" style="margin:0">💳 Plans &amp; Billing</h3>
+          <button id="billing-modal-close" aria-label="Close billing modal">✕</button>
+        </div>
+        <div id="billing-current-plan" style="background:var(--bg3,#1e1e2e);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px">Loading…</div>
+        <div id="billing-plans-list" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+        <div style="margin-top:18px">
+          <div style="font-size:12px;font-weight:600;opacity:.7;margin-bottom:8px;letter-spacing:.05em">INVOICE HISTORY</div>
+          <div id="billing-invoices-list" style="max-height:180px;overflow-y:auto"></div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+          <button id="billing-portal-btn" class="btn-secondary" style="display:none">Manage Subscription ↗</button>
+          <button id="billing-modal-close2">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="zip-progress-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-dialog" style="max-width:360px;text-align:center">
+        <h3 style="margin:0 0 12px">Importing files…</h3>
+        <progress id="zip-progress-bar" max="100" value="0" style="width:100%;margin-bottom:8px"></progress>
+        <div id="zip-progress-label" style="font-size:12px;opacity:.7;margin-bottom:16px">Preparing…</div>
+        <button id="zip-cancel-btn" style="background:#dc2626">Cancel Import</button>
+      </div>
+    </div>
+
     <script src="jszip.min.js"></script>
-    <script src="db.js"></script>
-    <script src="ui.js"></script>
-    <script src="editor.js"></script>
-    <script src="explorer.js"></script>
-    <script src="search.js"></script>
-    <script src="commands.js"></script>
-    <script src="outline.js"></script>
-    <script src="problems.js"></script>
-    <script src="templates.js"></script>
-    <script src="snippets.js"></script>
-    <script src="app.js"></script>
-  </body>
-</html>

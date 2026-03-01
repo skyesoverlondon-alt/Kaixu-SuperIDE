@@ -9,7 +9,7 @@ exports.handler = async (event) => {
   try {
     const claims = verifyToken(token);
     const userId = claims.sub;
-    const uRes = await query('select id, email, created_at from users where id=$1', [userId]);
+    const uRes = await query('select id, email, email_verified, created_at from users where id=$1', [userId]);
     const user = uRes.rows[0];
     if (!user) return json(401, { ok: false, error: 'Invalid token' });
 

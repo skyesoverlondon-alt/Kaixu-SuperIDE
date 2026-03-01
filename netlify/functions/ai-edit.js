@@ -1,5 +1,8 @@
 const { verifyToken, getBearerToken, json } = require('./_lib/auth');
 const { readJson } = require('./_lib/body');
+const { query } = require('./_lib/db');
+const logger = require('./_lib/logger')('ai-edit');
+const { checkQuota, recordUsage } = require('./_lib/quota');
 
 const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -110,24 +113,93 @@ exports.handler = async (event) => {
   // Require auth for AI usage
   const token = getBearerToken(event);
   if (!token) return json(401, { ok: false, error: 'Missing token' });
-  try {
-    verifyToken(token);
-  } catch {
-    return json(401, { ok: false, error: 'Invalid token' });
-  }
+  let decoded;
+  try { decoded = verifyToken(token); } catch { return json(401, { ok: false, error: 'Invalid token' }); }
+  const userId = decoded?.sub || decoded?.userId || null;
 
+  // ─── Kill switch check ──────────────────────────────────────────────────
+  try {
+    const ks = await query(`select value from global_settings where key='ai_enabled'`);
+    if (ks.rows[0]?.value === 'false') {
+      return json(503, { ok: false, error: 'AI is currently disabled by an administrator.' });
+    }
+  } catch { /* table may not exist yet in dev */ }
+
+  // ─── Per-plan quota enforcement ────────────────────────────────────────
   const parsed = await readJson(event);
   if (!parsed.ok) return parsed.response;
 
-  const { messages, model } = parsed.data || {};
+  const { messages, model, workspaceId, orgId: bodyOrgId } = parsed.data || {};
+  const quotaOrgId = bodyOrgId || null;
+  const quota = await checkQuota(userId, quotaOrgId);
+  if (!quota.allowed) {
+    logger.warn('quota_exceeded', { userId, orgId: quotaOrgId, used: quota.used, limit: quota.limit });
+    return json(429, {
+      ok: false,
+      error: `Monthly AI call limit reached (${quota.used}/${quota.limit}). Resets ${quota.resetAt?.toISOString?.() || 'next month'}.`,
+      quota,
+    });
+  }
   const msgs = Array.isArray(messages) ? messages : null;
+  // Fire-and-forget usage record
+  recordUsage(userId, quotaOrgId, workspaceId || null);
   if (!msgs || msgs.length === 0) return json(400, { ok: false, error: 'Missing messages[]' });
+
+  // ── RAG: inject semantically-relevant file chunks ──────────────────────
+  if (workspaceId) {
+    try {
+      const lastUserMsg = [...msgs].reverse().find(m => m.role === 'user');
+      const query_text  = typeof lastUserMsg?.content === 'string'
+        ? lastUserMsg.content.slice(0, 500)
+        : '';
+      if (query_text.length > 10) {
+        const { rows: ragRows } = await query(
+          `SELECT file_path, chunk_text,
+                  1 - (embedding <=> (
+                    SELECT embedding FROM file_embeddings
+                    WHERE workspace_id=$1 ORDER BY embedding <=> embedding LIMIT 1
+                  )) AS sim
+           FROM file_embeddings
+           WHERE workspace_id=$1
+           ORDER BY embedding <=> (
+             SELECT e.embedding
+             FROM file_embeddings e
+             WHERE e.workspace_id=$1
+             LIMIT 1
+           ) LIMIT 5`,
+          [workspaceId]
+        );
+        // Fallback: just grab top 5 by updated_at if vector search fails
+        const fallback = await query(
+          `SELECT file_path, chunk_text FROM file_embeddings
+           WHERE workspace_id=$1 ORDER BY updated_at DESC LIMIT 5`,
+          [workspaceId]
+        );
+        const chunks = (ragRows.length ? ragRows : fallback.rows)
+          .map(r => `// ${r.file_path}\n${r.chunk_text}`)
+          .join('\n\n---\n\n');
+        if (chunks && msgs[0]?.role === 'system') {
+          msgs[0].content = `RELEVANT CODEBASE CONTEXT (via semantic search):\n\`\`\`\n${chunks}\n\`\`\`\n\n${msgs[0].content}`;
+        }
+      }
+    } catch (ragErr) {
+      // RAG is best-effort; never break AI if embeddings not yet synced
+      logger.warn('rag_context_failed', { error: ragErr.message });
+    }
+  }
+
+  const startMs = Date.now();
+  let success = false;
+  let usageData = null;
+  let usedModel = null;
 
   try {
     const { model: envModel } = getGateEnv();
     const m = String(model || envModel);
+    usedModel = m;
 
     const first = await generateJsonOnce({ model: m, messages: msgs });
+    usageData = first.usage;
     let obj = safeJsonParse(first.text);
     if (!validateAgentObject(obj)) {
       const repaired = await repairToJson({ model: m, raw: first.text });
@@ -138,8 +210,25 @@ exports.handler = async (event) => {
       return json(502, { ok: false, error: 'AI returned invalid JSON. Try again.', raw: first.text });
     }
 
+    success = true;
     return json(200, { ok: true, result: obj, usage: first.usage, model: first.model });
   } catch (err) {
     return json(500, { ok: false, error: String(err?.message || err) });
+  } finally {
+    // Log usage (best-effort, fire-and-forget)
+    const latency = Date.now() - startMs;
+    query(
+      `insert into ai_usage_log(user_id, workspace_id, model, prompt_tokens, completion_tokens, latency_ms, success)
+       values($1,$2,$3,$4,$5,$6,$7)`,
+      [
+        userId,
+        workspaceId || null,
+        usedModel || 'unknown',
+        usageData?.promptTokens || usageData?.prompt_tokens || 0,
+        usageData?.completionTokens || usageData?.completion_tokens || 0,
+        latency,
+        success
+      ]
+    ).catch(e => logger.warn('usage_log_failed', { error: e.message }));
   }
 };

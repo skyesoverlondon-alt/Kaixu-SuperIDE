@@ -1,7 +1,11 @@
 /*
-  explorer.js — File tree, context menu (rename/duplicate/delete/move), breadcrumbs
+  explorer.js — File tree, context menu (rename/duplicate/delete/move), breadcrumbs, drag-and-drop
   Depends on: db.js, ui.js, editor.js
 */
+
+// ─── Drag-and-drop state ───────────────────────────────────────────────────
+var _dragSrcPath = null;       // path being dragged
+var _dragOverEl  = null;       // last element receiving dragover (for cleanup)
 
 // ─── Build tree structure ──────────────────────────────────────────────────
 function buildFileTree(files) {
@@ -81,6 +85,55 @@ function renderFileTree(treeData, container) {
           _showFileContextMenu(entry.__file, e.clientX, e.clientY);
         });
 
+        // ── Drag-and-drop ──
+        row.draggable = true;
+        row.addEventListener('dragstart', (e) => {
+          _dragSrcPath = entry.__file;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', entry.__file);
+          row.classList.add('tree-dragging');
+        });
+        row.addEventListener('dragend', () => {
+          row.classList.remove('tree-dragging');
+          _clearDropIndicators();
+          _dragSrcPath = null;
+        });
+        row.addEventListener('dragover', (e) => {
+          if (!_dragSrcPath || _dragSrcPath === entry.__file) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          _clearDropIndicators();
+          _dragOverEl = row;
+          // Determine above/below by cursor position
+          const rect = row.getBoundingClientRect();
+          const half = rect.top + rect.height / 2;
+          if (e.clientY < half) {
+            row.classList.add('tree-drop-above');
+          } else {
+            row.classList.add('tree-drop-below');
+          }
+        });
+        row.addEventListener('dragleave', () => {
+          row.classList.remove('tree-drop-above', 'tree-drop-below');
+          if (_dragOverEl === row) _dragOverEl = null;
+        });
+        row.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          _clearDropIndicators();
+          const src = _dragSrcPath;
+          _dragSrcPath = null;
+          if (!src || src === entry.__file) return;
+          // Move dragged file into same folder as target file
+          const destFolder = entry.__file.includes('/')
+            ? entry.__file.slice(0, entry.__file.lastIndexOf('/'))
+            : '';
+          const srcName = src.split('/').pop();
+          const destPath = destFolder ? destFolder + '/' + srcName : srcName;
+          if (destPath === src) return;
+          await _moveFileTo(src, destPath);
+        });
+
       } else {
         // ── Folder entry ──
         const row = document.createElement('div');
@@ -119,6 +172,32 @@ function renderFileTree(treeData, container) {
           e.preventDefault();
           _showFolderContextMenu(fp, e.clientX, e.clientY);
         });
+
+        // ── Folder drag target ──
+        row.addEventListener('dragover', (e) => {
+          if (!_dragSrcPath) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          _clearDropIndicators();
+          _dragOverEl = row;
+          row.classList.add('tree-drop-folder');
+        });
+        row.addEventListener('dragleave', () => {
+          row.classList.remove('tree-drop-folder');
+          if (_dragOverEl === row) _dragOverEl = null;
+        });
+        row.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          _clearDropIndicators();
+          const src = _dragSrcPath;
+          _dragSrcPath = null;
+          if (!src) return;
+          const srcName = src.split('/').pop();
+          const destPath = fp + '/' + srcName;
+          if (destPath === src) return;
+          await _moveFileTo(src, destPath);
+        });
       }
 
       parentUl.appendChild(li);
@@ -141,6 +220,25 @@ function _highlightActive(path) {
   document.querySelectorAll('#file-tree .tree-row').forEach((row) => {
     row.classList.toggle('selected', !!path && row.dataset.path === path);
   });
+}
+
+// ─── Drag helper: clear all visual drop indicators ─────────────────────────
+function _clearDropIndicators() {
+  document.querySelectorAll('#file-tree .tree-drop-above, #file-tree .tree-drop-below, #file-tree .tree-drop-folder').forEach(el => {
+    el.classList.remove('tree-drop-above', 'tree-drop-below', 'tree-drop-folder');
+  });
+  _dragOverEl = null;
+}
+
+// ─── Drag helper: move file and refresh ────────────────────────────────────
+async function _moveFileTo(srcPath, destPath) {
+  if (!srcPath || !destPath || srcPath === destPath) return;
+  await renameFile(srcPath, destPath);
+  // Update any open tabs
+  tabs.forEach(t => { if (t.path === srcPath) t.path = destPath; });
+  [0, 1].forEach(p => _renderTabBar(p));
+  await refreshFileTree();
+  toast(`Moved → ${destPath}`);
 }
 
 // ─── File icons ────────────────────────────────────────────────────────────

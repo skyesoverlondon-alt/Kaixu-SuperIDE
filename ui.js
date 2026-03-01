@@ -10,6 +10,8 @@ var IDE = {
   wordWrap: true,
   autoSave: 'idle',   // 'off' | 'idle' | 'keystroke' | 'blur'
   formatOnSave: false,
+  theme: 'dark',      // 'dark' | 'ultra-dark' | 'purple-gold'
+  deployHook: '',     // Netlify deploy hook URL
 };
 
 async function initSettings() {
@@ -24,6 +26,10 @@ function applySettings() {
     ta.style.whiteSpace = IDE.wordWrap ? 'pre-wrap' : 'pre';
     ta.style.tabSize = IDE.tabSize;
   });
+  // Apply theme
+  document.body.dataset.theme = IDE.theme || 'dark';
+  // Persist deploy hook
+  if (IDE.deployHook) localStorage.setItem('KAIXU_DEPLOY_HOOK', IDE.deployHook);
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────
@@ -51,6 +57,10 @@ function openSettings() {
   document.getElementById('set-auto-save').value = IDE.autoSave;
   document.getElementById('set-word-wrap').checked = IDE.wordWrap;
   document.getElementById('set-format-save').checked = IDE.formatOnSave;
+  const themeEl = document.getElementById('set-theme');
+  if (themeEl) themeEl.value = IDE.theme || 'dark';
+  const hookEl = document.getElementById('set-deploy-hook');
+  if (hookEl) hookEl.value = IDE.deployHook || '';
   m.classList.remove('hidden');
   document.getElementById('set-font-size').focus();
 }
@@ -65,6 +75,8 @@ async function applyAndSaveSettings() {
   IDE.autoSave    = document.getElementById('set-auto-save').value;
   IDE.wordWrap    = document.getElementById('set-word-wrap').checked;
   IDE.formatOnSave= document.getElementById('set-format-save').checked;
+  IDE.theme       = document.getElementById('set-theme')?.value || 'dark';
+  IDE.deployHook  = document.getElementById('set-deploy-hook')?.value || '';
   applySettings();
   await saveSettings({ ...IDE });
   closeSettingsModal();

@@ -15,3 +15,26 @@
   from = "/ide"
   to = "/ide.html"
   status = 200
+# ── Security headers for Netlify functions ────────────────────────────────
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# ── Security headers for all pages ───────────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# ── Public health endpoint — explicit CORS ────────────────────────────────
+[[headers]]
+  for = "/.netlify/functions/health"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, OPTIONS"

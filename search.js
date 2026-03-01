@@ -19,9 +19,9 @@ function closeSearchPanel() {
 
 // ─── Build regex from inputs ───────────────────────────────────────────────
 function _buildPattern(raw) {
-  const useRegex = document.getElementById('search-regex')?.checked;
-  const caseSensitive = document.getElementById('search-case')?.checked;
-  const wholeWord = document.getElementById('search-word')?.checked;
+  const useRegex = document.getElementById('sp-regex')?.checked;
+  const caseSensitive = document.getElementById('sp-case')?.checked;
+  const wholeWord = document.getElementById('sp-word')?.checked;
   const flags = 'g' + (caseSensitive ? '' : 'i');
   let src = useRegex ? raw : raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (wholeWord) src = '\\b' + src + '\\b';
@@ -29,22 +29,77 @@ function _buildPattern(raw) {
   catch (e) { toast('Invalid regex: ' + e.message, 'error'); return null; }
 }
 
+// ─── Web worker for background search ─────────────────────────────────────
+var _searchWorker = null;
+var _searchWorkerResolve = null;
+
+function _getSearchWorker() {
+  if (_searchWorker) return _searchWorker;
+  try {
+    _searchWorker = new Worker('search.worker.js');
+    _searchWorker.onmessage = (e) => {
+      if (e.data.type === 'results' && _searchWorkerResolve) {
+        const resolve = _searchWorkerResolve;
+        _searchWorkerResolve = null;
+        resolve(e.data.results);
+      } else if (e.data.type === 'progress') {
+        const container = document.getElementById('search-results');
+        if (container && !container.querySelector('.search-summary')) {
+          const prog = container.querySelector('.search-progress') ||
+            Object.assign(document.createElement('div'), { className: 'search-progress', style: 'color:#888;font-size:11px;padding:4px' });
+          prog.textContent = `Searching… ${e.data.done}/${e.data.total} files`;
+          if (!prog.parentNode) container.prepend(prog);
+        }
+      }
+    };
+    _searchWorker.onerror = () => { _searchWorker = null; };
+  } catch {
+    _searchWorker = null;
+  }
+  return _searchWorker;
+}
+
 // ─── Run search ────────────────────────────────────────────────────────────
 async function runSearch() {
-  const raw = document.getElementById('search-input')?.value || '';
+  const raw = document.getElementById('sp-query')?.value || '';
   if (!raw) return;
   const pattern = _buildPattern(raw);
   if (!pattern) return;
 
   const files = await listFiles();
-  _searchResults = [];
+  const container = document.getElementById('search-results');
+  if (container) container.innerHTML = '<div style="color:#888;font-size:12px;padding:4px">Searching…</div>';
 
+  const options = {
+    useRegex: document.getElementById('sp-regex')?.checked || false,
+    caseSensitive: document.getElementById('sp-case')?.checked || false,
+    wholeWord: document.getElementById('sp-word')?.checked || false,
+  };
+
+  // Try off-main-thread with web worker first
+  const worker = _getSearchWorker();
+  if (worker) {
+    try {
+      const results = await new Promise((resolve, reject) => {
+        _searchWorkerResolve = resolve;
+        const timer = setTimeout(() => { _searchWorkerResolve = null; reject(new Error('Worker timeout')); }, 10000);
+        worker.postMessage({ type: 'search', files: files.map(f => ({ path: f.path, content: f.content || '' })), query: raw, options });
+      });
+      _searchResults = results;
+      _renderSearchResults();
+      return;
+    } catch {
+      // Fall through to synchronous search
+    }
+  }
+
+  // Synchronous fallback
+  _searchResults = [];
   for (const f of files) {
     const content = f.content || '';
     if (content.startsWith('__b64__:')) continue;
     const lines = content.split('\n');
     const fileMatches = [];
-
     lines.forEach((line, lineIdx) => {
       pattern.lastIndex = 0;
       let m;
@@ -53,10 +108,8 @@ async function runSearch() {
         if (!pattern.global) break;
       }
     });
-
     if (fileMatches.length) _searchResults.push({ path: f.path, matches: fileMatches });
   }
-
   _renderSearchResults();
 }
 
@@ -130,8 +183,8 @@ function _escHtml(str) {
 
 // ─── Replace all in workspace ──────────────────────────────────────────────
 async function replaceAll() {
-  const raw = document.getElementById('search-input')?.value || '';
-  const replaceVal = document.getElementById('replace-input')?.value || '';
+  const raw = document.getElementById('sp-query')?.value || '';
+  const replaceVal = document.getElementById('sp-replace')?.value || '';
   if (!raw) return;
   const pattern = _buildPattern(raw);
   if (!pattern) return;
@@ -164,8 +217,8 @@ async function replaceInFile() {
   const tab = tabs.find(t => t.id === activeTabId);
   if (!tab) { toast('No file active', 'error'); return; }
 
-  const raw = document.getElementById('search-input')?.value || '';
-  const replaceVal = document.getElementById('replace-input')?.value || '';
+  const raw = document.getElementById('sp-query')?.value || '';
+  const replaceVal = document.getElementById('sp-replace')?.value || '';
   if (!raw) return;
   const pattern = _buildPattern(raw);
   if (!pattern) return;
@@ -185,13 +238,12 @@ async function replaceInFile() {
 // ─── Init ──────────────────────────────────────────────────────────────────
 function initSearch() {
   document.getElementById('search-panel-btn')?.addEventListener('click', openSearchPanel);
-  document.getElementById('search-close-btn')?.addEventListener('click', closeSearchPanel);
-  document.getElementById('search-btn')?.addEventListener('click', runSearch);
-  document.getElementById('replace-btn')?.addEventListener('click', replaceAll);
-  document.getElementById('replace-file-btn')?.addEventListener('click', replaceInFile);
+  document.getElementById('sp-close')?.addEventListener('click', closeSearchPanel);
+  document.getElementById('sp-search')?.addEventListener('click', runSearch);
+  document.getElementById('sp-replace-all')?.addEventListener('click', replaceAll);
 
   // Run on Enter in search input
-  document.getElementById('search-input')?.addEventListener('keydown', (e) => {
+  document.getElementById('sp-query')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') runSearch();
     if (e.key === 'Escape') closeSearchPanel();
   });

@@ -26,7 +26,19 @@ var COMMANDS = [
   { group: 'View',   id: 'tabSCM',       label: 'Show Source Control',                      action: () => typeof setActiveTab === 'function' && setActiveTab('scm') },
   // Settings
   { group: 'Settings', id: 'settings',   label: 'Open Settings',                            action: () => openSettings() },
-  { group: 'Settings', id: 'shortcuts',  label: 'Keyboard Shortcuts',                       action: () => openSettings() },
+  { group: 'Settings', id: 'shortcuts',  label: 'Keyboard Shortcuts',   kb: 'Ctrl+Shift+K', action: () => openShortcutsModal() },
+  // Navigate
+  { group: 'Navigate', id: 'gotoSymbol', label: 'Go to Symbol…',        kb: 'Ctrl+Shift+O', action: () => openGotoSymbol() },
+  // GitHub
+  { group: 'GitHub',   id: 'ghPush',     label: 'Push to GitHub',       kb: 'Ctrl+Shift+G', action: () => typeof ghPush === 'function' && ghPush() },
+  // AI / RAG
+  { group: 'AI',       id: 'syncEmbed',      label: 'Index Codebase for AI (RAG)',      action: () => typeof syncEmbeddings === 'function' && syncEmbeddings() },
+  { group: 'AI',       id: 'billing',        label: 'Plans & Billing',                  action: () => typeof openBillingModal === 'function' && openBillingModal() },
+  { group: 'AI',       id: 'invoices',       label: 'View Invoice History',             action: () => { if (typeof openBillingModal === 'function') openBillingModal(); } },
+  // File
+  { group: 'File',     id: 'clientBundle',   label: 'Export Client Bundle (ZIP + Report)', action: () => typeof exportClientBundle === 'function' && exportClientBundle() },
+  // Admin
+  { group: 'Admin',    id: 'soc2Export',     label: 'Export SOC 2 Evidence Pack',       action: () => typeof adminExportSoc2 === 'function' && adminExportSoc2() },
 ];
 
 var _paletteVisible = false;
@@ -186,6 +198,113 @@ function _focusPane(pane) {
   if (ta && !ta.classList.contains('hidden')) ta.focus();
 }
 
+// ─── Go-to-Symbol modal ────────────────────────────────────────────────────
+var _gotoSymSelected = 0;
+var _gotoSymFiltered = [];
+
+function openGotoSymbol() {
+  const modal = document.getElementById('goto-symbol-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  const input = document.getElementById('goto-symbol-input');
+  if (input) { input.value = ''; input.focus(); }
+  _gotoSymSelected = 0;
+  _renderGotoSymbolList('');
+}
+
+function closeGotoSymbol() {
+  document.getElementById('goto-symbol-modal')?.classList.add('hidden');
+}
+
+function _renderGotoSymbolList(query) {
+  const symbols = (window._outlineCache?.symbols) || [];
+  const q = query.toLowerCase();
+  _gotoSymFiltered = q
+    ? symbols.filter(s => s.name.toLowerCase().includes(q))
+    : symbols;
+
+  const list = document.getElementById('goto-symbol-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  if (!_gotoSymFiltered.length) {
+    list.innerHTML = '<div class="goto-sym-empty">No symbols found in current file</div>';
+    return;
+  }
+
+  _gotoSymFiltered.forEach((sym, i) => {
+    const kindIcons = { class:'C', function:'ƒ', method:'M', const:'v', selector:'.', 'at-rule':'@', id:'#', landmark:'❖', key:'k', heading1:'H1', heading2:'H2', heading3:'H3', heading4:'H4', heading5:'H5', heading6:'H6' };
+    const row = document.createElement('div');
+    row.className = 'goto-sym-row' + (i === _gotoSymSelected ? ' selected' : '');
+    row.innerHTML =
+      `<span class="goto-sym-kind">${kindIcons[sym.kind] || '•'}</span>` +
+      `<span class="goto-sym-name">${_escHtml2(sym.name)}</span>` +
+      `<span class="goto-sym-line">:${sym.line}</span>`;
+    row.addEventListener('click', () => { _gotoSymSelected = i; _executeGotoSymbol(); });
+    list.appendChild(row);
+  });
+}
+
+function _moveGotoSymSelection(dir) {
+  _gotoSymSelected = Math.max(0, Math.min(_gotoSymFiltered.length - 1, _gotoSymSelected + dir));
+  document.querySelectorAll('#goto-symbol-list .goto-sym-row').forEach((el, i) => {
+    el.classList.toggle('selected', i === _gotoSymSelected);
+    if (i === _gotoSymSelected) el.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function _executeGotoSymbol() {
+  const sym = _gotoSymFiltered[_gotoSymSelected];
+  if (!sym) return;
+  closeGotoSymbol();
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (!tab) return;
+  const ta = document.getElementById('editor-' + tab.pane);
+  if (!ta || ta.classList.contains('hidden')) return;
+  const lines = ta.value.split('\n');
+  let pos = 0;
+  for (let i = 0; i < sym.line - 1 && i < lines.length; i++) pos += lines[i].length + 1;
+  ta.focus();
+  ta.setSelectionRange(pos, pos + (lines[sym.line - 1] || '').length);
+  const lineH = parseInt(getComputedStyle(ta).lineHeight) || 20;
+  ta.scrollTop = Math.max(0, (sym.line - 5) * lineH);
+  toast(`Jumped to ${sym.kind} "${sym.name}" (line ${sym.line})`);
+}
+
+// ─── Keyboard Shortcuts modal ──────────────────────────────────────────────
+function openShortcutsModal() {
+  const modal = document.getElementById('shortcuts-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  const filterEl = document.getElementById('shortcuts-filter');
+  if (filterEl) { filterEl.value = ''; filterEl.focus(); }
+  _renderShortcutsTable('');
+}
+
+function closeShortcutsModal() {
+  document.getElementById('shortcuts-modal')?.classList.add('hidden');
+}
+
+function _renderShortcutsTable(query) {
+  const tbody = document.getElementById('shortcuts-tbody');
+  if (!tbody) return;
+  const q = query.toLowerCase();
+
+  // Gather all commands that have a keybinding
+  const rows = COMMANDS.filter(c => c.kb && (!q || c.label.toLowerCase().includes(q) || c.kb.toLowerCase().includes(q)));
+
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="2" style="opacity:.5;text-align:center;padding:12px">No matches</td></tr>';
+    return;
+  }
+  rows.forEach(cmd => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><kbd>${_escHtml2(cmd.kb)}</kbd></td><td>${_escHtml2(cmd.label)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
 // ─── Global keybindings ────────────────────────────────────────────────────
 function initCommands() {
   // Command palette bindings
@@ -218,6 +337,35 @@ function initCommands() {
   // Format button
   document.getElementById('format-btn')?.addEventListener('click', formatDocument);
 
+  // Go-to-Symbol bindings
+  const gotoSymInput = document.getElementById('goto-symbol-input');
+  if (gotoSymInput) {
+    gotoSymInput.addEventListener('input', () => {
+      _gotoSymSelected = 0;
+      _renderGotoSymbolList(gotoSymInput.value);
+    });
+    gotoSymInput.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); _moveGotoSymSelection(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); _moveGotoSymSelection(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); _executeGotoSymbol(); }
+      else if (e.key === 'Escape') closeGotoSymbol();
+    });
+  }
+  document.getElementById('goto-symbol-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeGotoSymbol();
+  });
+
+  // Keyboard Shortcuts modal bindings
+  const shortcutsFilter = document.getElementById('shortcuts-filter');
+  if (shortcutsFilter) {
+    shortcutsFilter.addEventListener('input', () => _renderShortcutsTable(shortcutsFilter.value));
+    shortcutsFilter.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeShortcutsModal(); });
+  }
+  document.getElementById('shortcuts-close')?.addEventListener('click', closeShortcutsModal);
+  document.getElementById('shortcuts-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeShortcutsModal();
+  });
+
   // ── Global keyboard shortcuts ──
   window.addEventListener('keydown', (e) => {
     const ctrl = e.ctrlKey || e.metaKey;
@@ -230,6 +378,12 @@ function initCommands() {
     }
     if (ctrl && e.shiftKey && e.key.toLowerCase() === 'f') {
       e.preventDefault(); openSearchPanel(); return;
+    }
+    if (ctrl && e.shiftKey && e.key.toLowerCase() === 'o') {
+      e.preventDefault(); openGotoSymbol(); return;
+    }
+    if (ctrl && e.shiftKey && e.key.toLowerCase() === 'k') {
+      e.preventDefault(); openShortcutsModal(); return;
     }
     if (ctrl && e.key === '\\') {
       e.preventDefault(); toggleSplit(); return;
@@ -263,6 +417,8 @@ function initCommands() {
       if (_paletteVisible) { closeCommandPalette(); return; }
       closeSearchPanel();
       closeGotoLine();
+      closeGotoSymbol();
+      closeShortcutsModal();
     }
     // Shift+Alt+F — format
     if (e.shiftKey && e.altKey && e.key.toLowerCase() === 'f') {

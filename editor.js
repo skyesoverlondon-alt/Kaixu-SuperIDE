@@ -500,6 +500,8 @@ async function _doAutoSave(pane) {
   if (typeof refreshFileTree === 'function') refreshFileTree();
   // Lint on save
   if (typeof lintFile === 'function') lintFile(tab.path, ta.value);
+  // Watch mode AI pass
+  if (typeof _watchModeTrigger === 'function') _watchModeTrigger(tab.path, ta.value).catch(() => {});
 }
 
 // ─── Recent files tracking ─────────────────────────────────────────────────

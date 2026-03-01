@@ -12,15 +12,32 @@ const APP_SHELL = [
   '.',
   'index.html',
   'ide.html',
+  'homelanding.html',
   'styles.css',
-  'app.js',
+  'manifest.json',
   'jszip.min.js',
   'sw.js',
-  'manifest.json'
+  'db.js',
+  'ui.js',
+  'editor.js',
+  'explorer.js',
+  'search.js',
+  'commands.js',
+  'outline.js',
+  'problems.js',
+  'snippets.js',
+  'templates.js',
+  'github.js',
+  'diff.js',
+  'demo.js',
+  'scm.js',
+  'admin.js',
+  'collab.js',
+  'app.js'
 ];
 
 // Bump the cache name to force service worker to fetch the latest app shell
-const CACHE_NAME = 'kaixu-ide-shell-v4';
+const CACHE_NAME = 'kaixu-ide-shell-v9';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

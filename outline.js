@@ -161,13 +161,13 @@ function initOutline() {
     });
   }
 
-  // Register command
+  // Register command — "Open Outline Panel" (no keybinding; Ctrl+Shift+O is Go-to-Symbol in commands.js)
   if (typeof COMMANDS !== 'undefined') {
     COMMANDS.push({
       id: 'open-outline',
       label: 'Open Outline Panel',
-      category: 'View',
-      keybinding: 'Ctrl+Shift+O',
+      group: 'View',
+      kb: '',
       action: () => setActiveTab('outline'),
     });
   }

@@ -11,9 +11,17 @@ exports.handler = async (event) => {
   try {
     const claims = verifyToken(token);
     const userId = claims.sub;
-    // ensure workspace belongs to user
-    const ws = await query('select id from workspaces where id=$1 and user_id=$2', [workspaceId, userId]);
-    if (!ws.rows[0]) return json(404, { ok: false, error: 'Workspace not found' });
+
+    // Org-aware access check (matches ws-get.js pattern)
+    const wsRes = await query('select id, org_id, user_id from workspaces where id=$1', [workspaceId]);
+    const ws0 = wsRes.rows[0];
+    if (!ws0) return json(404, { ok: false, error: 'Workspace not found' });
+    if (ws0.org_id) {
+      const mem = await query('select role from org_memberships where org_id=$1 and user_id=$2', [ws0.org_id, userId]);
+      if (!mem.rows[0]) return json(403, { ok: false, error: 'Not allowed' });
+    } else {
+      if (ws0.user_id !== userId) return json(403, { ok: false, error: 'Not allowed' });
+    }
 
     const limit = Math.min(parseInt(event.queryStringParameters?.limit || '200', 10) || 200, 500);
     const res = await query(
