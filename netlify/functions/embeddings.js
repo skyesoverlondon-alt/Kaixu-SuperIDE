@@ -17,6 +17,7 @@ const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
 const https            = require('https');
 const { checkRateLimit } = require('./_lib/ratelimit');
+const logger           = require('./_lib/logger')('embeddings');
 
 const DEFAULT_GATE_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
 
@@ -120,7 +121,7 @@ exports.handler = async (event) => {
       );
       return { statusCode: 200, body: JSON.stringify({ results: rows }) };
     } catch (err) {
-      console.error('[embeddings GET]', err);
+      logger.exception(err, { action: 'GET' });
       return { statusCode: 500, body: err.message };
     }
   }
@@ -200,10 +201,10 @@ exports.handler = async (event) => {
         allChunks.map(c => c.chunkIndex),
       ]);
 
-      console.log(`[embeddings] synced ${synced} chunks for workspace ${workspaceId}`);
+      logger.info('sync_complete', { synced, workspaceId });
       return { statusCode: 200, body: JSON.stringify({ synced }) };
     } catch (err) {
-      console.error('[embeddings POST]', err);
+      logger.exception(err, { action: 'POST' });
       return { statusCode: 500, body: err.message };
     }
   }

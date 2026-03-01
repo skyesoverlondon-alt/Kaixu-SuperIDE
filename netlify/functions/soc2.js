@@ -15,6 +15,7 @@
 
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
+const logger           = require('./_lib/logger')('soc2');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET')
@@ -204,7 +205,7 @@ exports.handler = async (event) => {
       body: JSON.stringify(pack, null, 2),
     };
   } catch (err) {
-    console.error('[soc2]', err);
+    logger.exception(err);
     return { statusCode: 500, body: err.message };
   }
 };

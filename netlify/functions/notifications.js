@@ -14,6 +14,7 @@ const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
 const https            = require('https');
 const { URL }          = require('url');
+const logger           = require('./_lib/logger')('notifications');
 
 // ── Delivery: Slack ───────────────────────────────────────────────────────
 async function deliverSlack(webhookUrl, text, blocks) {
@@ -239,7 +240,7 @@ exports.handler = async (event) => {
           results.push({ channel: 'webhook', status: r.status });
         }
       } catch (deliveryErr) {
-        console.error(`[notifications] delivery failed (${pref.channel}):`, deliveryErr.message);
+        logger.error('delivery_failed', { channel: pref.channel, error: deliveryErr.message });
         results.push({ channel: pref.channel, error: deliveryErr.message });
       }
     }
@@ -260,7 +261,7 @@ exports.handler = async (event) => {
       }
     }
 
-    console.log(`[notifications] event=${evtName} delivered to ${results.length} channels`);
+    logger.info('event_delivered', { event: evtName, channels: results.length });
     return { statusCode: 200, body: JSON.stringify({ ok: true, delivered: results.length, results }) };
   }
 
