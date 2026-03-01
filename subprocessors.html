@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Subprocessors — kAIxU SuperIDE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg0:#040008;--bg1:#0a0012;--bg2:#100020;--ink:#e8ecff;--muted:#7060a0;--border:rgba(162,67,255,.2);--purple:#a243ff;--gold:#ffd36a;--green:#4fffb0;--mono:'Share Tech Mono',monospace;--sans:'Inter',system-ui,sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg0);color:var(--ink);font-family:var(--sans);line-height:1.7;-webkit-font-smoothing:antialiased}
+    a{color:var(--purple);text-decoration:none}a:hover{color:var(--gold)}
+    .topbar{background:var(--bg1);border-bottom:1px solid var(--border);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+    .brand{font-family:var(--mono);font-size:1rem;color:var(--purple);letter-spacing:.05em}
+    .legal-nav{display:flex;gap:20px;flex-wrap:wrap;margin-left:auto}
+    .legal-nav a{font-size:.8rem;color:var(--muted);transition:color .2s}
+    .legal-nav a:hover,.legal-nav a.active{color:var(--purple)}
+    .page{max-width:900px;margin:60px auto;padding:0 32px 100px}
+    h1{font-size:2rem;font-weight:700;color:var(--purple);margin-bottom:8px}
+    .meta{font-size:.85rem;color:var(--muted);margin-bottom:48px;font-family:var(--mono)}
+    h2{font-size:1.15rem;font-weight:700;color:var(--gold);margin:40px 0 12px;border-bottom:1px solid var(--border);padding-bottom:6px}
+    p{color:rgba(232,236,255,.85);margin-bottom:14px;font-size:.95rem}
+    ul{color:rgba(232,236,255,.85);padding-left:20px;margin-bottom:14px;font-size:.95rem}
+    li{margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin:20px 0;font-size:.875rem}
+    th{background:var(--bg2);color:var(--purple);text-align:left;padding:10px 14px;border:1px solid var(--border)}
+    td{padding:10px 14px;border:1px solid var(--border);color:rgba(232,236,255,.8);vertical-align:top}
+    tr:nth-child(even) td{background:rgba(162,67,255,.04)}
+    .highlight{background:rgba(162,67,255,.1);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:24px 0}
+    .highlight p{margin:0}
+    .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-family:var(--mono)}
+    .badge-green{background:rgba(79,255,176,.15);color:var(--green);border:1px solid rgba(79,255,176,.3)}
+    footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:60px;padding-top:30px;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="brand">kAIxU SuperIDE</a>
+  <nav class="legal-nav">
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="/dpa">DPA</a>
+    <a href="/security">Security</a>
+    <a href="/subprocessors" class="active">Subprocessors</a>
+    <a href="/sla">SLA</a>
+  </nav>
+</div>
+
+<div class="page">
+  <h1>Subprocessors</h1>
+  <p class="meta">Skyes Over London LC &nbsp;·&nbsp; Last updated: March 1, 2026</p>
+
+  <div class="highlight">
+    <p>This page lists all third-party entities ("<strong>Subprocessors</strong>") that Skyes Over London LC engages to process personal data on behalf of customers. We maintain appropriate data processing agreements with all Subprocessors. Changes to this list are notified to customers with at least 15 days advance notice as described in the <a href="/dpa">DPA</a>.</p>
+  </div>
+
+  <h2>Current Subprocessors</h2>
+  <table>
+    <tr>
+      <th>Subprocessor</th>
+      <th>Purpose</th>
+      <th>Data Processed</th>
+      <th>Location</th>
+      <th>Transfer Mechanism</th>
+    </tr>
+    <tr>
+      <td><strong>Netlify, Inc.</strong><br><a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener">Privacy Policy</a></td>
+      <td>Application hosting, serverless function execution, CDN</td>
+      <td>All data traversing the application layer, including HTTP request/response data, function logs</td>
+      <td>USA (global CDN)</td>
+      <td>SCCs (EU–US)</td>
+    </tr>
+    <tr>
+      <td><strong>Neon Inc.</strong><br><a href="https://neon.tech/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a></td>
+      <td>PostgreSQL database (primary + read replicas)</td>
+      <td>User accounts, workspace content, usage logs, audit events, session data, file embeddings</td>
+      <td>USA (AWS us-east-1)</td>
+      <td>SCCs (EU–US)</td>
+    </tr>
+    <tr>
+      <td><strong>Stripe, Inc.</strong><br><a href="https://stripe.com/privacy" target="_blank" rel="noopener">Privacy Policy</a></td>
+      <td>Payment processing and subscription management</td>
+      <td>Billing name, email address, payment method data (card numbers processed exclusively by Stripe — kAIxU does not receive or store raw card data)</td>
+      <td>USA (global)</td>
+      <td>SCCs (EU–US); Stripe is a certified PCI DSS Level 1 provider</td>
+    </tr>
+    <tr>
+      <td><strong>Twilio SendGrid</strong><br><a href="https://www.twilio.com/en-us/legal/privacy" target="_blank" rel="noopener">Privacy Policy</a></td>
+      <td>Transactional email delivery (verification, password reset, invitations, billing notifications)</td>
+      <td>Email address, email content</td>
+      <td>USA (global)</td>
+      <td>SCCs (EU–US)</td>
+    </tr>
+    <tr>
+      <td><strong>kAIxU Gateway (Skyes Over London LC)</strong><br>Proprietary infrastructure</td>
+      <td>AI inference gateway — routes all AI requests through a hardened, proprietary proxy. Vendor API keys never leave this infrastructure.</td>
+      <td>Content of AI prompts (code, text) submitted for AI-assisted editing or semantic search. No persistent storage of prompt content after the request completes.</td>
+      <td>USA (Cloudflare global network)</td>
+      <td>Controller entity — no transfer mechanism required</td>
+    </tr>
+    <tr>
+      <td><strong>Sentry (Functional Software, Inc.)</strong><br><a href="https://sentry.io/privacy/" target="_blank" rel="noopener">Privacy Policy</a></td>
+      <td>Application error monitoring and alerting</td>
+      <td>Error stack traces, request metadata. Sentry is configured to scrub personally identifiable information from error payloads.</td>
+      <td>USA</td>
+      <td>SCCs (EU–US)</td>
+    </tr>
+    <tr>
+      <td><strong>GitHub (Microsoft Corporation)</strong><br><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Privacy Policy</a> — <em>Conditional</em></td>
+      <td>Source code push/pull via GitHub integration (only for users who explicitly connect a GitHub account)</td>
+      <td>GitHub OAuth access token, repository metadata, file content pushed by the user</td>
+      <td>USA (global)</td>
+      <td>SCCs (EU–US); only engaged when user activates GitHub integration</td>
+    </tr>
+  </table>
+
+  <h2>Subprocessor Change Process</h2>
+  <p>We will notify customers of any addition or replacement of a Subprocessor at least <strong>15 calendar days</strong> before the change takes effect by:</p>
+  <ul>
+    <li>Updating this page with the new Subprocessor and effective date</li>
+    <li>Sending an email notification to all organisation administrators</li>
+  </ul>
+  <p>If a customer objects to a change, they must notify us in writing to <a href="mailto:legal@kaixu.app">legal@kaixu.app</a> within 15 days. We will work in good faith to address the concern. If we are unable to offer a reasonable alternative, the customer may terminate their subscription with a pro-rated refund for any unused prepaid term.</p>
+
+  <h2>Removed Subprocessors</h2>
+  <table>
+    <tr>
+      <th>Subprocessor</th>
+      <th>Removed Date</th>
+      <th>Reason</th>
+    </tr>
+    <tr>
+      <td colspan="3" style="color:var(--muted);text-align:center;font-style:italic">No subprocessors have been removed to date.</td>
+    </tr>
+  </table>
+
+  <h2>Contact</h2>
+  <p>For questions about our Subprocessors or data processing practices:<br>
+  <a href="mailto:privacy@kaixu.app">privacy@kaixu.app</a></p>
+
+  <footer>
+    &copy; 2026 Skyes Over London LC &nbsp;·&nbsp;
+    <a href="/privacy">Privacy</a> &nbsp;·&nbsp;
+    <a href="/terms">Terms</a> &nbsp;·&nbsp;
+    <a href="/dpa">DPA</a> &nbsp;·&nbsp;
+    <a href="/security">Security</a> &nbsp;·&nbsp;
+    <a href="/subprocessors">Subprocessors</a> &nbsp;·&nbsp;
+    <a href="/sla">SLA</a>
+  </footer>
+</div>
+</body>
+</html>

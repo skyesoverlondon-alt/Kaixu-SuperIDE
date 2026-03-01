@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Service Level Agreement — kAIxU SuperIDE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg0:#040008;--bg1:#0a0012;--bg2:#100020;--ink:#e8ecff;--muted:#7060a0;--border:rgba(162,67,255,.2);--purple:#a243ff;--gold:#ffd36a;--green:#4fffb0;--cyan:#30e0ff;--mono:'Share Tech Mono',monospace;--sans:'Inter',system-ui,sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg0);color:var(--ink);font-family:var(--sans);line-height:1.7;-webkit-font-smoothing:antialiased}
+    a{color:var(--purple);text-decoration:none}a:hover{color:var(--gold)}
+    .topbar{background:var(--bg1);border-bottom:1px solid var(--border);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+    .brand{font-family:var(--mono);font-size:1rem;color:var(--purple);letter-spacing:.05em}
+    .legal-nav{display:flex;gap:20px;flex-wrap:wrap;margin-left:auto}
+    .legal-nav a{font-size:.8rem;color:var(--muted);transition:color .2s}
+    .legal-nav a:hover,.legal-nav a.active{color:var(--purple)}
+    .page{max-width:900px;margin:60px auto;padding:0 32px 100px}
+    h1{font-size:2rem;font-weight:700;color:var(--purple);margin-bottom:8px}
+    .meta{font-size:.85rem;color:var(--muted);margin-bottom:48px;font-family:var(--mono)}
+    h2{font-size:1.15rem;font-weight:700;color:var(--gold);margin:40px 0 12px;border-bottom:1px solid var(--border);padding-bottom:6px}
+    h3{font-size:.95rem;font-weight:600;color:var(--ink);margin:20px 0 8px}
+    p{color:rgba(232,236,255,.85);margin-bottom:14px;font-size:.95rem}
+    ul{color:rgba(232,236,255,.85);padding-left:20px;margin-bottom:14px;font-size:.95rem}
+    li{margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin:20px 0;font-size:.875rem}
+    th{background:var(--bg2);color:var(--purple);text-align:left;padding:10px 14px;border:1px solid var(--border)}
+    td{padding:10px 14px;border:1px solid var(--border);color:rgba(232,236,255,.8);vertical-align:top}
+    tr:nth-child(even) td{background:rgba(162,67,255,.04)}
+    .highlight{background:rgba(162,67,255,.1);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:24px 0}
+    .highlight p{margin:0}
+    .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:24px 0}
+    .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center}
+    .stat-num{font-family:var(--mono);font-size:2rem;color:var(--green);display:block;margin-bottom:4px}
+    .stat-label{font-size:.8rem;color:var(--muted)}
+    .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-family:var(--mono)}
+    .badge-green{background:rgba(79,255,176,.15);color:var(--green);border:1px solid rgba(79,255,176,.3)}
+    .badge-gold{background:rgba(255,211,106,.1);color:var(--gold);border:1px solid rgba(255,211,106,.3)}
+    .badge-muted{background:rgba(112,96,160,.15);color:var(--muted);border:1px solid rgba(112,96,160,.3)}
+    footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:60px;padding-top:30px;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="brand">kAIxU SuperIDE</a>
+  <nav class="legal-nav">
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="/dpa">DPA</a>
+    <a href="/security">Security</a>
+    <a href="/subprocessors">Subprocessors</a>
+    <a href="/sla" class="active">SLA</a>
+  </nav>
+</div>
+
+<div class="page">
+  <h1>Service Level Agreement</h1>
+  <p class="meta">Skyes Over London LC &nbsp;·&nbsp; Version 1.0 &nbsp;·&nbsp; Effective: March 1, 2026</p>
+
+  <div class="highlight">
+    <p>This Service Level Agreement ("<strong>SLA</strong>") describes the uptime commitment, support response times, and credit entitlements for paid kAIxU SuperIDE plans. The SLA does not apply to the Free plan. Enterprise SLAs with custom commitments are available on request via <a href="mailto:enterprise@kaixu.app">enterprise@kaixu.app</a>.</p>
+  </div>
+
+  <h2>1. Uptime Commitments</h2>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <span class="stat-num">99.9%</span>
+      <div class="stat-label">Pro &amp; Team<br>Monthly uptime target</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num">99.95%</span>
+      <div class="stat-label">Enterprise<br>Monthly uptime target</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num">72h</span>
+      <div class="stat-label">Security incident<br>notification SLA</div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Plan</th><th>Monthly Uptime Target</th><th>Max Downtime / Month</th><th>Credit Eligible</th></tr>
+    <tr><td>Free</td><td>No commitment</td><td>—</td><td>No</td></tr>
+    <tr><td>Pro</td><td>99.9%</td><td>~43 minutes</td><td>Yes</td></tr>
+    <tr><td>Team</td><td>99.9%</td><td>~43 minutes</td><td>Yes</td></tr>
+    <tr><td>Enterprise</td><td>99.95%</td><td>~22 minutes</td><td>Yes (custom terms)</td></tr>
+  </table>
+
+  <h2>2. Definitions</h2>
+  <ul>
+    <li><strong>"Downtime"</strong> — a period of more than 5 consecutive minutes during which the kAIxU IDE and API are returning 5xx errors or are completely unreachable. Planned maintenance excluded.</li>
+    <li><strong>"Monthly Uptime Percentage"</strong> — (Total minutes in month − Downtime minutes) / Total minutes in month × 100%</li>
+    <li><strong>"Service Credit"</strong> — a credit applied to the next billing cycle, calculated as a percentage of the monthly fee for the affected calendar month</li>
+    <li><strong>"Scheduled Maintenance"</strong> — maintenance notified at least 48 hours in advance via email and status page; excluded from Downtime calculation</li>
+  </ul>
+
+  <h2>3. Service Credits</h2>
+  <p>If the Monthly Uptime Percentage falls below the committed level, the customer is entitled to a Service Credit as follows:</p>
+  <table>
+    <tr><th>Monthly Uptime Achieved</th><th>Service Credit</th></tr>
+    <tr><td>99.0% – &lt; 99.9% (Pro/Team) / 99.5% (Enterprise)</td><td>10% of monthly fee</td></tr>
+    <tr><td>95.0% – &lt; 99.0%</td><td>25% of monthly fee</td></tr>
+    <tr><td>&lt; 95.0%</td><td>50% of monthly fee</td></tr>
+  </table>
+  <p>Service Credits are the sole remedy for downtime events. Maximum total Service Credits in any calendar month shall not exceed 50% of that month's fee. Annual plan customers receive credits calculated on the monthly equivalent.</p>
+
+  <h2>4. Credit Request Process</h2>
+  <p>To claim a Service Credit:</p>
+  <ul>
+    <li>Email <a href="mailto:billing@kaixu.app">billing@kaixu.app</a> within <strong>30 days</strong> of the end of the month in which the downtime occurred</li>
+    <li>Include: account email, affected date(s) and time(s) (UTC), and a description of the impact</li>
+    <li>We will verify against our monitoring logs and respond within 10 business days</li>
+    <li>Approved credits are applied to the next invoice; they are non-transferable and non-refundable as cash</li>
+  </ul>
+
+  <h2>5. Support Response Times</h2>
+  <table>
+    <tr><th>Severity</th><th>Definition</th><th>Pro/Team Response</th><th>Enterprise Response</th></tr>
+    <tr>
+      <td><span class="badge badge-muted">P1 Critical</span></td>
+      <td>Complete service outage or data loss risk affecting all users</td>
+      <td>4 hours</td>
+      <td>1 hour</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-gold">P2 High</span></td>
+      <td>Major feature unavailable, significant performance degradation</td>
+      <td>8 business hours</td>
+      <td>4 business hours</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">P3 Medium</span></td>
+      <td>Feature partially degraded, workaround available</td>
+      <td>2 business days</td>
+      <td>1 business day</td>
+    </tr>
+    <tr>
+      <td>P4 Low</td>
+      <td>General question, feature request, cosmetic issue</td>
+      <td>5 business days</td>
+      <td>3 business days</td>
+    </tr>
+  </table>
+  <p><strong>Support hours:</strong> Mon–Fri, 09:00–18:00 UTC. Enterprise plans may include 24/7 P1 coverage (contact us).</p>
+  <p><strong>Support channels:</strong> <a href="mailto:support@kaixu.app">support@kaixu.app</a>. Enterprise customers may be provided a dedicated Slack channel.</p>
+
+  <h2>6. Scheduled Maintenance</h2>
+  <p>We aim to perform all maintenance outside of peak hours (typically 02:00–06:00 UTC on Sundays). Maintenance windows will be announced via:</p>
+  <ul>
+    <li>Email to all organisation administrators at least 48 hours in advance</li>
+    <li>Status page update (linked from the IDE status bar)</li>
+    <li>Emergency maintenance (security patches) may begin with less notice; we will communicate as quickly as possible</li>
+  </ul>
+
+  <h2>7. Exclusions</h2>
+  <p>This SLA does not apply to issues caused by:</p>
+  <ul>
+    <li>Force majeure events (natural disasters, war, pandemic, etc.)</li>
+    <li>Actions or omissions by the customer or third parties outside our control</li>
+    <li>Customer-side network or hardware failures</li>
+    <li>Free plan accounts</li>
+    <li>Beta or pre-release features explicitly labelled as such</li>
+    <li>Scheduled maintenance windows</li>
+    <li>Third-party service provider outages (AWS, Cloudflare, Netlify) where we have no means of faster recovery; however, we will use our best efforts to restore service promptly</li>
+  </ul>
+
+  <h2>8. Disaster Recovery Objectives</h2>
+  <table>
+    <tr><th>Metric</th><th>Target</th><th>Notes</th></tr>
+    <tr><td>RTO (Recovery Time Objective)</td><td>&lt; 1 hour</td><td>Time to restore service from a complete infrastructure failure</td></tr>
+    <tr><td>RPO (Recovery Point Objective)</td><td>&lt; 15 minutes</td><td>Maximum data loss window; Neon provides continuous WAL-based replication</td></tr>
+    <tr><td>Backup frequency</td><td>Continuous + daily snapshots</td><td>Neon point-in-time recovery; daily snapshots retained 30 days</td></tr>
+  </table>
+
+  <h2>9. Contact</h2>
+  <p><strong>Support:</strong> <a href="mailto:support@kaixu.app">support@kaixu.app</a><br>
+  <strong>Enterprise SLA enquiries:</strong> <a href="mailto:enterprise@kaixu.app">enterprise@kaixu.app</a><br>
+  <strong>Billing disputes:</strong> <a href="mailto:billing@kaixu.app">billing@kaixu.app</a></p>
+
+  <footer>
+    &copy; 2026 Skyes Over London LC &nbsp;·&nbsp;
+    <a href="/privacy">Privacy</a> &nbsp;·&nbsp;
+    <a href="/terms">Terms</a> &nbsp;·&nbsp;
+    <a href="/dpa">DPA</a> &nbsp;·&nbsp;
+    <a href="/security">Security</a> &nbsp;·&nbsp;
+    <a href="/subprocessors">Subprocessors</a> &nbsp;·&nbsp;
+    <a href="/sla">SLA</a>
+  </footer>
+</div>
+</body>
+</html>

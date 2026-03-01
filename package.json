@@ -25,6 +25,8 @@
   "scripts": {
     "build": "node scripts/migrate.js",
     "migrate": "node scripts/migrate.js",
+    "setup:check": "node scripts/setup-check.js",
+    "setup:check:all": "node scripts/setup-check.js --all",
     "dev": "npx netlify dev",
     "test": "jest --testPathPattern=tests/ --forceExit",
     "test:watch": "jest --testPathPattern=tests/ --watch",

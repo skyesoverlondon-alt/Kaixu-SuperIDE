@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Data Processing Agreement — kAIxU SuperIDE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg0:#040008;--bg1:#0a0012;--bg2:#100020;--ink:#e8ecff;--muted:#7060a0;--border:rgba(162,67,255,.2);--purple:#a243ff;--gold:#ffd36a;--mono:'Share Tech Mono',monospace;--sans:'Inter',system-ui,sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg0);color:var(--ink);font-family:var(--sans);line-height:1.7;-webkit-font-smoothing:antialiased}
+    a{color:var(--purple);text-decoration:none}a:hover{color:var(--gold)}
+    .topbar{background:var(--bg1);border-bottom:1px solid var(--border);padding:14px 40px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+    .brand{font-family:var(--mono);font-size:1rem;color:var(--purple);letter-spacing:.05em}
+    .legal-nav{display:flex;gap:20px;flex-wrap:wrap;margin-left:auto}
+    .legal-nav a{font-size:.8rem;color:var(--muted);transition:color .2s}
+    .legal-nav a:hover,.legal-nav a.active{color:var(--purple)}
+    .page{max-width:860px;margin:60px auto;padding:0 32px 100px}
+    h1{font-size:2rem;font-weight:700;color:var(--purple);margin-bottom:8px}
+    .meta{font-size:.85rem;color:var(--muted);margin-bottom:48px;font-family:var(--mono)}
+    h2{font-size:1.15rem;font-weight:700;color:var(--gold);margin:40px 0 12px;border-bottom:1px solid var(--border);padding-bottom:6px}
+    h3{font-size:.95rem;font-weight:600;color:var(--ink);margin:20px 0 8px}
+    p{color:rgba(232,236,255,.85);margin-bottom:14px;font-size:.95rem}
+    ul{color:rgba(232,236,255,.85);padding-left:20px;margin-bottom:14px;font-size:.95rem}
+    li{margin-bottom:6px}
+    table{width:100%;border-collapse:collapse;margin:20px 0;font-size:.875rem}
+    th{background:var(--bg2);color:var(--purple);text-align:left;padding:10px 14px;border:1px solid var(--border)}
+    td{padding:10px 14px;border:1px solid var(--border);color:rgba(232,236,255,.8);vertical-align:top}
+    tr:nth-child(even) td{background:rgba(162,67,255,.04)}
+    .highlight{background:rgba(162,67,255,.1);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:24px 0}
+    .highlight p{margin:0}
+    .sign-block{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:24px;margin:32px 0;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .sign-block .party h3{margin-bottom:12px;color:var(--purple)}
+    .sign-line{border-bottom:1px solid var(--border);height:32px;margin:8px 0}
+    .sign-label{font-size:.75rem;color:var(--muted);font-family:var(--mono)}
+    footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:60px;padding-top:30px;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" class="brand">kAIxU SuperIDE</a>
+  <nav class="legal-nav">
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="/dpa" class="active">DPA</a>
+    <a href="/security">Security</a>
+    <a href="/subprocessors">Subprocessors</a>
+    <a href="/sla">SLA</a>
+  </nav>
+</div>
+
+<div class="page">
+  <h1>Data Processing Agreement</h1>
+  <p class="meta">Skyes Over London LC &nbsp;·&nbsp; Version 1.0 &nbsp;·&nbsp; Effective: March 1, 2026</p>
+
+  <div class="highlight">
+    <p>This Data Processing Agreement ("<strong>DPA</strong>") forms part of the agreement between Skyes Over London LC ("<strong>Processor</strong>") and the customer entity that has agreed to the kAIxU Terms of Service ("<strong>Controller</strong>"). This DPA incorporates the EU Standard Contractual Clauses (Module 2: Controller to Processor) by reference. Enterprise customers requiring a countersigned DPA should contact <a href="mailto:legal@kaixu.app">legal@kaixu.app</a>.</p>
+  </div>
+
+  <h2>1. Definitions</h2>
+  <p>Terms used but not defined here have the meanings given in the GDPR (Regulation (EU) 2016/679) and the UK GDPR as applicable.</p>
+  <ul>
+    <li><strong>"Personal Data"</strong> means any information relating to an identified or identifiable natural person that Controller submits to the Services</li>
+    <li><strong>"Processing"</strong> means any operation performed on Personal Data</li>
+    <li><strong>"Sub-processor"</strong> means any third party engaged by Processor to Process Personal Data</li>
+    <li><strong>"Services"</strong> means the kAIxU SuperIDE platform as described in the Terms of Service</li>
+    <li><strong>"Security Incident"</strong> means a breach of security leading to accidental or unlawful destruction, loss, alteration, or disclosure of Personal Data</li>
+  </ul>
+
+  <h2>2. Subject Matter and Duration</h2>
+  <p>Processor agrees to process Personal Data on behalf of Controller solely for the purpose of providing the Services, for the duration of the subscription and for 30 days thereafter (during which Controller may export data prior to deletion).</p>
+
+  <h2>3. Nature and Purpose of Processing</h2>
+  <table>
+    <tr><th>Category</th><th>Examples</th><th>Purpose</th></tr>
+    <tr><td>Identity data</td><td>Email address, hashed password</td><td>Account management, authentication</td></tr>
+    <tr><td>Workspace content</td><td>Code, text files</td><td>Storage and retrieval, AI-assisted editing (with users' consent)</td></tr>
+    <tr><td>Usage and telemetry</td><td>AI call counts, session metadata</td><td>Quota enforcement, billing, debugging</td></tr>
+    <tr><td>Security events</td><td>Login IPs, MFA events</td><td>Account security, audit logging</td></tr>
+  </table>
+  <p>Data subjects include: Controller's employees, contractors, and end users who access the Services.</p>
+
+  <h2>4. Processor Obligations</h2>
+  <p>Processor shall:</p>
+  <ul>
+    <li>Process Personal Data only on documented instructions from Controller (or as required by applicable law)</li>
+    <li>Ensure that authorised personnel are subject to appropriate confidentiality obligations</li>
+    <li>Implement technical and organisational measures as described in Section 6 and at <a href="/security">/security</a></li>
+    <li>Not engage Sub-processors without prior written consent (including general consent given by Controller's acceptance of this DPA); current Sub-processors are listed at <a href="/subprocessors">/subprocessors</a></li>
+    <li>Notify Controller without undue delay (and in any event within 72 hours) upon becoming aware of a Security Incident</li>
+    <li>Assist Controller in responding to data subject rights requests, impact assessments, and regulatory enquiries</li>
+    <li>Delete or return all Personal Data upon termination of the Services at Controller's choice, within 30 days</li>
+  </ul>
+
+  <h2>5. Controller Obligations</h2>
+  <p>Controller represents and warrants that it has the legal authority to provide Personal Data to Processor, that Personal Data has been collected lawfully, and that it has provided required notices to data subjects regarding the use of the Services.</p>
+
+  <h2>6. Technical and Organisational Measures (TOMs)</h2>
+  <table>
+    <tr><th>Domain</th><th>Measure</th></tr>
+    <tr><td>Encryption in transit</td><td>TLS 1.2 minimum on all connections; HSTS enforced</td></tr>
+    <tr><td>Encryption at rest</td><td>AES-256 at infrastructure level (Neon PostgreSQL)</td></tr>
+    <tr><td>Access control</td><td>Role-based access (owner / admin / editor / viewer); principle of least privilege</td></tr>
+    <tr><td>Authentication</td><td>bcrypt (cost 12) password hashing; TOTP MFA available</td></tr>
+    <tr><td>Audit logging</td><td>All auth events, data access, and admin actions logged with IP and timestamp</td></tr>
+    <tr><td>Vulnerability management</td><td>npm audit on every CI run; dependency updates reviewed monthly</td></tr>
+    <tr><td>Incident response</td><td>Security Incident response plan with 72-hour notification SLA</td></tr>
+    <tr><td>Personnel security</td><td>Principle of least privilege for internal system access; confidentiality agreements required</td></tr>
+  </table>
+
+  <h2>7. Sub-processors</h2>
+  <p>Controller grants general written authorisation to engage the Sub-processors listed at <a href="/subprocessors">/subprocessors</a>. Processor shall notify Controller of any intended changes to Sub-processors with at least 15 days notice. Controller may object in writing within 15 days; if no resolution is reached, Controller may terminate the Services with a pro-rated refund.</p>
+
+  <h2>8. International Transfers</h2>
+  <p>Where Personal Data is transferred outside the EEA or UK to Sub-processors in the USA, such transfers are made under the EU Standard Contractual Clauses (Controller to Processor, Module 2) and, where applicable, the UK International Data Transfer Addendum. Copies of applicable SCCs are available upon written request to <a href="mailto:legal@kaixu.app">legal@kaixu.app</a>.</p>
+
+  <h2>9. Audit Rights</h2>
+  <p>Controller (or its appointed auditor under confidentiality) may audit Processor's compliance with this DPA once per calendar year, with 30 days written notice, during business hours. Processor may satisfy audit requests by providing a current SOC 2 Type II report or equivalent third-party assessment in lieu of on-site audit.</p>
+
+  <h2>10. Liability</h2>
+  <p>Each party's liability under this DPA is subject to the limitations set out in the Terms of Service. This DPA does not expand those limits. Nothing in this DPA limits either party's liability to data subjects or supervisory authorities under applicable data protection law.</p>
+
+  <h2>11. Governing Law</h2>
+  <p>This DPA is governed by the same law as the Terms of Service, except where the GDPR or UK GDPR mandates otherwise. For EU / UK data transfers, the governing law for the SCCs is the law of the relevant EU member state or England and Wales respectively.</p>
+
+  <h2>12. Contact</h2>
+  <p><strong>Data Protection enquiries:</strong> <a href="mailto:privacy@kaixu.app">privacy@kaixu.app</a><br>
+  <strong>Legal:</strong> <a href="mailto:legal@kaixu.app">legal@kaixu.app</a></p>
+
+  <h2>13. Signatures</h2>
+  <p>By accepting the Terms of Service (including the incorporated DPA), Controller agrees to be bound by this DPA as of the date of acceptance. Enterprise customers requiring a separately countersigned DPA should contact <a href="mailto:legal@kaixu.app">legal@kaixu.app</a>.</p>
+
+  <div class="sign-block">
+    <div class="party">
+      <h3>Processor</h3>
+      <div class="sign-line"></div>
+      <div class="sign-label">Signature</div>
+      <div class="sign-line"></div>
+      <div class="sign-label">Name &amp; Title</div>
+      <div class="sign-line"></div>
+      <div class="sign-label">Date</div>
+      <p style="margin-top:12px;font-size:.85rem;color:var(--muted)">Skyes Over London LC</p>
+    </div>
+    <div class="party">
+      <h3>Controller (Customer)</h3>
+      <div class="sign-line"></div>
+      <div class="sign-label">Signature</div>
+      <div class="sign-line"></div>
+      <div class="sign-label">Name &amp; Title</div>
+      <div class="sign-line"></div>
+      <div class="sign-label">Date</div>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2026 Skyes Over London LC &nbsp;·&nbsp;
+    <a href="/privacy">Privacy</a> &nbsp;·&nbsp;
+    <a href="/terms">Terms</a> &nbsp;·&nbsp;
+    <a href="/dpa">DPA</a> &nbsp;·&nbsp;
+    <a href="/security">Security</a> &nbsp;·&nbsp;
+    <a href="/subprocessors">Subprocessors</a> &nbsp;·&nbsp;
+    <a href="/sla">SLA</a>
+  </footer>
+</div>
+</body>
+</html>

@@ -15,6 +15,37 @@
   from = "/ide"
   to = "/ide.html"
   status = 200
+# ── Legal page redirects ──────────────────────────────────────────────────
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms.html"
+  status = 200
+
+[[redirects]]
+  from = "/dpa"
+  to = "/dpa.html"
+  status = 200
+
+[[redirects]]
+  from = "/security"
+  to = "/security.html"
+  status = 200
+
+[[redirects]]
+  from = "/subprocessors"
+  to = "/subprocessors.html"
+  status = 200
+
+[[redirects]]
+  from = "/sla"
+  to = "/sla.html"
+  status = 200
+
 # ── Security headers for Netlify functions ────────────────────────────────
 [[headers]]
   for = "/.netlify/functions/*"
@@ -23,6 +54,8 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    Cross-Origin-Resource-Policy = "same-site"
+    X-Permitted-Cross-Domain-Policies = "none"
 
 # ── Security headers for all pages ───────────────────────────────────────
 [[headers]]
@@ -31,6 +64,10 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "SAMEORIGIN"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(self)"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-Permitted-Cross-Domain-Policies = "none"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn1.sharemyimage.com; connect-src 'self' https://kaixu67.skyesoverlondon.workers.dev https://api.stripe.com; worker-src 'self' blob:; frame-ancestors 'self'; object-src 'none';"
 
 # ── Public health endpoint — explicit CORS ────────────────────────────────
 [[headers]]
