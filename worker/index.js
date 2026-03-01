@@ -22,6 +22,9 @@ const EMBED_MODEL = 'text-embedding-004';
 // Try every common name for the Gemini API key
 function getGeminiKey(env) {
   return env.GEMINI_API_KEY
+    || env.KAIXU_GEMINI_KEY
+    || env.KAIXU_API_KEY
+    || env.KAIXU_GOOGLE_KEY
     || env.GOOGLE_AI_KEY
     || env.GOOGLE_API_KEY
     || env.AI_API_KEY
@@ -185,6 +188,12 @@ export default {
       }
 
       return Response.json({ data: allEmbeddings }, { headers: corsHeaders });
+    }
+
+    // ── GET /debug — list env var NAMES only (never values) ─────────────
+    if (pathname === '/debug' && request.method === 'GET') {
+      const keys = Object.keys(env);
+      return Response.json({ keys }, { headers: corsHeaders });
     }
 
     // ── 404 ───────────────────────────────────────────────────────────────
