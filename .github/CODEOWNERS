@@ -1,0 +1,7 @@
+# Default owner for all files
+* @skyesoverlondon-alt
+
+# Security and compliance artifacts
+/.well-known/security.txt @skyesoverlondon-alt
+/docs/enterprise/ @skyesoverlondon-alt
+/netlify/functions/ @skyesoverlondon-alt

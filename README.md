@@ -207,6 +207,24 @@ Browser (IDE)
 
 Full security policy: /security
 
+Enterprise evidence bundle:
+
+- `docs/enterprise/README.md`
+- `docs/enterprise/SECURITY-GOVERNANCE.md`
+- `docs/enterprise/INCIDENT-RESPONSE-RUNBOOK.md`
+- `docs/enterprise/DISASTER-RECOVERY-BCP.md`
+- `docs/enterprise/VULNERABILITY-MANAGEMENT.md`
+- `docs/enterprise/ACCESS-REVIEW.md`
+- `docs/enterprise/THIRD-PARTY-RISK.md`
+- `docs/enterprise/COMPLIANCE-ROADMAP.md`
+- `docs/enterprise/REPO-GOVERNANCE-CHECKLIST.md`
+- `SECURITY.md`
+
+Repository governance artifacts:
+
+- `.github/CODEOWNERS`
+- `.github/pull_request_template.md`
+
 ---
 
 ## Legal

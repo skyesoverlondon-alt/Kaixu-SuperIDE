@@ -1,0 +1,1 @@
+Store vulnerability remediation records in this folder.
