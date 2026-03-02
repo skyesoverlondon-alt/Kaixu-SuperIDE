@@ -4,10 +4,26 @@
 # Dependencies
 node_modules/
 
-# Environment
+# Environment — NEVER commit real secrets
 .env
 .env.local
+.env.production
+.env.production.local
+.env.development
+.env.development.local
+.env.*.local
+
+# Netlify local env pull
+.netlify/state.json
+netlify.env
+
+# Cloudflare Worker local secrets (wrangler dev)
+worker/.dev.vars
+worker/.dev.vars.*
+.dev.vars
+.dev.vars.*
 
 # Build artifacts
 dist/
 build/
+

@@ -20,6 +20,7 @@
 const crypto = require('crypto');
 const { getBearerToken, verifyToken } = require('./_lib/auth');
 const { query } = require('./_lib/db');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 const UPSTREAM = () => `${(process.env.KAIXUSI_WORKER_URL || '').replace(/\/+$/, '')}/v1/stream`;
 
@@ -82,6 +83,12 @@ exports.handler = async (event) => {
       if (tok) { const decoded = verifyToken(tok); userId = decoded?.sub || null; }
     } catch { /* no valid token — that's OK */ }
   }
+
+  // ── Rate limit: 30 req/min per caller ────────────────────────────────────
+  const clientIp = event.headers['x-forwarded-for']?.split(',')[0]?.trim() || event.headers['client-ip'] || 'anon';
+  const rlKey = userId || clientIp;
+  const limited = await checkRateLimit(rlKey, 'gateway-stream', { maxHits: 30, windowSecs: 60 });
+  if (limited) return { statusCode: 429, headers: CORS, body: JSON.stringify({ error: 'Rate limit exceeded. Max 30 requests/min.', retryAfter: 60 }) };
 
   const enrichedBody = {
     ...bodyData,

@@ -302,18 +302,12 @@ textarea.glow-input { resize: vertical; min-height: 70px; }
     <input id="secret" type="password" placeholder="Bearer token" />
   </div>
   <div class="cf">
-    <label>Provider</label>
-    <select id="provider">
-      <option value="openai">openai</option>
-      <option value="anthropic">anthropic</option>
-      <option value="gemini">gemini</option>
-    </select>
-  </div>
-  <div class="cf">
-    <label>Model</label>
-    <select id="model">
-      <option value="gpt-4o-mini">gpt-4o-mini</option>
-      <option value="gpt-4o">gpt-4o</option>
+    <label>kAIxU Model</label>
+    <select id="kaixuModel">
+      <option value="kaixu-brain" selected>kAIxU Brain 2.5</option>
+      <option value="kaixu-nano">kAIxU Nano 2.0</option>
+      <option value="kaixu-pro">kAIxU Pro</option>
+      <option value="kaixu-flash">kAIxU Flash</option>
     </select>
   </div>
   <button class="ping-btn" onclick="pingHealth()">⚡ Ping Brain</button>
@@ -376,12 +370,8 @@ textarea.glow-input { resize: vertical; min-height: 70px; }
     </div>
     <div class="sel-row">
       <div class="cf">
-        <label>Provider</label>
-        <select id="embedProv"><option value="gemini">gemini</option><option value="openai">openai</option></select>
-      </div>
-      <div class="cf">
-        <label>Model</label>
-        <select id="embedModel"><option value="text-embedding-004">text-embedding-004</option><option value="text-embedding-3-small">text-embedding-3-small</option></select>
+        <label>kAIxU Model</label>
+        <select id="embedModel"><option value="kaixu-embed" selected>kAIxU Embed 1.0</option></select>
       </div>
     </div>
     <textarea class="glow-input" id="embedTexts" rows="3">The quick brown fox
@@ -409,8 +399,7 @@ Hello world</textarea>
     <div class="cf" style="margin-bottom:10px">
       <label>JSON Body</label>
       <textarea class="glow-input" id="rawBody" rows="5" style="font-size:11px">{
-  "provider": "openai",
-  "model": "gpt-4o-mini",
+  "model": "kaixu-brain",
   "messages": [{"role": "user", "content": "What is 2 + 2?"}]
 }</textarea>
     </div>
@@ -478,15 +467,7 @@ function spin(btn, label) {
 }
 function unspin(btn, label) { btn.disabled = false; btn.innerHTML = label; }
 
-// ── auto model list ──────────────────────────────────────────────────────────
-$('provider').addEventListener('change', () => {
-  const m = { openai: ['gpt-4o-mini','gpt-4o'], anthropic: ['claude-3-5-haiku-20241022','claude-sonnet-4-5'], gemini: ['gemini-2.5-flash','gemini-2.5-pro'] };
-  $('model').innerHTML = (m[$('provider').value] || []).map(v => `<option>${v}</option>`).join('');
-});
-$('embedProv').addEventListener('change', () => {
-  const m = { gemini: ['text-embedding-004'], openai: ['text-embedding-3-small','text-embedding-ada-002'] };
-  $('embedModel').innerHTML = (m[$('embedProv').value] || []).map(v => `<option>${v}</option>`).join('');
-});
+// No provider dropdowns — kAIxU model aliases only; worker resolves internally.
 
 // ── health ───────────────────────────────────────────────────────────────────
 async function pingHealth() {
@@ -526,7 +507,7 @@ async function sendChat() {
   $('chatBadges').innerHTML = ''; $('chatMeta').innerHTML = '';
 
   const body = {
-    provider: $('provider').value, model: $('model').value,
+    model: $('kaixuModel').value,
     messages: [{ role: 'user', content: $('chatMsg').value }],
     app_id: 'kaixusi-smoketest'
   };
@@ -541,7 +522,7 @@ async function sendChat() {
       { t: ok ? 'pass' : 'fail', v: ok ? `✓ ${r.status}` : `✗ ${r.status}` },
       { t: 'info', v: `${ms}ms` },
       { t: d.kaixusi ? 'pass' : 'warn', v: `kaixusi:${!!d.kaixusi}` },
-      { t: 'info', v: d.provider || '?' },
+      { t: 'info', v: 'kAIxU' },
     ]);
     if (d.usage) {
       meta('chatMeta', [
@@ -567,7 +548,7 @@ async function sendStream() {
   $('streamBadges').innerHTML = '';
 
   const body = {
-    provider: $('provider').value, model: $('model').value,
+    model: $('kaixuModel').value,
     messages: [{ role: 'user', content: $('streamMsg').value }],
     app_id: 'kaixusi-smoketest'
   };
@@ -618,7 +599,7 @@ async function sendEmbed() {
   spin(btn, '');
   $('embedBadges').innerHTML = ''; $('embedMeta').innerHTML = ''; $('embedVecs').innerHTML = '';
   const texts = $('embedTexts').value.split('\n').map(s => s.trim()).filter(Boolean);
-  const body = { provider: $('embedProv').value, model: $('embedModel').value, texts, app_id: 'kaixusi-smoketest' };
+  const body = { model: $('embedModel').value, texts, app_id: 'kaixusi-smoketest' };
   const t = Date.now();
   try {
     const r = await fetch(`${wu()}/v1/embed`, { method:'POST', headers: ah(), body: JSON.stringify(body) });
@@ -681,7 +662,7 @@ async function sendAttrib() {
   spin(btn, '');
   out('aOut', 'sending…', true); $('aBadges').innerHTML = '';
   const body = {
-    provider: $('provider').value, model: $('model').value,
+    model: $('kaixuModel').value,
     messages: [{ role: 'user', content: $('aMsg').value }],
     user_id:      $('aUserId').value || null,
     workspace_id: $('aWsId').value  || null,

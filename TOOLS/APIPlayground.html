@@ -147,6 +147,7 @@ header{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 16px;
 .mbtn-g{background:transparent;color:var(--muted);border-color:rgba(255,255,255,.1)}
 .mbtn-g:hover{color:var(--ink);border-color:rgba(255,255,255,.25)}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 <div id="toast"></div>
@@ -260,6 +261,7 @@ header{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 16px;
         <span class="resp-meta" id="resp-time"></span>
         <span class="resp-meta" id="resp-size"></span>
         <button class="resp-copy" onclick="copyResponse()">Copy</button>
+        <button class="resp-copy" onclick="downloadResponse()" title="Download response">⬇ Download</button>
       </div>
       <div id="resp-body">
         <div class="resp-placeholder">
@@ -530,6 +532,15 @@ function syntaxHighlight(json) {
 
 function copyResponse() {
   if (lastResponse) navigator.clipboard.writeText(lastResponse.body).then(() => toast('Copied!','ok'));
+}
+function downloadResponse() {
+  if (!lastResponse) { toast('No response yet','err'); return; }
+  const isJson = lastResponse.body.trimStart().startsWith('{') || lastResponse.body.trimStart().startsWith('[');
+  const ext = isJson ? 'json' : 'txt';
+  const blob = new Blob([lastResponse.body], { type: isJson ? 'application/json' : 'text/plain' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `kaixu-response.${ext}` });
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(`Downloaded kaixu-response.${ext}`, 'ok');
 }
 
 // ── HISTORY ────────────────────────────────────────────────────────────────

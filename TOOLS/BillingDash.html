@@ -23,6 +23,7 @@
 pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;color:#d7cbe8;max-height:160px;overflow:auto}
 .f{padding:3px 12px;background:#060010;border-top:1px solid #1a0030;font-size:10px;color:#615287;display:flex;gap:14px}.f b{color:#e2d7f0}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 <div class="h"><div style="font-size:18px">💳</div><div><h1>Billing Dash</h1><p>kAIxU plan usage + Stripe business metrics in one place</p></div><div class="r"><button class="b gold" onclick="upgrade()">⬆ Upgrade plan</button><button class="b green" onclick="refreshData()">↻ Refresh</button><button class="b purple" onclick="aiInsight()">✦ AI spend insight</button></div></div>
@@ -81,7 +82,7 @@ pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px
       <button class="b green" style="margin-top:10px;width:100%" onclick="saveSettings()">Save settings</button>
     </div>
 
-    <div class="card"><div class="title">AI Insight</div><pre id="aiOut">No insight yet.</pre></div>
+    <div class="card"><div class="title">AI Insight</div><pre id="aiOut">No insight yet.</pre><div style="display:flex;gap:8px;margin-top:10px"><button onclick="navigator.clipboard.writeText(document.getElementById('aiOut').textContent).then(()=>setStatus('Copied ✓'))" style="background:transparent;border:1px solid rgba(138,79,255,.4);color:#a78bfa;border-radius:6px;padding:3px 12px;font-size:11px;cursor:pointer;font-family:inherit">📋 Copy Insight</button><button onclick="(function(){const t=document.getElementById('aiOut').textContent;if(!t||t==='No insight yet.'){setStatus('Nothing to download');return;}const b=new Blob([t],{type:'text/plain'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(b),download:'kaixu-billing-insight.txt'});a.click();URL.revokeObjectURL(a.href);setStatus('Downloaded ✓');})()" style="background:transparent;border:1px solid rgba(138,79,255,.4);color:#a78bfa;border-radius:6px;padding:3px 12px;font-size:11px;cursor:pointer;font-family:inherit">⬇ Download</button></div></div>
   </aside>
 </div>
 <div class="f"><span>Status: <b id="status">Idle</b></span><span>Next invoice: <b>2026-04-01</b></span><span>Payment method: <b>Visa •••• 4421</b></span></div>
@@ -98,7 +99,7 @@ async function aiInsight(){
   if(!token){out.textContent='Missing kAIxU gate token in sovereign_brain_cfg.';return;}
   const prompt='Analyze billing data and provide: 1) cost risks 2) quick savings 3) upgrade recommendation.';
   try{
-    const body={provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:prompt}],max_tokens:260,app_id:'kaixu-billing-dash'};
+    const body={messages:[{role:'user',content:prompt}],max_tokens:260,app_id:'kaixu-billing-dash'};
     const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)});
     const d=await r.json(); out.textContent=d.output_text||'No insight returned.'; setStatus('AI insight ready');
   }catch(e){out.textContent=`Error: ${e.message}`;setStatus('AI insight failed')}

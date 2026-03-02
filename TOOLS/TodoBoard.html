@@ -73,6 +73,7 @@
     .pbar-item:not(.active){color:#64748b;border-color:rgba(255,255,255,.08)}
     .pbar-item:hover:not(.active){border-color:var(--purple);color:var(--purple)}
   </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 <div id="canvas-container"></div>
@@ -123,7 +124,10 @@
         <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)"></div>
         <span class="mono text-xs font-bold tracking-wider" style="color:var(--green)">kAIxU BRAIN — Task Advisor</span>
       </div>
-      <button onclick="closeAI()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
+      <div style="display:flex;gap:.5rem;align-items:center">
+        <button onclick="(function(){const msgs=[...document.querySelectorAll('#ai-messages [data-role]')].map(el=>`[${el.dataset.role.toUpperCase()}] ${el.textContent}`).join('\n\n');if(!msgs){return;}const b=new Blob([msgs],{type:'text/plain'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(b),download:'kaixu-chat.txt'});a.click();URL.revokeObjectURL(a.href);})()" class="mono text-xs" style="background:transparent;border:1px solid rgba(138,79,255,.3);color:#8b5cf6;border-radius:6px;padding:2px 8px;cursor:pointer">⬇ Export</button>
+        <button onclick="closeAI()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
+      </div>
     </div>
     <div id="ai-messages" class="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3" style="scrollbar-width:thin;scrollbar-color:var(--purple) transparent"></div>
     <div class="px-5 py-4 border-t flex-shrink-0 flex gap-2" style="border-color:var(--border)">
@@ -380,6 +384,7 @@ function closeAI(){ document.getElementById('ai-modal').classList.remove('active
 function appendMsg(role,text){
   const box=document.getElementById('ai-messages');
   const d=document.createElement('div'); d.className=role==='user'?'ai-msg-user':'ai-msg-assistant';
+  d.dataset.role=role;
   d.textContent=text; box.appendChild(d); box.scrollTop=box.scrollHeight;
 }
 function showThinking(){

@@ -34,6 +34,7 @@ body{background:var(--bg0);color:var(--fg);font-family:Inter,sans-serif;height:1
 .ai{padding:10px;border-top:1px solid #1a0030;background:#0b0018}
 .ai pre{background:#16002e;border:1px solid #2a0050;border-radius:6px;padding:8px;white-space:pre-wrap;font-size:11px;color:#d7caeb;max-height:140px;overflow:auto}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 <div class="hdr"><div style="font-size:18px">🔔</div><div><h1>Notification Center</h1><p>Unified alerts across deploys, CI, database, team, and webhooks</p></div><div class="hdr-r"><button class="btn cyan" onclick="refreshFeed()">↻ Refresh</button><button class="btn purple" onclick="markAllRead()">✓ Mark all read</button><button class="btn green" onclick="simulateWebhook()">＋ Simulate webhook</button></div></div>
@@ -98,7 +99,7 @@ async function aiSummarize(){
   const token=(JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token)||'';
   if(!token){out.textContent='Missing kAIxU gate token in sovereign_brain_cfg.';return;}
   try{
-    const body={provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:`Summarize this notification feed into: 1) urgent actions 2) monitor later 3) suggested rule updates.\n\n${JSON.stringify(items)}`}],max_tokens:420,app_id:'kaixu-notification-center'};
+    const body={messages:[{role:'user',content:`Summarize this notification feed into: 1) urgent actions 2) monitor later 3) suggested rule updates.\n\n${JSON.stringify(items)}`}],max_tokens:420,app_id:'kaixu-notification-center'};
     const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)});
     const d=await r.json(); out.textContent=d.output_text||'No summary received.'; setStatus('AI summary ready');
   }catch(e){out.textContent=`Error: ${e.message}`; setStatus('AI summary failed');}

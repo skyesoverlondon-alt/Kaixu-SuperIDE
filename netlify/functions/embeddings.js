@@ -9,8 +9,8 @@
 //
 // NOTE: embeddings route through the KaixuSI Cloudflare Worker.
 // Worker endpoint: POST /v1/embed
-// Worker response:  { embeddings: [[float, ...], ...], dimensions: 1536, kaixusi: true }
-// Provider: gemini / model: gemini-embedding-001 / outputDimensionality: 1536
+// Worker response:  { embeddings: [[float, ...], ...], dimensions: 768, kaixusi: true }
+// Provider: gemini / model: gemini-embedding-004 / outputDimensionality: 768
 
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
@@ -39,10 +39,10 @@ async function embed(texts, taskType = 'RETRIEVAL_DOCUMENT', { userId, workspace
       },
       body: JSON.stringify({
         provider:             'gemini',
-        model:                'gemini-embedding-001',
+        model:                'gemini-embedding-004',
         input:                batch,
         taskType,
-        outputDimensionality: 1536,
+        outputDimensionality: 768,
         user_id:              userId      || null,
         workspace_id:         workspaceId || null,
         app_id:               'kaixu-superide',

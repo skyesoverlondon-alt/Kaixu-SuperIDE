@@ -11,6 +11,7 @@ const { query } = require('./_lib/db');
 const { verifyToken, getBearerToken, json } = require('./_lib/auth');
 const { readJson } = require('./_lib/body');
 const { notify } = require('./_lib/notify');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 function auth(event) {
   const t = getBearerToken(event);

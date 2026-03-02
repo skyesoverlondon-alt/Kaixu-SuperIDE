@@ -1,6 +1,7 @@
 const { query } = require('./_lib/db');
 const { verifyToken, getBearerToken, json } = require('./_lib/auth');
 const { readJson } = require('./_lib/body');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
@@ -17,6 +18,10 @@ exports.handler = async (event) => {
   try {
     const claims = verifyToken(token);
     const userId = claims.sub;
+
+    // ── Rate limit: 10 workspace creates / hour ────────────────────
+    const rlLimited = await checkRateLimit(userId, 'ws-create', { maxHits: 10, windowSecs: 3600 });
+    if (rlLimited) return json(429, { ok: false, error: 'Workspace create limit: 10/hour.', retryAfter: 3600 });
 
     const mem = await query('select role from org_memberships where org_id=$1 and user_id=$2', [orgId, userId]);
     if (!mem.rows[0]) return json(403, { ok:false, error:'Not a member of this org' });

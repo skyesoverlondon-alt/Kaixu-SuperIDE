@@ -13,6 +13,7 @@
 const crypto = require('crypto');
 const { getBearerToken, verifyToken } = require('./_lib/auth');
 const { query } = require('./_lib/db');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 const UPSTREAM = () => `${(process.env.KAIXUSI_WORKER_URL || '').replace(/\/+$/, '')}/v1/chat`;
 
@@ -85,6 +86,12 @@ exports.handler = async (event) => {
       if (tok) { const decoded = verifyToken(tok); userId = decoded?.userId || decoded?.sub || null; }
     } catch { /* no valid JWT — that's OK */ }
   }
+
+  // ── Rate limit: 30 req/min per caller (AI is expensive) ─────────────────
+  const clientIp = event.headers['x-forwarded-for']?.split(',')[0]?.trim() || event.headers['client-ip'] || 'anon';
+  const rlKey = userId || clientIp;
+  const limited = await checkRateLimit(rlKey, 'gateway-chat', { maxHits: 30, windowSecs: 60 });
+  if (limited) return { statusCode: 429, headers: CORS, body: JSON.stringify({ error: 'Rate limit exceeded. Max 30 requests/min.', retryAfter: 60 }) };
 
   // Inject attribution; preserve any workspace_id / org_id the client already sent.
   const enrichedBody = {

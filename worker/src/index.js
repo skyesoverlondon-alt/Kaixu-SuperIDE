@@ -61,6 +61,22 @@ function checkAuth(request, env) {
   return token === (env.KAIXUSI_SECRET || '');
 }
 
+// ─── kAIxU MODEL ALIASES ─────────────────────────────────────────────────────
+// Client code uses kAIxU brand names only. The worker resolves them to the
+// underlying provider/model internally — nothing leaks to the client.
+const KAIXU_ALIASES = {
+  'kaixu-flash': { provider: 'gemini', model: 'gemini-2.5-flash' },
+  'kaixu-brain': { provider: 'gemini', model: 'gemini-2.5-flash' },
+  'kaixu-nano' : { provider: 'gemini', model: 'gemini-2.0-flash' },
+  'kaixu-pro'  : { provider: 'gemini', model: 'gemini-2.5-pro'   },
+  'kaixu-embed': { provider: 'gemini', model: 'gemini-embedding-001' },
+};
+function resolveKaixuModel(provider, model) {
+  const alias = KAIXU_ALIASES[model] || KAIXU_ALIASES[provider] || null;
+  if (alias) return alias;
+  return { provider: provider || 'gemini', model: model || 'gemini-2.5-flash' };
+}
+
 // ─── ATTRIBUTION ─────────────────────────────────────────────────────────────
 // Resolve the calling user's identity from request body OR dedicated headers.
 // Body fields take precedence; headers are a fallback for callers that can't
@@ -265,13 +281,14 @@ async function routeChat(request, env) {
   const origin = request.headers.get('Origin') || '*';
   const body   = await request.json().catch(() => ({}));
 
-  const {
+  let {
     provider    = 'gemini',
     model       = 'gemini-2.5-flash',
     messages    = [],
     max_tokens,
     temperature,
   } = body;
+  ({ provider, model } = resolveKaixuModel(provider, model));
 
   // Resolve per-user attribution from body OR headers
   const { user_id, workspace_id, org_id, app_id } = resolveContext(request, body);
@@ -316,13 +333,14 @@ async function routeStream(request, env) {
   const origin = request.headers.get('Origin') || '*';
   const body   = await request.json().catch(() => ({}));
 
-  const {
+  let {
     provider    = 'gemini',
     model       = 'gemini-2.5-flash',
     messages    = [],
     max_tokens,
     temperature,
   } = body;
+  ({ provider, model } = resolveKaixuModel(provider, model));
 
   // Resolve per-user attribution from body OR headers
   const { user_id, workspace_id, org_id, app_id } = resolveContext(request, body);
@@ -385,13 +403,14 @@ async function routeEmbed(request, env) {
   const origin = request.headers.get('Origin') || '*';
   const body   = await request.json().catch(() => ({}));
 
-  const {
+  let {
     provider            = 'gemini',
     model,
     input               = [],
     taskType,
     outputDimensionality,
   } = body;
+  ({ provider, model } = resolveKaixuModel(provider, model || 'kaixu-embed'));
 
   // Resolve per-user attribution from body OR headers
   const { user_id, workspace_id, org_id, app_id } = resolveContext(request, body);

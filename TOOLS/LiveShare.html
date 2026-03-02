@@ -112,6 +112,7 @@
   /* SYNTAX HIGHLIGHT COLORS */
   .kw{color:#c084fc;}.fn{color:var(--cyan);}.str{color:var(--green);}.cm{color:#5040a0;font-style:italic;}.num{color:var(--gold);}.op{color:var(--purple-hot);}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 
@@ -435,7 +436,7 @@ async function sendChat(){
     try{
       const r=await fetch('https://kaixusi.skyesoverlondon.workers.dev/v1/chat',{
         method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-        body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:text.replace(/@kAIxU/gi,'').trim()||'How can I help?'}],max_tokens:300,app_id:'kaixu-liveshare'})
+        body:JSON.stringify({messages:[{role:'user',content:text.replace(/@kAIxU/gi,'').trim()||'How can I help?'}],max_tokens:300,app_id:'kaixu-liveshare'})
       });
       const d=await r.json();
       addChatMsg('kAIxU','#a243ff',d.output_text||JSON.stringify(d),false,false);

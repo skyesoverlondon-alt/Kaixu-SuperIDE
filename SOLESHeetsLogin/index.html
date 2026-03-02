@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>SOLE Sheets Auth — Login</title>
+  <meta name="description" content="Private login backed by your own API and Neon Postgres as the database." />
+  <style>
+    :root{
+      --bg:#05060a;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.09);
+      --line: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --gold: #ffcf5a;
+      --purple:#7c3aed;
+      --blue:#3b82f6;
+      --bad:#ff4d6d;
+      --good:#4ade80;
+      --shadow: 0 30px 70px rgba(0,0,0,.65);
+      --r: 18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --ui: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: var(--ui);
+      background:
+        radial-gradient(1100px 700px at 18% 12%, rgba(124,58,237,.25), transparent 60%),
+        radial-gradient(900px 600px at 82% 18%, rgba(59,130,246,.18), transparent 60%),
+        radial-gradient(900px 700px at 50% 88%, rgba(255,207,90,.14), transparent 60%),
+        linear-gradient(180deg, #060712, #05060a 55%, #04040a);
+      color:var(--text);
+      overflow-x:hidden;
+    }
+    .noise::before{
+      content:""; position:fixed; inset:-30%;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      opacity:.18; mix-blend-mode:overlay; pointer-events:none;
+      transform: rotate(8deg);
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:42px 18px 72px}
+    .top{
+      display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
+      padding:10px 2px 26px;
+    }
+    .brand{
+      display:flex; gap:14px; align-items:center;
+    }
+    .sig{
+      width:52px; height:52px; border-radius:14px;
+      background:
+        radial-gradient(16px 16px at 30% 32%, rgba(255,207,90,.9), transparent 60%),
+        radial-gradient(18px 18px at 65% 40%, rgba(124,58,237,.9), transparent 60%),
+        radial-gradient(18px 18px at 45% 70%, rgba(59,130,246,.9), transparent 60%),
+        linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.16);
+      box-shadow: 0 14px 40px rgba(0,0,0,.65);
+      position:relative;
+    }
+    .sig:after{
+      content:""; position:absolute; inset:8px;
+      border-radius:12px;
+      border:1px dashed rgba(255,255,255,.22);
+      opacity:.55;
+    }
+    h1{
+      margin:0; font-size:22px; letter-spacing:.3px; font-weight:780;
+    }
+    .sub{
+      margin:4px 0 0; color:var(--muted); font-size:13px; max-width:720px;
+    }
+    .pill{
+      display:flex; gap:10px; align-items:center;
+      padding:10px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      font-size:12px; color:var(--muted);
+      box-shadow: 0 16px 40px rgba(0,0,0,.35);
+      user-select:none;
+    }
+    .dot{width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.22)}
+    .dot.good{background:rgba(74,222,128,.9)}
+    .dot.bad{background:rgba(255,77,109,.9)}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:18px;
+      align-items:start;
+    }
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.055));
+      border:1px solid rgba(255,255,255,.14);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .card:before{
+      content:""; position:absolute; inset:-2px; pointer-events:none;
+      background: radial-gradient(700px 240px at 30% 0%, rgba(124,58,237,.18), transparent 55%),
+                  radial-gradient(700px 240px at 85% 0%, rgba(59,130,246,.14), transparent 55%);
+      opacity:.9;
+    }
+    .card > *{position:relative}
+    .cardHeader{
+      padding:16px 16px 12px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    }
+    .cardTitle{
+      font-weight:760; letter-spacing:.2px;
+      display:flex; gap:10px; align-items:center;
+    }
+    .badge{
+      font-family:var(--mono);
+      font-size:11px;
+      color:rgba(255,255,255,.75);
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      padding:6px 9px;
+      border-radius:999px;
+    }
+    .cardBody{padding:16px}
+    .tabs{display:flex; gap:10px; flex-wrap:wrap}
+    .tab{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:13px;
+      color:rgba(255,255,255,.82);
+      transition:.15s ease;
+      user-select:none;
+    }
+    .tab.active{
+      border-color: rgba(255,207,90,.35);
+      background: radial-gradient(180px 120px at 30% 20%, rgba(255,207,90,.18), rgba(255,255,255,.05));
+      color: rgba(255,255,255,.92);
+      box-shadow: 0 18px 40px rgba(0,0,0,.35);
+    }
+    .row{display:grid; gap:10px; margin-top:14px}
+    label{font-size:12px; color:var(--muted)}
+    input{
+      width:100%;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.25);
+      color:var(--text);
+      outline:none;
+      font-size:14px;
+    }
+    input:focus{border-color: rgba(255,207,90,.35); box-shadow: 0 0 0 4px rgba(255,207,90,.08)}
+    .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    button{
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.08);
+      color: rgba(255,255,255,.9);
+      padding:11px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:720;
+      letter-spacing:.2px;
+      transition:.15s ease;
+    }
+    button.primary{
+      border-color: rgba(255,207,90,.35);
+      background: linear-gradient(135deg, rgba(255,207,90,.22), rgba(124,58,237,.14));
+    }
+    button:hover{transform: translateY(-1px); background: rgba(255,255,255,.11)}
+    button:active{transform: translateY(0px)}
+    button:disabled{opacity:.55; cursor:not-allowed; transform:none}
+    .note{
+      margin-top:12px; font-size:12px; color:var(--muted); line-height:1.55;
+    }
+    .log{
+      margin-top:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      padding:12px;
+      font-family: var(--mono);
+      font-size:12px;
+      color: rgba(255,255,255,.80);
+      min-height: 88px;
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+    }
+    .rightStack{display:grid; gap:18px}
+    .mini{
+      padding:14px 14px 12px;
+    }
+    .kicker{
+      font-size:12px; color: rgba(255,207,90,.86); letter-spacing:.4px; text-transform:uppercase;
+    }
+    .big{
+      margin:6px 0 0;
+      font-size:18px; font-weight:820;
+      letter-spacing:.25px;
+    }
+    .monoLine{margin:10px 0 0; font-family:var(--mono); font-size:12px; color:rgba(255,255,255,.76)}
+    .hr{height:1px; background: rgba(255,255,255,.10); margin:12px 0}
+    a{color:rgba(255,207,90,.92); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .footer{
+      margin-top:18px; color:rgba(255,255,255,.45); font-size:12px; text-align:center;
+    }
+  </style>
+</head>
+<body class="noise">
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <div class="sig" aria-hidden="true"></div>
+        <div>
+          <h1>SOLE Sheets Auth</h1>
+          <div class="sub">Your login page talks only to your own API endpoints. The user database lives inside Neon Postgres. No Firestore. No external auth provider UI.</div>
+        </div>
+      </div>
+      <div class="pill" id="statusPill">
+        <span class="dot bad" id="statusDot"></span>
+        <span id="statusText">Not signed in</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="cardHeader">
+          <div class="cardTitle">Access Console <span class="badge">/.netlify/functions</span></div>
+          <div class="tabs">
+            <div class="tab active" id="tabLogin">Login</div>
+            <div class="tab" id="tabSignup">Sign up</div>
+          </div>
+        </div>
+        <div class="cardBody">
+          <div id="loginPane">
+            <div class="row">
+              <div>
+                <label>Email</label>
+                <input id="loginEmail" type="email" autocomplete="email" placeholder="name@domain.com" />
+              </div>
+              <div>
+                <label>Password</label>
+                <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••" />
+              </div>
+            </div>
+            <div class="btns">
+              <button class="primary" id="btnLogin">Sign in</button>
+              <button id="btnMe">Check session</button>
+              <button id="btnLogout">Logout</button>
+            </div>
+            <div class="note">After successful login, this page keeps your session using a secure cookie set by your own backend endpoint. Protected pages should call <span style="font-family:var(--mono)">/.netlify/functions/me</span> to confirm access.</div>
+            <div class="log" id="logBox">Ready.</div>
+          </div>
+
+          <div id="signupPane" style="display:none">
+            <div class="row">
+              <div>
+                <label>Email</label>
+                <input id="signupEmail" type="email" autocomplete="email" placeholder="name@domain.com" />
+              </div>
+              <div>
+                <label>Password</label>
+                <input id="signupPass" type="password" autocomplete="new-password" placeholder="Use something strong" />
+              </div>
+              <div>
+                <label>Confirm Password</label>
+                <input id="signupPass2" type="password" autocomplete="new-password" placeholder="Repeat it" />
+              </div>
+            </div>
+            <div class="btns">
+              <button class="primary" id="btnSignup">Create account</button>
+            </div>
+            <div class="note">Accounts are stored in Neon Postgres. Passwords are stored as strong hashes (never plain text).</div>
+            <div class="log" id="logBox2">Ready.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rightStack">
+        <div class="card mini">
+          <div class="kicker">Next step</div>
+          <div class="big">Protect any page with one check</div>
+          <div class="monoLine">Example: <a href="./protected.html">protected.html</a></div>
+          <div class="hr"></div>
+          <div class="note">protected.html demonstrates the pattern: call <span style="font-family:var(--mono)">/me</span>, and if not authenticated, redirect back to this page with <span style="font-family:var(--mono)">?next=</span> set.</div>
+        </div>
+
+        <div class="card mini">
+          <div class="kicker">What you control</div>
+          <div class="big">All auth logic runs on your domain</div>
+          <div class="hr"></div>
+          <div class="note">
+            ✅ Your backend: Netlify Functions<br/>
+            ✅ Your database: Neon Postgres<br/>
+            ✅ Your session: Secure cookie<br/>
+            ✅ Your rules: your own code<br/><br/>
+            The database is just storage. The gate is your API.
+          </div>
+        </div>
+
+        <div class="card mini">
+          <div class="kicker">Tip</div>
+          <div class="big">Use <span style="color:var(--gold)">ADMIN_EMAILS</span> to mark admins</div>
+          <div class="hr"></div>
+          <div class="note">Set Netlify env var <span style="font-family:var(--mono)">ADMIN_EMAILS</span> to a comma-separated list (example: <span style="font-family:var(--mono)">you@domain.com</span>). Those accounts become role=admin automatically at signup.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">SOLE Sheets Auth • Netlify-ready • Static UI + Serverless API</div>
+  </div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+  const log1 = (msg)=>{ $("logBox").textContent = msg; };
+  const log2 = (msg)=>{ $("logBox2").textContent = msg; };
+  const setStatus = (authed, label) => {
+    $("statusDot").className = "dot " + (authed ? "good" : "bad");
+    $("statusText").textContent = label || (authed ? "Signed in" : "Not signed in");
+  };
+
+  function setTab(which){
+    const login = which==="login";
+    $("tabLogin").classList.toggle("active", login);
+    $("tabSignup").classList.toggle("active", !login);
+    $("loginPane").style.display = login ? "" : "none";
+    $("signupPane").style.display = login ? "none" : "";
+  }
+
+  $("tabLogin").onclick = ()=>setTab("login");
+  $("tabSignup").onclick = ()=>setTab("signup");
+
+  async function api(path, body){
+    const res = await fetch(path, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      credentials: "include",
+      body: JSON.stringify(body || {})
+    });
+    let data;
+    try{ data = await res.json(); } catch(e){ data = { ok:false, error:"Non-JSON response" }; }
+    return {res, data};
+  }
+
+  async function me(){
+    const res = await fetch("/.netlify/functions/me", { credentials:"include" });
+    let data;
+    try{ data = await res.json(); } catch(e){ data = { ok:false, error:"Non-JSON response" }; }
+    return data;
+  }
+
+  function nextTarget(){
+    const u = new URL(location.href);
+    const next = u.searchParams.get("next");
+    return next && next.startsWith("/") ? next : (next && next.startsWith("./") ? next : null);
+  }
+
+  $("btnLogin").onclick = async ()=>{
+    const email = $("loginEmail").value.trim();
+    const password = $("loginPass").value;
+    if(!email || !password){ log1("Missing email or password."); return; }
+    $("btnLogin").disabled = true;
+    log1("Signing in…");
+    const {data} = await api("/.netlify/functions/login", { email, password });
+    $("btnLogin").disabled = false;
+    if(!data.ok){ log1("ERROR: " + (data.error || "Login failed")); setStatus(false, "Not signed in"); return; }
+    setStatus(true, "Signed in as " + data.user.email);
+    log1(JSON.stringify(data, null, 2));
+    const next = nextTarget();
+    if(next) location.href = next;
+  };
+
+  $("btnSignup").onclick = async ()=>{
+    const email = $("signupEmail").value.trim();
+    const password = $("signupPass").value;
+    const password2 = $("signupPass2").value;
+    if(!email || !password){ log2("Missing email or password."); return; }
+    if(password.length < 10){ log2("Password too short. Use 10+ characters."); return; }
+    if(password !== password2){ log2("Passwords do not match."); return; }
+    $("btnSignup").disabled = true;
+    log2("Creating account…");
+    const {data} = await api("/.netlify/functions/signup", { email, password });
+    $("btnSignup").disabled = false;
+    if(!data.ok){ log2("ERROR: " + (data.error || "Signup failed")); return; }
+    log2(JSON.stringify(data, null, 2));
+    setTab("login");
+    $("loginEmail").value = email;
+    $("loginPass").value = "";
+    log1("Account created. Sign in now.");
+  };
+
+  $("btnLogout").onclick = async ()=>{
+    log1("Logging out…");
+    const {data} = await api("/.netlify/functions/logout", {});
+    setStatus(false, "Not signed in");
+    log1(JSON.stringify(data, null, 2));
+  };
+
+  $("btnMe").onclick = async ()=>{
+    log1("Checking session…");
+    const data = await me();
+    if(data.ok){
+      setStatus(true, "Signed in as " + data.user.email);
+    } else {
+      setStatus(false, "Not signed in");
+    }
+    log1(JSON.stringify(data, null, 2));
+  };
+
+  // auto-check on load
+  me().then(d=>{
+    if(d.ok) setStatus(true, "Signed in as " + d.user.email);
+    else setStatus(false, "Not signed in");
+  });
+</script>
+</body>
+</html>

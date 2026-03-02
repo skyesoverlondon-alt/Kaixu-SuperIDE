@@ -105,6 +105,7 @@
   .status-bar{padding:3px 14px;background:#060010;border-top:1px solid #1a0030;display:flex;gap:16px;font-size:10px;color:#5040a0;flex-shrink:0;}
   .status-bar span b{color:var(--fg);}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 
@@ -380,7 +381,7 @@ async function aiSearchSuggest(){
   if(!token){ document.getElementById('searchResults').innerHTML='<div style="color:#ff4f6a;text-align:center;margin-top:40px;">No gateway token. Save it in Secrets Vault.</div>'; return; }
   try{
     const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-      body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:`Recommend the best npm package for: "${q}". Reply with package name, one-line description, and why it's the best choice. Be concise.`}],max_tokens:200,app_id:'kaixu-pkgmgr'})});
+      body:JSON.stringify({messages:[{role:'user',content:`Recommend the best npm package for: "${q}". Reply with package name, one-line description, and why it's the best choice. Be concise.`}],max_tokens:200,app_id:'kaixu-pkgmgr'})});
     const d=await r.json();
     const text=d.output_text||'';
     document.getElementById('searchResults').innerHTML=`<div style="padding:20px;font-size:13px;line-height:1.7;color:var(--fg);background:var(--bg1);border-radius:6px;border:1px solid #2a0050;">${text.replace(/\n/g,'<br/>')}</div>`;

@@ -84,6 +84,7 @@ main{display:flex;flex:1;overflow:hidden}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--fgd);font-size:.9rem}
 .empty-icon{font-size:3rem}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 <header>
@@ -126,6 +127,7 @@ main{display:flex;flex:1;overflow:hidden}
       <button class="btn btn-cyan" onclick="aiTag()">🤖 AI Tag</button>
       <button class="btn btn-green" onclick="saveSnippet()">💾 Save</button>
       <button class="btn btn-purple" onclick="insertSnippet()">⚡ Insert</button>
+      <button class="btn btn-outline" onclick="downloadSnippet()" title="Download snippet as file">⬇ Download</button>
       <button class="btn btn-red" onclick="deleteSnippet()">🗑</button>
     </div>
     <div class="code-area">
@@ -314,6 +316,16 @@ function insertSnippet(){
     renderList();
   });
 }
+const _LANG_EXT={javascript:'js',typescript:'ts',python:'py',rust:'rs',go:'go',css:'css',html:'html',sql:'sql',bash:'sh',json:'json',yaml:'yaml',markdown:'md'};
+function downloadSnippet(){
+  if(!current||!current.body){toast('No snippet to download','var(--orange)');return;}
+  const ext=_LANG_EXT[current.lang]||'txt';
+  const name=(current.name||'snippet').replace(/[^a-z0-9_-]/gi,'_');
+  const blob=new Blob([current.body],{type:'text/plain'});
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`${name}.${ext}`});
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(`Downloaded ${name}.${ext} ✓`,'var(--green)');
+}
 
 // ── AI features ──
 async function aiTag(){
@@ -322,7 +334,7 @@ async function aiTag(){
   const code=document.getElementById('codeEditor').value;
   try{
     const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`},
-      body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[
+      body:JSON.stringify({messages:[
         {role:'user',content:`Analyze this code snippet and return ONLY a JSON object with: {"name":"short name","desc":"one line description","tags":["tag1","tag2","tag3"],"lang":"language"}. Code:\n\`\`\`\n${code}\n\`\`\``}
       ],max_tokens:200,app_id:'kaixu-snippethub'})});
     const d=await r.json();
@@ -343,11 +355,16 @@ async function aiExplain(){
   box.textContent='kAIxU is analyzing...';
   try{
     const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`},
-      body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[
+      body:JSON.stringify({messages:[
         {role:'user',content:`Explain this code snippet in plain English. Describe what it does, common use cases, and any gotchas:\n\`\`\`${current.lang}\n${current.body}\n\`\`\``}
       ],max_tokens:300,app_id:'kaixu-snippethub'})});
     const d=await r.json();
-    box.textContent=d.choices?.[0]?.message?.content||d.content||'No response';
+    const explanation=d.choices?.[0]?.message?.content||d.content||'No response';
+    box.innerHTML=`<div id="aiResultText" style="white-space:pre-wrap">${explanation.replace(/</g,'&lt;')}</div>
+      <div style="display:flex;gap:.5rem;margin-top:10px">
+        <button class="btn btn-outline" onclick="navigator.clipboard.writeText(document.getElementById('aiResultText').textContent).then(()=>toast('Copied ✓','var(--green)'))" style="font-size:.72rem;flex:1">📋 Copy</button>
+        <button class="btn btn-outline" onclick="(function(){const t=document.getElementById('aiResultText').textContent;const b=new Blob([t],{type:'text/plain'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(b),download:'kaixu-explanation.txt'});a.click();URL.revokeObjectURL(a.href);toast('Downloaded ✓','var(--green)');})()" style="font-size:.72rem;flex:1">⬇ Download</button>
+      </div>`;
   }catch(e){box.textContent='Error: '+e.message;}
 }
 
@@ -420,7 +437,7 @@ async function nlSearch(q){
   toast('kAIxU searching...','var(--purple)');
   try{
     const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`},
-      body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[
+      body:JSON.stringify({messages:[
         {role:'user',content:`I have these snippets: ${JSON.stringify(snippets.map(s=>({id:s.id,name:s.name,desc:s.desc,tags:s.tags,lang:s.lang})))}. The user is searching for: "${q}". Return ONLY a JSON array of snippet IDs that best match, ordered by relevance. Max 5.`}
       ],max_tokens:100,app_id:'kaixu-snippethub'})});
     const d=await r.json();

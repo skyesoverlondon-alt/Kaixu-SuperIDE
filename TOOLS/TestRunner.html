@@ -137,6 +137,8 @@
   .empty-state .title{font-size:16px;color:#8060a0;font-weight:600;}
   .empty-state .sub{font-size:12px;max-width:280px;line-height:1.5;}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -183,6 +185,8 @@
         <span style="color:var(--gold)">⊘ <b id="skipCount">0</b></span>
         <span style="color:var(--purple)">⏱ <b id="durLabel">—</b></span>
       </div>
+      <button class="btn btn-ghost btn-sm" onclick="exportResults()" title="Export test results as JSON">⬇ Export JSON</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportResultsPdf()" title="Export test results as PDF">📄 Export PDF</button>
     </div>
 
     <!-- RESULTS + DETAIL -->
@@ -581,19 +585,80 @@ Give a concise diagnosis and specific code fix suggestion. Be direct.`;
     const resp = await fetch(`${WORKER}/v1/chat`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-      body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:prompt}],max_tokens:400,app_id:'kaixu-testrunner'})
+      body:JSON.stringify({messages:[{role:'user',content:prompt}],max_tokens:400,app_id:'kaixu-testrunner'})
     });
     const data = await resp.json();
     const text = data.output_text||data.choices?.[0]?.message?.content||JSON.stringify(data);
-    box.innerHTML=`<div class="ai-resp">${escHtml(text).replace(/\n/g,'<br/>')}</div>`;
+    const aiHtml=`<div class="ai-resp">${escHtml(text).replace(/\n/g,'<br/>')}</div>
+      <div style="display:flex;gap:.4rem;margin-top:8px">
+        <button class="btn" style="background:#1a0030;color:#c084fc;border:1px solid #3a0060;font-size:9px;padding:2px 8px;flex:1" onclick="navigator.clipboard.writeText(${JSON.stringify(text)}).then(()=>toast('Copied ✓'))">&#x1F4CB; Copy</button>
+        <button class="btn" style="background:#1a0030;color:#c084fc;border:1px solid #3a0060;font-size:9px;padding:2px 8px;flex:1" onclick="(function(){const b=new Blob([${JSON.stringify(text)}],{type:'text/plain'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(b),download:'kaixu-fix.txt'});a.click();URL.revokeObjectURL(a.href);toast('Downloaded ✓');})()">&#x2B07; Download</button>
+      </div>`;
+    box.innerHTML=aiHtml;
     // also update detail pane
     selectTest(si,ti);
-    document.getElementById('aiRespBox').innerHTML=`<div class="ai-resp">${escHtml(text).replace(/\n/g,'<br/>')}</div>`;
+    document.getElementById('aiRespBox').innerHTML=aiHtml;
   }catch(e){
     box.innerHTML=`<div class="ai-resp" style="color:var(--red)">Error: ${e.message}</div>`;
   }
 }
 
+function exportResults(){
+  if(!suites.length){toast('No results to export');return;}
+  const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const payload={exported:new Date().toISOString(),framework:cfg.framework,suites:suites.map(s=>({file:s.file,tests:s.tests.map(t=>({name:t.name,status:t.status,dur:t.dur,err:t.err||null}))}))};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`test-results-${ts}.json`});
+  a.click(); URL.revokeObjectURL(a.href); toast('Results exported ✓');
+}
+function exportResultsPdf(){
+  if(!suites.length){toast('No results to export');return;}
+  if(!window.jspdf){toast('PDF library loading — try again','var(--orange)');return;}
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const margin=40, pageW=doc.internal.pageSize.getWidth()-margin*2;
+  // Header bar
+  doc.setFillColor(20,0,40);
+  doc.rect(0,0,doc.internal.pageSize.getWidth(),40,'F');
+  doc.setTextColor(187,49,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('kAIxU Test Report',margin,26);
+  doc.setTextColor(180,180,180); doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text(new Date().toLocaleString(),doc.internal.pageSize.getWidth()-margin,26,{align:'right'});
+  let y=60;
+  const totals = suites.reduce((a,s)=>{
+    s.tests.forEach(t=>{ a.total++; if(t.status==='pass')a.pass++; else if(t.status==='fail')a.fail++; else a.skip++; });
+    return a;
+  },{total:0,pass:0,fail:0,skip:0});
+  // Summary
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(30,30,30);
+  doc.text('Summary',margin,y); y+=20;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text(`Total: ${totals.total}  ✓ Passed: ${totals.pass}  ✗ Failed: ${totals.fail}  ○ Skipped: ${totals.skip}  |  Framework: ${cfg.framework||'auto'}`,margin,y); y+=24;
+  // Suite details
+  suites.forEach(s=>{
+    if(y>doc.internal.pageSize.getHeight()-60){doc.addPage();y=margin;}
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(162,67,255);
+    doc.text(s.file,margin,y); y+=16;
+    s.tests.forEach(t=>{
+      if(y>doc.internal.pageSize.getHeight()-40){doc.addPage();y=margin;}
+      const icon=t.status==='pass'?'✓':t.status==='fail'?'✗':'○';
+      const color=t.status==='pass'?[0,140,0]:t.status==='fail'?[180,0,0]:[100,100,100];
+      doc.setTextColor(...color); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      const line=doc.splitTextToSize(`${icon} ${t.name}${t.dur?' ('+t.dur+')':''}`,pageW-10);
+      doc.text(line,margin+10,y); y+=line.length*12;
+      if(t.err){
+        doc.setTextColor(180,60,60);
+        const err=doc.splitTextToSize(`\u2192 ERROR: ${t.err.slice(0,200)}`,pageW-20);
+        doc.text(err,margin+20,y); y+=err.length*11;
+      }
+    });
+    y+=6;
+  });
+  const ts=new Date().toISOString().slice(0,10);
+  doc.save(`test-report-${ts}.pdf`);
+  toast('PDF report downloaded ✓','var(--green)');
+}
 function renderCoverage(){
   const wrap = document.getElementById('covWrap');
   if(!coverageEnabled){ wrap.style.display='none'; return; }

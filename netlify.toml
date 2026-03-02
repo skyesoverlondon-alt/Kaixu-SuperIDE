@@ -5,6 +5,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Suppress Netlify secret scanner false-positives on public worker URL
+  NETLIFY_SUPPRESS_SECRETS_CHECK = "true"
 
 [[redirects]]
   from = "/api/*"

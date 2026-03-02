@@ -135,6 +135,7 @@ body::before{content:'';position:fixed;top:-40vh;left:50%;transform:translateX(-
 #toast{position:fixed;bottom:2rem;right:2rem;z-index:9999;padding:.7rem 1.1rem;border-radius:10px;font-size:12px;font-family:'Share Tech Mono',monospace;transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none;backdrop-filter:blur(12px)}
 #toast.show{transform:translateY(0);opacity:1}
   </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 <div id="toast"></div>
@@ -164,8 +165,8 @@ body::before{content:'';position:fixed;top:-40vh;left:50%;transform:translateX(-
     <input id="cfg-secret" type="password" placeholder="KAIXUSI_SECRET" style="flex:2">
     <span class="clabel">Model</span>
     <select id="cfg-model" style="flex:1">
-      <option value="gemini-2.5-flash" selected>kAIxU Brain 2.5</option>
-      <option value="gemini-2.0-flash">kAIxU Nano 2.0</option>
+      <option value="kaixu-brain" selected>kAIxU Brain 2.5</option>
+      <option value="kaixu-nano">kAIxU Nano 2.0</option>
     </select>
     <button class="btn btn-primary" id="run-all-btn" onclick="runFullSuite()">▶ Run Full Suite</button>
     <button class="btn btn-gold" id="auto-btn" onclick="toggleAuto()">⟳ Auto 60s</button>
@@ -228,7 +229,10 @@ body::before{content:'';position:fixed;top:-40vh;left:50%;transform:translateX(-
   <div class="log-pane">
     <div class="log-hdr">
       <span style="font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#64748b">Network Log — all real requests</span>
-      <button class="btn btn-ghost" onclick="copyLog()" style="padding:.3rem .75rem;font-size:10px">Copy</button>
+      <div style="display:flex;gap:.4rem">
+        <button class="btn btn-ghost" onclick="copyLog()" style="padding:.3rem .75rem;font-size:10px">Copy</button>
+        <button class="btn btn-ghost" onclick="downloadLog()" style="padding:.3rem .75rem;font-size:10px">⬇ Download</button>
+      </div>
     </div>
     <div class="log-body" id="log-body"></div>
   </div>
@@ -260,7 +264,7 @@ body::before{content:'';position:fixed;top:-40vh;left:50%;transform:translateX(-
 const BRAIN_KEY = 'sovereign_brain_cfg';
 
 // Display-safe request body — strips internal provider routing from investor-visible drawers
-const _MODEL_DISPLAY={'gemini-2.5-flash':'kAIxU Brain 2.5','gemini-2.0-flash':'kAIxU Nano 2.0','gemini-embedding-001':'kAIxU Embed 1.0'};
+const _MODEL_DISPLAY={'kaixu-brain':'kAIxU Brain 2.5','kaixu-nano':'kAIxU Nano 2.0','kaixu-embed':'kAIxU Embed 1.0'};
 function sanitizeReqBody(b){
   if(!b||typeof b!=='object') return b;
   const o={...b};
@@ -283,7 +287,7 @@ function loadCfg(){
 function getCfg(){
   const url=(document.getElementById('cfg-url').value||'').trim().replace(/\/+$/,'');
   const secret=(document.getElementById('cfg-secret').value||'').trim();
-  const model=document.getElementById('cfg-model').value||'gemini-2.5-flash'; // wire value
+  const model=document.getElementById('cfg-model').value||'kaixu-brain';
   return{url,secret,model};
 }
 
@@ -361,7 +365,7 @@ async function runTest(id){
     }
 
     if(id==='chat'){
-      const reqBody={provider:'gemini',model,messages:[{role:'user',content:'Reply with only the word Pong.'}],max_tokens:8,app_id:'kaixu-gateway-live'};
+      const reqBody={model,messages:[{role:'user',content:'Reply with only the word Pong.'}],max_tokens:8,app_id:'kaixu-gateway-live'};
       const r=await fetch(`${url}/v1/chat`,{
         method:'POST',
         headers:{'Authorization':`Bearer ${secret}`,'Content-Type':'application/json'},
@@ -380,7 +384,7 @@ async function runTest(id){
 
     if(id==='stream'){
       // Real SSE read — we count actual data: events, verify text arrived from the model
-      const reqBody={provider:'gemini',model,messages:[{role:'user',content:'Say "streaming confirmed" and nothing else.'}],max_tokens:20,stream:true,app_id:'kaixu-gateway-live'};
+      const reqBody={model,messages:[{role:'user',content:'Say "streaming confirmed" and nothing else.'}],max_tokens:20,stream:true,app_id:'kaixu-gateway-live'};
       const r=await fetch(`${url}/v1/stream`,{
         method:'POST',
         headers:{'Authorization':`Bearer ${secret}`,'Content-Type':'application/json'},
@@ -431,7 +435,7 @@ async function runTest(id){
     }
 
     if(id==='embed'){
-      const reqBody={provider:'gemini',model:'gemini-embedding-001',input:'kAIxU is the future of AI tooling.',app_id:'kaixu-gateway-live'};
+      const reqBody={model:'kaixu-embed',input:'kAIxU is the future of AI tooling.',app_id:'kaixu-gateway-live'};
       const r=await fetch(`${url}/v1/embed`,{
         method:'POST',
         headers:{'Authorization':`Bearer ${secret}`,'Content-Type':'application/json'},
@@ -451,7 +455,7 @@ async function runTest(id){
     }
 
     if(id==='auth'){
-      const reqBody={provider:'gemini',model,messages:[{role:'user',content:'auth guard test — this must be rejected'}],max_tokens:8};
+      const reqBody={model,messages:[{role:'user',content:'auth guard test — this must be rejected'}],max_tokens:8};
       const r=await fetch(`${url}/v1/chat`,{
         method:'POST',
         headers:{'Authorization':'Bearer INVALID_TOKEN_xyzzy_this_will_fail','Content-Type':'application/json'},
@@ -519,7 +523,7 @@ async function runStreamDemo(){
     const r=await fetch(`${url}/v1/stream`,{
       method:'POST',
       headers:{'Authorization':`Bearer ${secret}`,'Content-Type':'application/json'},
-      body:JSON.stringify({provider:'gemini',model,messages:[{role:'user',content:prompt}],max_tokens:400,stream:true,app_id:'kaixu-gateway-live'}),
+      body:JSON.stringify({model,messages:[{role:'user',content:prompt}],max_tokens:400,stream:true,app_id:'kaixu-gateway-live'}),
     });
     const httpStatus=r.status;
     document.getElementById('sm-http').textContent=`HTTP ${httpStatus}`;
@@ -655,6 +659,14 @@ function log(type,msg){
 function copyLog(){
   const lines=[...document.querySelectorAll('.le')].map(e=>e.textContent.trim()).join('\n');
   navigator.clipboard.writeText(lines).then(()=>toast('Log copied','ok'));
+}
+function downloadLog(){
+  const lines=[...document.querySelectorAll('.le')].map(e=>e.textContent.trim()).join('\n');
+  if(!lines.trim()){toast('Nothing to download','warn');return;}
+  const ts=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const blob=new Blob([lines],{type:'text/plain'});
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`gateway-log-${ts}.txt`});
+  a.click(); URL.revokeObjectURL(a.href); toast('Log downloaded ✓','ok');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────

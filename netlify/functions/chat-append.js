@@ -1,6 +1,7 @@
 const { query } = require('./_lib/db');
 const { verifyToken, getBearerToken, json } = require('./_lib/auth');
 const { readJson } = require('./_lib/body');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
@@ -20,6 +21,10 @@ exports.handler = async (event) => {
   try {
     const claims = verifyToken(token);
     const userId = claims.sub;
+
+    // ── Rate limit: 60 chat messages / min ─────────────────────────
+    const rlLimited = await checkRateLimit(userId, 'chat-append', { maxHits: 60, windowSecs: 60 });
+    if (rlLimited) return json(429, { ok: false, error: 'Too many requests.', retryAfter: 60 });
 
     // Verify access (org-aware)
     const wsRes = await query('select org_id, user_id from workspaces where id=$1', [wsId]);

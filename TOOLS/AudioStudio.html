@@ -22,6 +22,7 @@
 pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;color:#d8cbe9;max-height:200px;overflow:auto}
 .f{padding:3px 12px;background:#060010;border-top:1px solid #1a0030;font-size:10px;color:#63548a;display:flex;gap:14px}.f b{color:#dfd4ef}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
 <div class="h"><div style="font-size:18px">🎙️</div><div><h1>Audio Studio</h1><p>Voice coding, dictation, readback, meeting capture, and transcript actions</p></div><div class="r"><button class="b p" onclick="toggleMic()" id="micBtn">🎤 Start mic</button><button class="b c" onclick="speakSelection()">🔊 Read text</button><button class="b g" onclick="runVoiceCommand()">⚡ Run voice command</button></div></div>
@@ -38,7 +39,7 @@ pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px
   </section>
   <aside class="col">
     <div class="card"><div class="t">Session Stats</div><div class="grid"><div class="k"><div class="v" id="mins" style="color:var(--cyan)">0</div><div class="l">Minutes</div></div><div class="k"><div class="v" id="words" style="color:var(--purple)">0</div><div class="l">Words</div></div><div class="k"><div class="v" id="acts" style="color:var(--gold)">0</div><div class="l">Actions</div></div></div></div>
-    <div class="card"><div class="t">kAIxU Voice Assist</div><pre id="aiOut">No AI output yet.</pre><div style="display:flex;gap:8px;margin-top:8px"><button class="b p" onclick="aiPolishTranscript()">✦ Polish transcript</button><button class="b g" onclick="extractTasks()">✦ Extract tasks</button></div></div>
+    <div class="card"><div class="t">kAIxU Voice Assist</div><pre id="aiOut">No AI output yet.</pre><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="b p" onclick="aiPolishTranscript()">✦ Polish transcript</button><button class="b g" onclick="extractTasks()">✦ Extract tasks</button><button class="b" style="background:transparent;border:1px solid rgba(100,100,200,.4);color:#94a3b8" onclick="navigator.clipboard.writeText(document.getElementById('aiOut').textContent).then(()=>{setStatus('Copied ✓')})">📋 Copy</button><button class="b" style="background:transparent;border:1px solid rgba(100,100,200,.4);color:#94a3b8" onclick="(function(){const t=document.getElementById('aiOut').textContent;if(!t||t==='No AI output yet.'){setStatus('Nothing to download');return;}const b=new Blob([t],{type:'text/plain'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(b),download:'kaixu-voice-output.txt'});a.click();URL.revokeObjectURL(a.href);setStatus('Downloaded ✓');})()">⬇ Download</button></div></div>
   </aside>
 </div>
 <div class="f"><span>Mic: <b id="micState">Off</b></span><span>Status: <b id="status">Idle</b></span><span>Mode: <b>Voice Studio</b></span></div>
@@ -80,7 +81,7 @@ function voiceToCode(){actions++;metrics();setStatus('Voice → code draft gener
 async function aiCall(prompt,app){
   const token=(JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token)||'';
   if(!token) return 'Missing kAIxU gate token in sovereign_brain_cfg.';
-  const body={provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:prompt}],max_tokens:420,app_id:app};
+  const body={messages:[{role:'user',content:prompt}],max_tokens:420,app_id:app};
   const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)});
   const d=await r.json(); return d.output_text||'No response.';
 }

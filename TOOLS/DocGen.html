@@ -78,6 +78,8 @@ main{display:flex;flex:1;overflow:hidden}
 .progress-bar{height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;margin:6px 0}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--purple-hot));transition:.4s;width:0}
 </style>
+<script src="../assets/kaixu-nav.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <header>
@@ -171,6 +173,8 @@ main{display:flex;flex:1;overflow:hidden}
     </div>
     <div class="export-row">
       <button class="btn btn-outline" onclick="copyRaw()" style="font-size:.75rem">📋 Copy Current</button>
+      <button class="btn btn-outline" onclick="downloadCurrent()" style="font-size:.75rem">⬇ Download Current</button>
+      <button class="btn btn-outline" onclick="downloadCurrentPdf()" style="font-size:.75rem">📄 Export PDF</button>
       <button class="btn btn-gold" onclick="exportBundle()" style="font-size:.75rem">📦 Export Bundle</button>
       <button class="btn btn-outline" onclick="openNotion()" style="font-size:.75rem">🔗 Notion</button>
     </div>
@@ -218,7 +222,7 @@ function projContext(){
 
 async function callAI(prompt){
   const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getToken()}`},
-    body:JSON.stringify({provider:'gemini',model:'gemini-2.5-flash',messages:[{role:'user',content:prompt}],max_tokens:1800,app_id:'kaixu-docgen'})});
+    body:JSON.stringify({messages:[{role:'user',content:prompt}],max_tokens:1800,app_id:'kaixu-docgen'})});
   if(!r.ok) throw new Error(`HTTP ${r.status}`);
   const d=await r.json();
   return d.choices?.[0]?.message?.content||d.content||'';
@@ -357,6 +361,20 @@ function copyRaw(){
   navigator.clipboard.writeText(active.value).then(()=>toast('Copied ✓','var(--green)'));
 }
 
+function downloadCurrent(){
+  const active=document.querySelector('.tab-body.active textarea');
+  if(!active||!active.value){toast('Nothing to download','var(--orange)');return;}
+  const tabMap={rawMd:'README.md',rawJsDoc:'DOCSTRINGS.txt',rawOpenapi:'openapi.yaml',rawChangelog:'CHANGELOG.md'};
+  const filename=tabMap[active.id]||'kaixu-doc.txt';
+  const ext=filename.split('.').pop();
+  const mimeMap={md:'text/markdown',yaml:'text/yaml',txt:'text/plain',json:'application/json'};
+  const mime=mimeMap[ext]||'text/plain';
+  const blob=new Blob([active.value],{type:mime});
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:filename});
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(`${filename} downloaded ✓`,'var(--green)');
+}
+
 function exportMd(){
   const md=docs.readme||document.getElementById('rawMd').value;
   if(!md){toast('Generate README first','var(--orange)');return;}
@@ -386,6 +404,49 @@ function exportBundle(){
 }
 
 function openNotion(){toast('Notion export coming in v2','var(--orange)');}
+
+function downloadCurrentPdf(){
+  const active=document.querySelector('.tab-body.active textarea');
+  if(!active||!active.value){toast('Nothing to export','var(--orange)');return;}
+  if(!window.jspdf){toast('PDF library loading — try again','var(--orange)');return;}
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const margin = 40, pageW = doc.internal.pageSize.getWidth() - margin*2;
+  const lines = active.value.split('\n');
+  let y = 60;
+  // Header
+  doc.setFillColor(20,0,40);
+  doc.rect(0,0,doc.internal.pageSize.getWidth(),40,'F');
+  doc.setTextColor(187,49,255);
+  doc.setFontSize(14);
+  doc.setFont('helvetica','bold');
+  doc.text('kAIxU DocGen Export',margin,26);
+  doc.setTextColor(180,180,180);
+  doc.setFontSize(8);
+  doc.text(new Date().toLocaleString(),doc.internal.pageSize.getWidth()-margin,26,{align:'right'});
+  // Content
+  doc.setTextColor(30,30,30);
+  lines.forEach(line=>{
+    let fontSize=10, isBold=false;
+    if(line.startsWith('# ')){ fontSize=16; isBold=true; line=line.slice(2); }
+    else if(line.startsWith('## ')){ fontSize=13; isBold=true; line=line.slice(3); }
+    else if(line.startsWith('### ')){ fontSize=11; isBold=true; line=line.slice(4); }
+    doc.setFontSize(fontSize);
+    doc.setFont('helvetica', isBold?'bold':'normal');
+    const wrapped=doc.splitTextToSize(line||' ',pageW);
+    const lineH=fontSize+4;
+    if(y+wrapped.length*lineH>doc.internal.pageSize.getHeight()-margin){
+      doc.addPage();
+      y=margin;
+    }
+    doc.text(wrapped,margin,y);
+    y+=wrapped.length*lineH+(isBold?6:2);
+  });
+  const tabMap={rawMd:'README',rawJsDoc:'DOCSTRINGS',rawOpenapi:'OpenAPI',rawChangelog:'CHANGELOG'};
+  const name=tabMap[active.id]||'kaixu-doc';
+  doc.save(`${name}.pdf`);
+  toast(`${name}.pdf downloaded ✓`,'var(--green)');
+}
 </script>
 </body>
 </html>

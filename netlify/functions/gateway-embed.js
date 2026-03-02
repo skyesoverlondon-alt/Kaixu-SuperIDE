@@ -18,6 +18,7 @@
 const crypto = require('crypto');
 const { getBearerToken, verifyToken } = require('./_lib/auth');
 const { query } = require('./_lib/db');
+const { checkRateLimit } = require('./_lib/ratelimit');
 
 const UPSTREAM = () => `${(process.env.KAIXUSI_WORKER_URL || '').replace(/\/+$/, '')}/v1/embed`;
 
@@ -80,6 +81,12 @@ exports.handler = async (event) => {
       if (tok) { const decoded = verifyToken(tok); userId = decoded?.sub || null; }
     } catch { /* no valid token — that's OK */ }
   }
+
+  // ── Rate limit: 60 req/min per caller (embeddings, cheaper than chat) ────
+  const clientIp = event.headers['x-forwarded-for']?.split(',')[0]?.trim() || event.headers['client-ip'] || 'anon';
+  const rlKey = userId || clientIp;
+  const limited = await checkRateLimit(rlKey, 'gateway-embed', { maxHits: 60, windowSecs: 60 });
+  if (limited) return { statusCode: 429, headers: CORS, body: JSON.stringify({ error: 'Rate limit exceeded. Max 60 requests/min.', retryAfter: 60 }) };
 
   const enrichedBody = {
     ...bodyData,

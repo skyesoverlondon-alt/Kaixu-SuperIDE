@@ -9,6 +9,26 @@
   - Local-first via IndexedDB
 */
 
+// ─── Sentry browser SDK init ────────────────────────────────────────────────
+// The Sentry loader script (js.sentry-cdn.com) auto-inits with the embedded DSN.
+// We just add extra config: performance tracing + unhandled rejection capture.
+(function initSentry() {
+  try {
+    if (!window.Sentry) return;
+    window.Sentry.onLoad(function () {
+      window.Sentry.init({
+        environment:      location.hostname === 'localhost' ? 'development' : 'production',
+        tracesSampleRate: 0.1,
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        window.Sentry.captureException(e.reason || new Error('Unhandled rejection'));
+      });
+    });
+  } catch (e) {
+    console.warn('[kAIxU] Sentry init failed:', e.message);
+  }
+})();
+
 // ─── Tiny helpers ──────────────────────────────────────────────────────────
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -252,6 +272,94 @@ async function exportClientBundle() {
 
   zip.file('CHANGE_REPORT.md', report);
   zip.file('CHANGE_REPORT.txt', report.replace(/[#*`]/g, ''));
+
+  // 3. CHANGE_REPORT.pdf using jsPDF
+  try {
+    if (typeof window !== 'undefined' && window.jspdf && window.jspdf.jsPDF) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 18;
+      const contentW = pageW - margin * 2;
+      let y = margin;
+
+      // Header
+      doc.setFillColor(15, 15, 25);
+      doc.rect(0, 0, pageW, 28, 'F');
+      doc.setTextColor(139, 92, 246);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('kAIxU SuperIDE', margin, 12);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 200, 220);
+      doc.text(`Change Report  ·  Generated ${date}`, margin, 20);
+      y = 36;
+
+      // Section: files
+      doc.setTextColor(30, 30, 40);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Project Files  (${files.length} total)`, margin, y);
+      y += 6;
+      doc.setDrawColor(139, 92, 246);
+      doc.setLineWidth(0.4);
+      doc.line(margin, y, pageW - margin, y);
+      y += 5;
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(50, 50, 70);
+      for (const f of files) {
+        if (y > pageH - 20) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(`▸  ${f.path}`, margin + 2, y);
+        y += 5;
+      }
+
+      // Section: commits
+      if (commits.length) {
+        y += 4;
+        if (y > pageH - 30) { doc.addPage(); y = margin; }
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 40);
+        doc.text('Recent Commits', margin, y);
+        y += 6;
+        doc.setDrawColor(139, 92, 246);
+        doc.line(margin, y, pageW - margin, y);
+        y += 5;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(50, 50, 70);
+        for (const c of commits) {
+          if (y > pageH - 20) { doc.addPage(); y = margin; }
+          const msg = (c.message || c.msg || 'Commit').slice(0, 90);
+          const ts  = c.timestamp || c.date || '';
+          doc.text(`•  ${msg}`, margin + 2, y);
+          if (ts) { doc.setTextColor(130,130,160); doc.text(ts, pageW - margin, y, { align: 'right' }); doc.setTextColor(50,50,70); }
+          y += 5;
+        }
+      }
+
+      // Footer on each page
+      const total = doc.getNumberOfPages();
+      for (let p = 1; p <= total; p++) {
+        doc.setPage(p);
+        doc.setFontSize(7);
+        doc.setTextColor(160, 160, 180);
+        doc.text(`kAIxU SuperIDE  ·  Confidential  ·  Page ${p} of ${total}`, pageW / 2, pageH - 8, { align: 'center' });
+      }
+
+      const pdfBytes = doc.output('arraybuffer');
+      zip.file('CHANGE_REPORT.pdf', pdfBytes);
+    }
+  } catch (pdfErr) {
+    console.warn('PDF generation skipped:', pdfErr);
+  }
 
   const blob = await zip.generateAsync({ type: 'blob' });
   const url  = URL.createObjectURL(blob);
@@ -851,6 +959,7 @@ function renderChat() {
   chatMessages.forEach((m, idx) => {
     const div = document.createElement('div');
     div.className = `chatMsg ${m.role}`;
+    if (m.thinking) div.classList.add('thinking');
 
     const meta = document.createElement('div');
     meta.className = 'chatMeta';
@@ -908,6 +1017,16 @@ function renderChat() {
 
       actions.appendChild(btnApply);
       actions.appendChild(btnUndo);
+
+      // PDF export for messages that have file operations
+      if (m.operations?.length) {
+        const btnPdf = document.createElement('button');
+        btnPdf.textContent = '📄 Report';
+        btnPdf.title = 'Export change report as PDF';
+        btnPdf.addEventListener('click', () => exportChatPdf(m));
+        actions.appendChild(btnPdf);
+      }
+
       div.appendChild(actions);
     }
 
@@ -993,6 +1112,78 @@ async function applyOperations(ops) {
       await deleteFile(from);
     }
   }
+}
+
+// ─── Export AI change report as PDF ────────────────────────────────────────
+function exportChatPdf(msg) {
+  if (!window.jspdf) { toast('PDF library not loaded yet — try again', 'error'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc   = new jsPDF({ unit: 'pt', format: 'a4' });
+  const margin = 40;
+  const pageW  = doc.internal.pageSize.getWidth();
+  const contentW = pageW - margin * 2;
+
+  // ── Header ──────────────────────────────────────────────────────────────
+  doc.setFillColor(20, 0, 40);
+  doc.rect(0, 0, pageW, 46, 'F');
+  doc.setTextColor(187, 49, 255);
+  doc.setFontSize(15); doc.setFont('helvetica', 'bold');
+  doc.text('kAIxU Change Report', margin, 30);
+  doc.setTextColor(180, 180, 180); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+  const ts = msg.createdAt ? new Date(msg.createdAt).toLocaleString() : new Date().toLocaleString();
+  doc.text(ts, pageW - margin, 30, { align: 'right' });
+
+  let y = 70;
+
+  // ── Summary ──────────────────────────────────────────────────────────────
+  doc.setTextColor(30, 30, 30); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+  doc.text('Summary', margin, y); y += 18;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  const summaryLines = doc.splitTextToSize(msg.text || '(no summary)', contentW);
+  doc.text(summaryLines, margin, y); y += summaryLines.length * 14 + 12;
+
+  // ── Operations table ──────────────────────────────────────────────────────
+  if (msg.operations?.length) {
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(30, 30, 30);
+    doc.text(`File Operations (${msg.operations.length})`, margin, y); y += 18;
+
+    const TYPE_COLORS = {
+      create: [0, 120, 60],
+      update: [60, 60, 180],
+      delete: [180, 0, 0],
+      rename: [150, 80, 0],
+    };
+
+    msg.operations.forEach((op, i) => {
+      if (y > doc.internal.pageSize.getHeight() - 60) { doc.addPage(); y = margin; }
+      const color = TYPE_COLORS[op.type] || [60, 60, 60];
+      doc.setFillColor(...color);
+      doc.roundedRect(margin, y - 10, 44, 13, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+      doc.text(op.type.toUpperCase(), margin + 2, y);
+
+      doc.setTextColor(30, 30, 30); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      const path = op.path || (op.from ? `${op.from} → ${op.to}` : '');
+      const pathLines = doc.splitTextToSize(path, contentW - 52);
+      doc.text(pathLines, margin + 50, y); y += Math.max(pathLines.length * 12, 14) + 6;
+    });
+  }
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFillColor(20, 0, 40);
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.rect(0, pageH - 24, pageW, 24, 'F');
+    doc.setTextColor(120, 60, 180); doc.setFontSize(7);
+    doc.text('Generated by kAIxU Super IDE — skyesoverlondon.com', margin, pageH - 9);
+    doc.text(`Page ${i} of ${pageCount}`, pageW - margin, pageH - 9, { align: 'right' });
+  }
+
+  const filename = `kaixu-changes-${new Date().toISOString().slice(0, 10)}.pdf`;
+  doc.save(filename);
+  toast(`${filename} downloaded ✓`, 'success');
 }
 
 async function applyChatEdits(idx) {
@@ -1141,6 +1332,36 @@ function _getToolModePrefix() {
   return prefixes[mode] || '';
 }
 
+// ── AI background job helpers ────────────────────────────────────────────────
+function _generateJobId() {
+  // Simple UUID v4-ish generator (no crypto dependency needed in browser)
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+/**
+ * Polls /api/ai-job-status until status='done' or 'error', or timeout.
+ * Returns the result object on success, throws on error/timeout.
+ */
+async function _pollAiJob(jobId, timeoutMs = 180000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 2000)); // 2s interval
+    let data;
+    try {
+      data = await api(`/api/ai-job-status?jobId=${encodeURIComponent(jobId)}`);
+    } catch (e) {
+      // api() throws when ok:false — that means job errored
+      throw e;
+    }
+    if (data.status === 'done') return data.result;
+    // else 'queued' or 'running' — keep polling
+  }
+  throw new Error('kAIxU timed out (3 min). Try with a smaller scope.');
+}
+
 async function sendChat(overrideText) {
   const input = $('#chatInput');
   const text = String(overrideText || input.value || '').trim();
@@ -1173,16 +1394,47 @@ async function sendChat(overrideText) {
   let result;
   try {
     const modelOverride = localStorage.getItem('KAIXU_MODEL') || null;
-    const data = await api('/api/ai-edit', {
+
+    // ── Show thinking indicator ────────────────────────────────────────────
+    const thinkingIdx = chatMessages.length;
+    chatMessages.push({ role: 'assistant', text: 'kAIxU is working\u2026', thinking: true, createdAt: Date.now(), operations: [], applied: false });
+    renderChat();
+
+    // ── Kick off background job (Netlify returns 202 immediately) ──────────
+    const jobId = _generateJobId();
+    const bgHeaders = { 'Content-Type': 'application/json' };
+    if (authToken) bgHeaders['Authorization'] = `Bearer ${authToken}`;
+    const bgRes = await fetch('/api/ai-edit-run-background', {
       method: 'POST',
-      body: {
+      headers: bgHeaders,
+      body: JSON.stringify({
+        jobId,
         messages: [{ role: 'user', content: prompt }],
         model: modelOverride || undefined,
-        workspaceId: currentWorkspaceId || undefined
-      }
+        workspaceId: currentWorkspaceId || undefined,
+      }),
     });
-    result = data.result;
+    if (bgRes.status !== 202) {
+      // Fallback: try synchronous ai-edit endpoint
+      const data = await api('/api/ai-edit', {
+        method: 'POST',
+        body: {
+          messages: [{ role: 'user', content: prompt }],
+          model: modelOverride || undefined,
+          workspaceId: currentWorkspaceId || undefined,
+        },
+      });
+      chatMessages.splice(thinkingIdx, 1);
+      result = data.result;
+    } else {
+      // Poll until done
+      result = await _pollAiJob(jobId);
+      chatMessages.splice(thinkingIdx, 1);
+    }
   } catch (e) {
+    // Remove thinking bubble if still present
+    const tidx = chatMessages.findIndex(m => m.thinking);
+    if (tidx !== -1) chatMessages.splice(tidx, 1);
     chatMessages.push({ role: 'assistant', text: `AI error: ${e.message}`, createdAt: Date.now(), operations: [], applied: false });
     renderChat();
     return;
@@ -2406,7 +2658,7 @@ async function syncEmbeddings() {
   if (!currentWorkspaceId) { toast('Open a workspace first', 'error'); return; }
 
   // Collect all text files from IndexedDB
-  toast('Indexing codebase for AI…', 'info');
+  toast('Indexing codebase for AI… (running in background)', 'info');
   try {
     const req = indexedDB.open('SuperIDE');
     const db  = await new Promise((res, rej) => {
@@ -2429,21 +2681,32 @@ async function syncEmbeddings() {
 
     if (!files.length) { toast('No text files to index', 'info'); return; }
 
-    // Split into batches of 20 files
-    const batchSize = 20;
-    let totalSynced = 0;
-    for (let i = 0; i < files.length; i += batchSize) {
-      const batch = files.slice(i, i + batchSize);
-      const res   = await fetch('/.netlify/functions/embeddings', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body:    JSON.stringify({ action: 'sync', workspaceId: currentWorkspaceId, files: batch }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast(`Sync error: ${data}`, 'error'); return; }
-      totalSynced += data.synced || 0;
+    // Fire-and-forget via background function (15-min timeout, no polling needed)
+    const res = await fetch('/.netlify/functions/embeddings-sync-background', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+      body:    JSON.stringify({ workspaceId: currentWorkspaceId, files }),
+    });
+
+    if (res.status === 202) {
+      toast(`✓ Indexing ${files.length} files in background — AI will use results within ~30s`, 'success');
+    } else {
+      // Fallback: old batched approach if background function unavailable
+      const batchSize = 20;
+      let totalSynced = 0;
+      for (let i = 0; i < files.length; i += batchSize) {
+        const batch = files.slice(i, i + batchSize);
+        const bRes  = await fetch('/.netlify/functions/embeddings', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+          body:    JSON.stringify({ action: 'sync', workspaceId: currentWorkspaceId, files: batch }),
+        });
+        const data = await bRes.json();
+        if (!bRes.ok) { toast(`Sync error: ${data.error || bRes.status}`, 'error'); return; }
+        totalSynced += data.synced || 0;
+      }
+      toast(`✓ Indexed ${totalSynced} chunks from ${files.length} files`, 'success');
     }
-    toast(`✓ Indexed ${totalSynced} chunks from ${files.length} files`, 'success');
   } catch (err) {
     toast('Embedding sync failed: ' + err.message, 'error');
   }
@@ -2460,6 +2723,77 @@ async function semanticSearch(query) {
     const data = await res.json();
     return data.results || [];
   } catch { return []; }
+}
+
+function initPanelResize() {
+  // ── Sidebar drag-resize ──────────────────────────────────────────────────
+  const sideHandle  = document.getElementById('sidebar-resize-handle');
+  const side        = document.getElementById('side');
+  if (sideHandle && side) {
+    let dragging = false, startX = 0, startW = 0;
+    sideHandle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      dragging = true; startX = e.clientX;
+      startW   = side.getBoundingClientRect().width;
+      sideHandle.classList.add('dragging');
+      document.body.style.cursor    = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const w = Math.max(180, Math.min(startW + (e.clientX - startX), window.innerWidth * 0.6));
+      side.style.width = w + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      sideHandle.classList.remove('dragging');
+      document.body.style.cursor     = '';
+      document.body.style.userSelect = '';
+    });
+    // Touch support
+    sideHandle.addEventListener('touchstart', e => {
+      dragging = true; startX = e.touches[0].clientX;
+      startW   = side.getBoundingClientRect().width;
+      sideHandle.classList.add('dragging');
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (!dragging) return;
+      const w = Math.max(180, Math.min(startW + (e.touches[0].clientX - startX), window.innerWidth * 0.6));
+      side.style.width = w + 'px';
+    }, { passive: true });
+    document.addEventListener('touchend', () => {
+      dragging = false;
+      sideHandle.classList.remove('dragging');
+    });
+  }
+
+  // ── Preview drag-resize ──────────────────────────────────────────────────
+  const prevHandle  = document.getElementById('preview-resize-handle');
+  const preview     = document.getElementById('preview-section');
+  if (prevHandle && preview) {
+    let dragging = false, startX = 0, startW = 0;
+    prevHandle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      dragging = true; startX = e.clientX;
+      startW   = preview.getBoundingClientRect().width;
+      prevHandle.classList.add('dragging');
+      document.body.style.cursor    = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const w = Math.max(200, Math.min(startW - (e.clientX - startX), window.innerWidth * 0.7));
+      preview.style.width = w + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      prevHandle.classList.remove('dragging');
+      document.body.style.cursor     = '';
+      document.body.style.userSelect = '';
+    });
+  }
 }
 
 async function init() {
@@ -2483,6 +2817,7 @@ async function init() {
   initSecretsScanner();      // app.js — secrets pattern watcher
   bindSettingsModal();       // ui.js — settings modal bindings
   bindEvents();              // app.js — auth, chat, uploads, preview, commits
+  initPanelResize();         // app.js — sidebar + preview drag-resize handles
 
   // Watch mode toggle
   const watchChk = document.getElementById('watchMode');

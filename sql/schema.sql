@@ -453,3 +453,30 @@ create table if not exists kaixu_customer_keys (
 create index if not exists idx_kxc_keys_hash     on kaixu_customer_keys(key_hash);
 create index if not exists idx_kxc_keys_active   on kaixu_customer_keys(is_active);
 create index if not exists idx_kxc_keys_email    on kaixu_customer_keys(owner_email);
+
+-- ─── AI Background Jobs ───────────────────────────────────────────────────────
+-- Stores async AI job state for background-function polling pattern.
+-- Client generates jobId (UUID), POSTs to ai-edit-run-background, polls ai-job-status.
+create table if not exists ai_jobs (
+  id            uuid        primary key,                    -- client-generated UUID
+  user_id       uuid        references users(id) on delete cascade,
+  workspace_id  uuid        references workspaces(id) on delete cascade,
+  org_id        uuid        references orgs(id) on delete cascade,
+  status        text        not null default 'queued'
+                  check (status in ('queued', 'running', 'done', 'error')),
+  result        jsonb,                                      -- final AI response
+  error         text,                                      -- error message if failed
+  model         text,                                      -- resolved model used
+  prompt_tokens int         not null default 0,
+  completion_tokens int     not null default 0,
+  latency_ms    int,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists idx_ai_jobs_user_id      on ai_jobs(user_id);
+create index if not exists idx_ai_jobs_workspace_id on ai_jobs(workspace_id);
+create index if not exists idx_ai_jobs_status       on ai_jobs(status);
+-- Auto-expire jobs older than 24h (run via pg_cron or manual cron)
+-- DELETE FROM ai_jobs WHERE created_at < now() - interval '24 hours';
+create index if not exists idx_kxc_keys_email    on kaixu_customer_keys(owner_email);
