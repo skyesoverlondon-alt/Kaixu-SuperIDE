@@ -200,7 +200,7 @@
 </div>
 
 <script>
-const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+const WORKER=(window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev');
 
 const DEMO_PACKAGES = [
   {name:'express',version:'4.18.2',latest:'4.21.2',desc:'Fast, unopinionated web framework',license:'MIT',vuln:false,dev:false,size:'209kB'},

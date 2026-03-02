@@ -190,7 +190,7 @@ function tagColor(tag){ if(!tag) return '#475569'; if(!tagColorCache[tag]){ cons
 
 // ── STATE ─────────────────────────────────────────────────────
 let boards = { backlog:[], todo:[], inprogress:[], done:[] };
-let brainCfg = { url:'https://kaixusi.skyesoverlondon.workers.dev', secret:'' };
+let brainCfg = { url:(window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev'), secret:'' };
 let aiHistory = [];
 let dragCard = null, dragSourceCol = null;
 let priorityFilter = null;

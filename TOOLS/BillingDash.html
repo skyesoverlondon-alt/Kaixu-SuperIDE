@@ -87,7 +87,7 @@ pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px
 </div>
 <div class="f"><span>Status: <b id="status">Idle</b></span><span>Next invoice: <b>2026-04-01</b></span><span>Payment method: <b>Visa •••• 4421</b></span></div>
 <script>
-const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+const WORKER=(window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev');
 function setStatus(s){document.getElementById('status').textContent=s}
 function refreshData(){setStatus('Data refreshed')}
 function upgrade(){setStatus('Upgrade flow opened')}

@@ -260,7 +260,7 @@ const DEMO_RUNS=[
 
 let jobs=[
   {id:1,name:'daily-backup',cron:'0 9 * * *',url:'https://myapp.netlify.app/.netlify/functions/backup',tz:'UTC',status:'active',lastRun:'2026-03-01 09:00',lastOk:true,retry:'1m',desc:'Daily database backup to S3'},
-  {id:2,name:'health-ping',cron:'*/5 * * * *',url:'https://kaixusi.skyesoverlondon.workers.dev/health',tz:'UTC',status:'active',lastRun:'2026-03-01 16:50',lastOk:true,retry:'immediate',desc:'Worker liveness check every 5 min'},
+  {id:2,name:'health-ping',cron:'*/5 * * * *',url:(window.KAIXU_WORKER+'/health'),tz:'UTC',status:'active',lastRun:'2026-03-01 16:50',lastOk:true,retry:'immediate',desc:'Worker liveness check every 5 min'},
   {id:3,name:'weekly-report',cron:'0 9 * * 1',url:'https://myapp.netlify.app/.netlify/functions/report',tz:'America/New_York',status:'paused',lastRun:'2026-02-24 14:00',lastOk:true,retry:'none',desc:'Send weekly analytics email'},
   {id:4,name:'token-cleanup',cron:'0 0 * * *',url:'https://myapp.netlify.app/.netlify/functions/cleanup',tz:'UTC',status:'failed',lastRun:'2026-03-01 00:00',lastOk:false,retry:'5m',desc:'Expire old auth tokens'},
 ];

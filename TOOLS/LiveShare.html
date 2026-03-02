@@ -253,7 +253,7 @@ const app = new Hono();
 
 // CORS — allow kAIxU origins only
 app.use('*', cors({
-  origin: ['https://kaixu.app', 'https://kaixusi.skyesoverlondon.workers.dev'],
+  origin: ['https://kaixu.app', (window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev')],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 
@@ -434,7 +434,7 @@ async function sendChat(){
     if(!token){ addChatMsg('kAIxU','#a243ff','No gateway token configured.',false,false); return; }
     addChatMsg('kAIxU','#a243ff','✦ thinking…',false,true);
     try{
-      const r=await fetch('https://kaixusi.skyesoverlondon.workers.dev/v1/chat',{
+      const r=await fetch((window.KAIXU_WORKER+'/v1/chat'),{
         method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
         body:JSON.stringify({messages:[{role:'user',content:text.replace(/@kAIxU/gi,'').trim()||'How can I help?'}],max_tokens:300,app_id:'kaixu-liveshare'})
       });

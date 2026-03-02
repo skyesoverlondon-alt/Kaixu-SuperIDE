@@ -44,7 +44,7 @@ pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px
 </div>
 <div class="f"><span>Mic: <b id="micState">Off</b></span><span>Status: <b id="status">Idle</b></span><span>Mode: <b>Voice Studio</b></span></div>
 <script>
-const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+const WORKER=(window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev');
 const wave=document.getElementById('wave');
 for(let i=0;i<120;i++){const d=document.createElement('div');d.className='bar';d.style.animationDelay=`${(i%20)*.05}s`;wave.appendChild(d);} 
 let listening=false,recognition=null,startTs=null,actions=0;

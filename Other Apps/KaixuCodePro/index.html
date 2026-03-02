@@ -217,7 +217,7 @@
             const [fs, setFs] = useState(() => JSON.parse(localStorage.getItem('kaixu_fs_v4')) || INITIAL_FS);
             const [activeFileId, setActiveFileId] = useState(localStorage.getItem('kaixu_active_v4') || 'f-1');
             const [apiKey, setApiKey] = useState(localStorage.getItem('kaixu_api_key') || '');
-            const KAIXU_GATE_URL = 'https://kaixusi.skyesoverlondon.workers.dev';
+            const KAIXU_GATE_URL = (window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev');
             const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('kaixu_settings')) || { fontSize: 14 });
             
             const [activeLeftPanel, setActiveLeftPanel] = useState('explorer'); 

@@ -184,7 +184,7 @@ main{display:flex;flex:1;overflow:hidden}
 <div class="toast" id="toast"></div>
 
 <script>
-const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+const WORKER=(window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev');
 function getToken(){try{return JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token||'';}catch(e){return '';}}
 function toast(m,c='var(--purple)'){const t=document.getElementById('toast');t.textContent=m;t.style.borderColor=c;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
 

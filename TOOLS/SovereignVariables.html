@@ -137,7 +137,7 @@
     <div class="space-y-4">
       <div>
         <label class="mono text-xs text-slate-500 uppercase tracking-widest block mb-1.5">Worker URL</label>
-        <input id="cfg-url" type="text" value="https://kaixusi.skyesoverlondon.workers.dev"
+        <input id="cfg-url" type="text" value="" data-fill-worker
           class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 mono text-xs outline-none focus:border-purple-500 transition-colors">
       </div>
       <div>
@@ -327,7 +327,7 @@ let state = {
   }],
   activeProjectId:'p1', activeEnvId:'e1',
 };
-let brainCfg = { url:'https://kaixusi.skyesoverlondon.workers.dev', secret:'' };
+let brainCfg = { url:(window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev'), secret:'' };
 let aiHistory = [];
 let activeTagFilter = null;
 

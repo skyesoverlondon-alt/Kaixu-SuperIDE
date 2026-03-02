@@ -312,9 +312,9 @@ let currentAuth = 'bearer';
 if (!collections.length) {
   collections = [
     { id: 'kaixu', name: 'kAIxU Worker', reqs: [
-      { method:'GET',  url:'https://kaixusi.skyesoverlondon.workers.dev/health', name:'Health Check' },
-      { method:'POST', url:'https://kaixusi.skyesoverlondon.workers.dev/v1/chat', name:'Chat Completion', body:'{"model":"kAIxU-Brain-2.5","messages":[{"role":"user","content":"Hello!"}],"max_tokens":50}', auth:'bearer' },
-      { method:'POST', url:'https://kaixusi.skyesoverlondon.workers.dev/v1/embed', name:'Embeddings', body:'{"model":"kAIxU-Embed-1","input":"Hello world"}', auth:'bearer' },
+      { method:'GET',  url:(window.KAIXU_WORKER+'/health'), name:'Health Check' },
+      { method:'POST', url:(window.KAIXU_WORKER+'/v1/chat'), name:'Chat Completion', body:'{"model":"kAIxU-Brain-2.5","messages":[{"role":"user","content":"Hello!"}],"max_tokens":50}', auth:'bearer' },
+      { method:'POST', url:(window.KAIXU_WORKER+'/v1/embed'), name:'Embeddings', body:'{"model":"kAIxU-Embed-1","input":"Hello world"}', auth:'bearer' },
     ]},
     { id: 'misc', name: 'Examples', reqs: [
       { method:'GET',  url:'https://jsonplaceholder.typicode.com/posts/1', name:'JSONPlaceholder GET' },

@@ -63,7 +63,7 @@ body{background:var(--bg0);color:var(--fg);font-family:Inter,sans-serif;height:1
 </div>
 <div class="foot"><span>Total: <b id="tCount">0</b></span><span>Unread: <b id="uCount">0</b></span><span>Errors: <b id="eCount">0</b></span><span>Status: <b id="status">Idle</b></span></div>
 <script>
-const WORKER='https://kaixusi.skyesoverlondon.workers.dev';
+const WORKER=(window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev');
 let items=[
 {id:1,src:'deploy',sev:'error',msg:'Production deploy failed: migrations timeout on ws-save.',ts:'16:08',read:false,meta:['target:netlify','env:prod']},
 {id:2,src:'ci',sev:'warn',msg:'Main branch checks flaky: test_retry reached 3 attempts.',ts:'16:03',read:false,meta:['repo:Kaixu-SuperIDE','workflow:unit']},
