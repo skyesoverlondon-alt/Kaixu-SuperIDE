@@ -113,8 +113,8 @@ main {
 
 aside#side {
   width: 260px;
-  min-width: 160px;
-  max-width: 55%;
+  min-width: 220px;
+  max-width: none;
   flex-shrink: 0;
   background: rgba(24, 0, 48, 0.6);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -158,6 +158,7 @@ aside#side {
 
 #editor-section {
   flex: 1;
+  min-width: 320px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -182,6 +183,8 @@ aside#side {
 
 #preview-section {
   width: 30%;
+  min-width: 240px;
+  max-width: none;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(24, 0, 48, 0.4);
 }

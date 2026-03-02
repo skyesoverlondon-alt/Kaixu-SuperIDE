@@ -422,7 +422,7 @@ function _initSplitHandle() {
     const section = document.getElementById('editor-section');
     const total = section.offsetWidth;
     const offset = e.clientX - section.getBoundingClientRect().left;
-    const pct = Math.max(15, Math.min(85, (offset / total) * 100));
+    const pct = Math.max(5, Math.min(95, (offset / total) * 100));
     pane0.style.flex = 'none';
     pane0.style.width = pct + '%';
     pane1.style.flex = '1';

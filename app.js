@@ -649,6 +649,7 @@ async function commitApplyPatch() {
 // -----------------------------
 
 let lastPreviewHTML = '';
+let lastPreviewBlobUrl = '';
 var _previewLastChangedPath = null;
 var _previewDebounceTimer  = null;
 
@@ -704,18 +705,13 @@ async function updatePreview() {
   }
   _previewLastChangedPath = null;
 
-  const swReady = location.protocol.startsWith('http') && navigator.serviceWorker?.controller;
+  const entry = document.getElementById('preview-entry')?.value || 'index.html';
   const route = document.getElementById('preview-route')?.value || '';
-  if (swReady) {
-    frame.src = `/virtual/index.html?ts=${Date.now()}`;
-    return;
-  }
-
-  let html = tab?.path === 'index.html'
+  let html = tab?.path === entry
     ? (document.getElementById('editor-' + (tab?.pane || 0))?.value || '')
-    : await readFile('index.html');
+    : await readFile(entry);
 
-  if (!html) { frame.srcdoc = '<p style="padding:1rem;color:#ccc">No index.html found.</p>'; return; }
+  if (!html) { frame.srcdoc = `<p style="padding:1rem;color:#ccc">No ${entry} found.</p>`; return; }
 
   async function inlineAssets(inputHtml, tagRx, wrapFn) {
     let result = inputHtml;
@@ -740,12 +736,23 @@ async function updatePreview() {
 
   html = await inlineAssets(html, '<script\\s+[^>]*src="([^"]+)"[^>]*><\\/script>', c => `<script>${c}<\/script>`);
   html = await inlineAssets(html, '<link\\s+[^>]*rel=["\']stylesheet["\'][^>]*href="([^"]+)"[^>]*>', c => `<style>${c}<\/style>`);
+  if (!/<base\s+href=/i.test(html)) {
+    const baseTag = `<base href="${location.origin}/">`;
+    if (/<head[^>]*>/i.test(html)) {
+      html = html.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`);
+    } else {
+      html = `${baseTag}${html}`;
+    }
+  }
   // Inject route for SPA routers
   if (route) {
     const inject = `<script>window.__ROUTE__=${JSON.stringify(route)};history.replaceState(null,'',${JSON.stringify(route)});<\/script>`;
     html = html.replace(/<\/head>/i, inject + '</head>');
   }
-  frame.srcdoc = html;
+  if (lastPreviewBlobUrl) URL.revokeObjectURL(lastPreviewBlobUrl);
+  const blob = new Blob([html], { type: 'text/html' });
+  lastPreviewBlobUrl = URL.createObjectURL(blob);
+  frame.src = lastPreviewBlobUrl;
   lastPreviewHTML = html;
 }
 
@@ -1726,6 +1733,7 @@ function bindEvents() {
   // Preview
   $('#preview-toggle')?.addEventListener('click', async () => {
     $('#preview-section').classList.toggle('hidden');
+    if (typeof window.__syncPanelLayout === 'function') window.__syncPanelLayout();
     if (!$('#preview-section').classList.contains('hidden')) {
       await _populatePreviewEntry();
       updatePreview();
@@ -2726,74 +2734,161 @@ async function semanticSearch(query) {
 }
 
 function initPanelResize() {
-  // ── Sidebar drag-resize ──────────────────────────────────────────────────
-  const sideHandle  = document.getElementById('sidebar-resize-handle');
-  const side        = document.getElementById('side');
-  if (sideHandle && side) {
-    let dragging = false, startX = 0, startW = 0;
-    sideHandle.addEventListener('mousedown', e => {
-      e.preventDefault();
-      dragging = true; startX = e.clientX;
-      startW   = side.getBoundingClientRect().width;
-      sideHandle.classList.add('dragging');
-      document.body.style.cursor    = 'col-resize';
-      document.body.style.userSelect = 'none';
-    });
-    document.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      const w = Math.max(180, Math.min(startW + (e.clientX - startX), window.innerWidth * 0.6));
-      side.style.width = w + 'px';
-    });
-    document.addEventListener('mouseup', () => {
-      if (!dragging) return;
-      dragging = false;
-      sideHandle.classList.remove('dragging');
-      document.body.style.cursor     = '';
-      document.body.style.userSelect = '';
-    });
-    // Touch support
-    sideHandle.addEventListener('touchstart', e => {
-      dragging = true; startX = e.touches[0].clientX;
-      startW   = side.getBoundingClientRect().width;
-      sideHandle.classList.add('dragging');
-    }, { passive: true });
-    document.addEventListener('touchmove', e => {
-      if (!dragging) return;
-      const w = Math.max(180, Math.min(startW + (e.touches[0].clientX - startX), window.innerWidth * 0.6));
-      side.style.width = w + 'px';
-    }, { passive: true });
-    document.addEventListener('touchend', () => {
-      dragging = false;
-      sideHandle.classList.remove('dragging');
-    });
+  const sideHandle = document.getElementById('sidebar-resize-handle');
+  const prevHandle = document.getElementById('preview-resize-handle');
+  const side = document.getElementById('side');
+  const editor = document.getElementById('editor-section');
+  const preview = document.getElementById('preview-section');
+  const main = document.querySelector('main');
+  if (!sideHandle || !prevHandle || !side || !editor || !preview || !main) return;
+
+  const MIN_SIDE = 220;
+  const MIN_EDITOR = 320;
+  const MIN_PREVIEW = 240;
+  const HANDLE_W = 8;
+
+  const KEY_SIDE = 'KAIXU_LAYOUT_SIDE_W';
+  const KEY_PREV = 'KAIXU_LAYOUT_PREVIEW_W';
+
+  function getTotalWidth() {
+    return Math.max(0, main.getBoundingClientRect().width || 0);
   }
 
-  // ── Preview drag-resize ──────────────────────────────────────────────────
-  const prevHandle  = document.getElementById('preview-resize-handle');
-  const preview     = document.getElementById('preview-section');
-  if (prevHandle && preview) {
-    let dragging = false, startX = 0, startW = 0;
-    prevHandle.addEventListener('mousedown', e => {
-      e.preventDefault();
-      dragging = true; startX = e.clientX;
-      startW   = preview.getBoundingClientRect().width;
-      prevHandle.classList.add('dragging');
-      document.body.style.cursor    = 'col-resize';
-      document.body.style.userSelect = 'none';
-    });
-    document.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      const w = Math.max(200, Math.min(startW - (e.clientX - startX), window.innerWidth * 0.7));
-      preview.style.width = w + 'px';
-    });
-    document.addEventListener('mouseup', () => {
-      if (!dragging) return;
-      dragging = false;
-      prevHandle.classList.remove('dragging');
-      document.body.style.cursor     = '';
-      document.body.style.userSelect = '';
-    });
+  function isPreviewVisible() {
+    return !preview.classList.contains('hidden');
   }
+
+  function syncHandleVisibility() {
+    if (isPreviewVisible()) prevHandle.classList.remove('hidden');
+    else prevHandle.classList.add('hidden');
+  }
+
+  function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function sideMaxWidth(total, previewWidth) {
+    const reservedPreview = isPreviewVisible() ? (previewWidth + HANDLE_W) : 0;
+    return Math.max(MIN_SIDE, total - reservedPreview - MIN_EDITOR - HANDLE_W);
+  }
+
+  function previewMaxWidth(total, sideWidth) {
+    return Math.max(MIN_PREVIEW, total - sideWidth - MIN_EDITOR - (HANDLE_W * 2));
+  }
+
+  function applySavedWidths() {
+    const total = getTotalWidth();
+    const currentSide = side.getBoundingClientRect().width || 260;
+    const currentPreview = preview.getBoundingClientRect().width || Math.round(total * 0.3);
+
+    const savedSide = parseFloat(localStorage.getItem(KEY_SIDE));
+    const savedPrev = parseFloat(localStorage.getItem(KEY_PREV));
+
+    const nextPreview = Number.isFinite(savedPrev) ? savedPrev : currentPreview;
+    const nextSide = Number.isFinite(savedSide) ? savedSide : currentSide;
+
+    const maxSide = sideMaxWidth(total, nextPreview);
+    const clampedSide = clamp(nextSide, MIN_SIDE, maxSide);
+    side.style.width = clampedSide + 'px';
+    side.style.flex = 'none';
+
+    if (isPreviewVisible()) {
+      const maxPreview = previewMaxWidth(total, clampedSide);
+      const clampedPreview = clamp(nextPreview, MIN_PREVIEW, maxPreview);
+      preview.style.width = clampedPreview + 'px';
+      preview.style.flex = 'none';
+      localStorage.setItem(KEY_PREV, String(Math.round(clampedPreview)));
+    }
+
+    localStorage.setItem(KEY_SIDE, String(Math.round(clampedSide)));
+    syncHandleVisibility();
+  }
+
+  let draggingSide = false;
+  let sideStartX = 0;
+  let sideStartW = 0;
+
+  sideHandle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    draggingSide = true;
+    sideStartX = e.clientX;
+    sideStartW = side.getBoundingClientRect().width;
+    sideHandle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  let draggingPreview = false;
+  let previewStartX = 0;
+  let previewStartW = 0;
+
+  prevHandle.addEventListener('mousedown', e => {
+    if (!isPreviewVisible()) return;
+    e.preventDefault();
+    draggingPreview = true;
+    previewStartX = e.clientX;
+    previewStartW = preview.getBoundingClientRect().width;
+    prevHandle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', e => {
+    const total = getTotalWidth();
+
+    if (draggingSide) {
+      const delta = e.clientX - sideStartX;
+      const tentative = sideStartW + delta;
+      const currentPreview = isPreviewVisible()
+        ? (preview.getBoundingClientRect().width || MIN_PREVIEW)
+        : 0;
+      const maxSide = sideMaxWidth(total, currentPreview);
+      const w = clamp(tentative, MIN_SIDE, maxSide);
+      side.style.width = w + 'px';
+      side.style.flex = 'none';
+      localStorage.setItem(KEY_SIDE, String(Math.round(w)));
+    }
+
+    if (draggingPreview && isPreviewVisible()) {
+      const delta = e.clientX - previewStartX;
+      const tentative = previewStartW - delta;
+      const currentSide = side.getBoundingClientRect().width || MIN_SIDE;
+      const maxPreview = previewMaxWidth(total, currentSide);
+      const w = clamp(tentative, MIN_PREVIEW, maxPreview);
+      preview.style.width = w + 'px';
+      preview.style.flex = 'none';
+      localStorage.setItem(KEY_PREV, String(Math.round(w)));
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (draggingSide || draggingPreview) {
+      draggingSide = false;
+      draggingPreview = false;
+      sideHandle.classList.remove('dragging');
+      prevHandle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+
+  sideHandle.addEventListener('dblclick', () => {
+    side.style.width = '260px';
+    side.style.flex = 'none';
+    localStorage.setItem(KEY_SIDE, '260');
+    applySavedWidths();
+  });
+
+  prevHandle.addEventListener('dblclick', () => {
+    preview.style.width = '30%';
+    preview.style.flex = 'none';
+    localStorage.removeItem(KEY_PREV);
+    applySavedWidths();
+  });
+
+  window.__syncPanelLayout = applySavedWidths;
+  window.addEventListener('resize', applySavedWidths);
+  applySavedWidths();
 }
 
 async function init() {

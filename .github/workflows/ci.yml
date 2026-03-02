@@ -39,6 +39,9 @@ jobs:
       - name: Run lint
         run: npm run lint --if-present
 
+      - name: Security audit (high+)
+        run: npm audit --audit-level=high
+
       - name: Run tests
         run: npm test -- --coverage --forceExit
 

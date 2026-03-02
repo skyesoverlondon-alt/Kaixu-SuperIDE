@@ -5,8 +5,6 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # Suppress Netlify secret scanner false-positives on public worker URL
-  NETLIFY_SUPPRESS_SECRETS_CHECK = "true"
 
 [[redirects]]
   from = "/api/*"
@@ -69,7 +67,8 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(self)"
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     X-Permitted-Cross-Domain-Policies = "none"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn1.sharemyimage.com; connect-src 'self' https://*.workers.dev https://api.stripe.com; worker-src 'self' blob:; frame-ancestors 'self'; object-src 'none';"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.sentry-cdn.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://cdn1.sharemyimage.com; connect-src 'self' https://*.workers.dev https://api.stripe.com https://*.ingest.sentry.io https://o*.ingest.sentry.io; worker-src 'self' blob:; frame-src 'self' blob: data:; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
 
 # ── Public health endpoint — explicit CORS ────────────────────────────────
 [[headers]]
