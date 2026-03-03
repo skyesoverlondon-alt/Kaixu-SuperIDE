@@ -1,9 +1,10 @@
 # Changelog
 
-Generated: 2026-03-03T02:42:19.213Z
+Generated: 2026-03-03T03:15:23.373Z
 
 - 2026-03-03 · fix: billing dash explicit sign-in-required UX + activity feed 502 hotfix (activity-list auth/response handling)
 
+- 2026-03-03 · chore: finalize smoke trust, billing/auth hotfixes, and generated changelog workflow (dda73ec, Skyes Over London)
 - 2026-03-03 · fix: default preview width 40% and add release notes popup (9472127, Skyes Over London)
 - 2026-03-03 · feat: ship smoke trust platform, evidence tooling, and github hardening (6b2cd64, Skyes Over London)
 - 2026-03-02 · docs: add enterprise evidence and solo-founder governance pack (e3fb34e, Skyes Over London)
