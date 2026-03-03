@@ -1,7 +1,6 @@
 import { chromium } from 'playwright';
 
-const BASE_URL = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:41783';
-const TARGET_URL = `${BASE_URL}/ide.html`;
+const DEFAULT_BASE_URL = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:41783';
 
 const results = [];
 const warnings = [];
@@ -16,6 +15,38 @@ function record(name, pass, detail = '') {
 function warn(name, detail = '') {
   warnings.push({ name, detail });
   console.log(`WARN: ${name}${detail ? ` — ${detail}` : ''}`);
+}
+
+async function canReach(url) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 2500);
+  try {
+    const res = await fetch(url, { method: 'GET', signal: controller.signal });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function resolveTargetUrl() {
+  const candidates = [
+    DEFAULT_BASE_URL,
+    'http://127.0.0.1:8888',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000'
+  ];
+
+  for (const base of candidates) {
+    const target = `${base.replace(/\/$/, '')}/ide.html`;
+    if (await canReach(target)) return target;
+  }
+
+  throw new Error(
+    `No reachable IDE URL. Tried: ${candidates.map((c) => `${c.replace(/\/$/, '')}/ide.html`).join(', ')}. ` +
+    'Set SMOKE_BASE_URL to your running app URL before running smoke.'
+  );
 }
 
 async function isVisible(page, selector) {
@@ -40,7 +71,28 @@ async function closeIfVisible(page, selector, closeSelector) {
 }
 
 async function run() {
-  const browser = await chromium.launch({ headless: true });
+  const TARGET_URL = await resolveTargetUrl();
+  let browser;
+  try {
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'
+      ]
+    });
+  } catch {
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--single-process'
+      ]
+    });
+  }
   const page = await browser.newPage();
 
   page.on('pageerror', (err) => softErrors.push(`pageerror: ${err.message}`));

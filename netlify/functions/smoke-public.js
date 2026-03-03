@@ -17,6 +17,7 @@ exports.handler = async (event) => {
 
   const limit = Math.min(Math.max(parseInt(event.queryStringParameters?.limit || '100', 10) || 100, 1), 500);
   const signingKey = String(process.env.SMOKE_SIGNING_KEY || '');
+  const signingKeyVersion = String(process.env.SMOKE_SIGNING_KEY_VERSION || '').trim() || null;
   const maxHits = Math.max(parseInt(process.env.SMOKE_PUBLIC_RATE_MAX || '180', 10) || 180, 20);
   const windowSecs = Math.max(parseInt(process.env.SMOKE_PUBLIC_RATE_WINDOW_SECS || '60', 10) || 60, 10);
   const ip = requesterIp(event);
@@ -46,7 +47,7 @@ exports.handler = async (event) => {
 
     const runs = rows.rows.map((row) => {
       const details = row.details || {};
-      const verification = buildVerificationState(details, { prevChainHash, signingKey });
+      const verification = buildVerificationState(details, { prevChainHash, signingKey, signingKeyVersion });
       prevChainHash = verification.evidence.chainHash || prevChainHash;
       const checks = Array.isArray(details.checks) ? details.checks : [];
       const summary = details.summary || {};
@@ -61,6 +62,7 @@ exports.handler = async (event) => {
         verifyHash: verification.evidence.verifyHash,
         chainHash: verification.evidence.chainHash,
         signature: verification.evidence.signature,
+        keyVersion: verification.evidence.keyVersion,
         verification,
         workspaceId: details.workspaceId || null,
         source: details.source || 'manual',

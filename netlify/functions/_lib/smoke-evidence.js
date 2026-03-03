@@ -50,23 +50,25 @@ function buildVerificationPayload({ runId, workspaceId, userId, createdAt, summa
   };
 }
 
-function computeEvidence(verificationPayload, { prevChainHash = null, signingKey = '' } = {}) {
+function computeEvidence(verificationPayload, { prevChainHash = null, signingKey = '', signingKeyVersion = null } = {}) {
   const payloadString = stableStringify(verificationPayload);
   const verifyHash = sha256Hex(payloadString);
   const chainHash = sha256Hex(`${prevChainHash || ''}:${verifyHash}`);
   const signature = signingKey ? hmacSha256Hex(chainHash, signingKey) : null;
+  const keyVersion = signingKey ? (String(signingKeyVersion || '').trim() || 'v1') : null;
 
   return {
     verifyHash,
     prevChainHash: prevChainHash || null,
     chainHash,
     signature,
+    keyVersion,
     algorithm: 'sha256',
     signatureAlgorithm: signingKey ? 'hmac-sha256' : null
   };
 }
 
-function buildVerificationState(details, { prevChainHash = null, signingKey = '' } = {}) {
+function buildVerificationState(details, { prevChainHash = null, signingKey = '', signingKeyVersion = null } = {}) {
   const payload = buildVerificationPayload({
     runId: details?.runId,
     workspaceId: details?.workspaceId,
@@ -78,14 +80,19 @@ function buildVerificationState(details, { prevChainHash = null, signingKey = ''
     version: Number(details?.version || 1)
   });
 
-  const computed = computeEvidence(payload, { prevChainHash, signingKey });
+  const computed = computeEvidence(payload, { prevChainHash, signingKey, signingKeyVersion });
   const storedEvidence = details?.evidence || {};
   const storedVerifyHash = details?.verifyHash || storedEvidence.verifyHash || null;
   const storedChainHash = storedEvidence.chainHash || null;
   const storedPrevChainHash = storedEvidence.prevChainHash || prevChainHash || null;
   const storedSignature = storedEvidence.signature || null;
+  const storedKeyVersion = storedEvidence.keyVersion || null;
 
   const backfilled = !storedEvidence.chainHash || !storedVerifyHash;
+  const signatureMatches = storedSignature ? (signingKey ? storedSignature === computed.signature : null) : null;
+  const keyVersionMatches = storedSignature
+    ? (storedKeyVersion ? storedKeyVersion === computed.keyVersion : true)
+    : null;
 
   return {
     payload,
@@ -94,13 +101,14 @@ function buildVerificationState(details, { prevChainHash = null, signingKey = ''
       prevChainHash: storedPrevChainHash,
       chainHash: storedChainHash || computed.chainHash,
       signature: storedSignature,
+      keyVersion: storedKeyVersion || computed.keyVersion,
       algorithm: storedEvidence.algorithm || computed.algorithm,
       signatureAlgorithm: storedEvidence.signatureAlgorithm || computed.signatureAlgorithm,
       backfilled,
       hashValid: storedVerifyHash ? storedVerifyHash === computed.verifyHash : true,
       chainValid: storedChainHash ? storedChainHash === computed.chainHash : true,
       signatureValid: storedSignature
-        ? (signingKey ? storedSignature === computed.signature : null)
+        ? (signatureMatches == null ? null : Boolean(signatureMatches && keyVersionMatches))
         : null
     }
   };

@@ -30,6 +30,11 @@
   from = "/investor-trust"
   to = "/investor-trust.html"
   status = 200
+
+[[redirects]]
+  from = "/status"
+  to = "/status.html"
+  status = 200
 # ── Legal page redirects ──────────────────────────────────────────────────
 [[redirects]]
   from = "/privacy"
@@ -95,6 +100,16 @@
   for = "/.netlify/functions/smoke-status"
   [headers.values]
     Cache-Control = "public, max-age=30, s-maxage=120, stale-while-revalidate=300"
+
+[[headers]]
+  for = "/.netlify/functions/status-history"
+  [headers.values]
+    Cache-Control = "public, max-age=60, s-maxage=180, stale-while-revalidate=300"
+
+[[headers]]
+  for = "/.netlify/functions/smoke-monthly-report"
+  [headers.values]
+    Cache-Control = "public, max-age=120, s-maxage=300, stale-while-revalidate=600"
 
 # ── Static asset caching ─────────────────────────────────────────────────
 [[headers]]

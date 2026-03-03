@@ -33,6 +33,7 @@ exports.handler = async (event) => {
   const userId = claims.sub;
   const workspaceId = String(event.queryStringParameters?.workspaceId || '').trim();
   const signingKey = String(process.env.SMOKE_SIGNING_KEY || '');
+  const signingKeyVersion = String(process.env.SMOKE_SIGNING_KEY_VERSION || '').trim() || null;
 
   try {
     if (workspaceId) await verifyWorkspaceAccess(userId, workspaceId);
@@ -52,7 +53,7 @@ exports.handler = async (event) => {
     let prevChainHash = null;
     const runs = rows.rows.map((row) => {
       const d = row.details || {};
-      const verification = buildVerificationState(d, { prevChainHash, signingKey });
+      const verification = buildVerificationState(d, { prevChainHash, signingKey, signingKeyVersion });
       prevChainHash = verification.evidence.chainHash || prevChainHash;
       return {
         id: row.id,
@@ -61,6 +62,7 @@ exports.handler = async (event) => {
         verifyHash: verification.evidence.verifyHash,
         chainHash: verification.evidence.chainHash,
         signature: verification.evidence.signature,
+        keyVersion: verification.evidence.keyVersion,
         source: d.source || 'manual',
         verification,
         workspaceId: d.workspaceId || null,

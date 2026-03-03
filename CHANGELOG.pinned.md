@@ -1,0 +1,1 @@
+- 2026-03-03 · fix: billing dash explicit sign-in-required UX + activity feed 502 hotfix (activity-list auth/response handling)

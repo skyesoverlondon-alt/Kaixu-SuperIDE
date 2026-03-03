@@ -70,7 +70,9 @@
         <button id="authBtn" aria-label="Sign in or manage account">Sign in</button>
         <!-- Preview controls -->
         <button id="preview-toggle" aria-label="Toggle preview">Toggle Preview</button>
-        <button id="preview-detach" aria-label="Detach preview to new window">Detach</button>
+        <button id="preview-detach" class="undock-drag-handle" data-undock-target="preview" draggable="false" aria-label="Detach preview to new window" title="Click to detach preview or drag to undock">Detach</button>
+        <button id="side-detach-window" class="undock-drag-handle" data-undock-target="side" draggable="false" aria-label="Detach sidebar window" title="Click to detach sidebar or drag to undock">Detach Side</button>
+        <button id="code-detach-window" class="undock-drag-handle" data-undock-target="code" draggable="false" aria-label="Detach code window" title="Click to detach code or drag to undock">Detach Code</button>
         <!-- Presence bar -->
         <div id="presence-bar" class="presence-bar" title="Active collaborators"></div>
         <!-- Share, admin, agent memory -->
@@ -94,6 +96,7 @@
             <button class="tabBtn" role="tab" aria-selected="false" data-tab="github" id="github-tab-btn">GitHub<span id="github-badge" class="badge hidden"></span></button>
             <button class="tabBtn" role="tab" aria-selected="false" data-tab="outline">Outline</button>
             <button class="tabBtn" role="tab" aria-selected="false" data-tab="problems">Problems<span id="problems-badge" class="badge hidden"></span></button>
+            <button id="tab-detach-btn" class="tabDockBtn undock-drag-handle" data-undock-target="active-tab" draggable="false" type="button" title="Open active tab in a new window or drag to undock">↗</button>
           </div>
 
           <div id="files-pane" role="tabpanel" aria-label="Files" class="pane">
@@ -400,6 +403,21 @@
           <label style="margin-top:10px">Netlify Deploy Hook URL
             <input id="set-deploy-hook" placeholder="https://api.netlify.com/build_hooks/…" style="width:100%" />
           </label>
+          <div class="layout-preset-block">
+            <div class="layout-preset-title">Layout Presets</div>
+            <div class="layout-preset-row">
+              <button id="layout-save-1" type="button">Save 1</button>
+              <button id="layout-load-1" type="button">Load 1</button>
+              <button id="layout-save-2" type="button">Save 2</button>
+              <button id="layout-load-2" type="button">Load 2</button>
+              <button id="layout-save-3" type="button">Save 3</button>
+              <button id="layout-load-3" type="button">Load 3</button>
+            </div>
+            <div class="layout-preset-row">
+              <button id="layout-reset-default" type="button">Reset Default Layout</button>
+            </div>
+            <div class="layout-preset-help">Shortcuts: Ctrl+Alt+1/2/3 to load, Ctrl+Shift+Alt+1/2/3 to save.</div>
+          </div>
         </div>
         <h4>Keyboard Shortcuts</h4>
         <table class="shortcuts-table">
@@ -538,8 +556,14 @@
           <li><b>Tamper-evident smoke evidence</b> using verification hash + chain hash (+ optional signature).</li>
           <li><b>Scheduled smoke automation</b> for recurring system verification runs.</li>
           <li><b>Export and verification upgrades</b> across smoke run/public/export flows.</li>
+          <li><b>Status + SLA history</b> endpoint and public status page for uptime transparency.</li>
+          <li><b>Monthly trust report export</b> for procurement-ready JSON/CSV summaries.</li>
         </ul>
         <div class="muted" style="margin-bottom:10px;">Release: Smoke Trust + Investor Visibility update</div>
+        <div class="muted" style="margin-bottom:10px;display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="/status" target="_blank" rel="noopener">Open Status Page</a>
+          <a href="/CHANGELOG.md" target="_blank" rel="noopener">Open Changelog</a>
+        </div>
         <label style="margin:8px 0 0;display:flex;align-items:center;gap:8px;">
           <input type="checkbox" id="release-notes-hide-next" checked />
           Don’t show this again for this release
@@ -1060,10 +1084,5 @@
     <script src="commands.js"></script>
     <!-- App bootstrap (depends on all above) -->
     <script src="app.js"></script>
-    <!-- Feature modules (depend on app.js) -->
-    <script src="diff.js"></script>
-    <script src="scm.js"></script>
-    <script src="collab.js"></script>
-    <script src="demo.js"></script>
-    <script src="github.js"></script>
-    <script src="admin.js"></script>
+    <!-- Feature modules (lazy-loaded by app.js) -->
+    <script type="application/json" id="lazy-modules-config">["diff.js","scm.js","collab.js","demo.js","github.js","admin.js"]</script>

@@ -7,103 +7,380 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
 <style>
 :root{--bg0:#040008;--bg1:#0d001a;--bg2:#16002e;--line:#2a0050;--purple:#a243ff;--hot:#d130ff;--gold:#ffd36a;--cyan:#30e0ff;--green:#4fffb0;--red:#ff4f6a;--orange:#ff9f43;--fg:#e8e0f0}
-*{box-sizing:border-box;margin:0;padding:0} body{font-family:Inter,sans-serif;background:var(--bg0);color:var(--fg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-.h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid var(--line)} .h h1{font-size:15px;color:var(--gold)} .h p{font-size:11px;color:#8673a8}
-.r{margin-left:auto;display:flex;gap:8px}.b{padding:5px 11px;border-radius:5px;border:1px solid #ffffff22;background:#1a0030;color:#c7b8df;font-size:12px;cursor:pointer}.b:hover{filter:brightness(1.08)}
-.b.gold{border-color:#ffd36a66;color:var(--gold);background:#ffd36a1a}.b.green{border-color:#4fffb066;color:var(--green);background:#4fffb01a}.b.purple{border-color:#a243ff66;color:var(--purple);background:#a243ff1a}
-.main{display:grid;grid-template-columns:1.3fr .9fr;gap:10px;padding:10px;flex:1;overflow:hidden} .col{overflow:auto}.col::-webkit-scrollbar{width:5px}.col::-webkit-scrollbar-thumb{background:#3a0060}
-.card{background:var(--bg1);border:1px solid #1a0030;border-radius:8px;padding:12px;margin-bottom:10px}.title{font-size:10px;color:#705f98;text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:10px;text-align:center}
-.kpi .v{font-size:22px;font-family:'Share Tech Mono',monospace;font-weight:700}.kpi .l{font-size:9px;color:#8172a5;text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
-.bar{height:8px;border-radius:4px;background:#1f0037;overflow:hidden}.fill{height:100%;border-radius:4px}
-.row{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin:7px 0;color:#cdbde4}
-.tbl{width:100%;border-collapse:collapse} .tbl th{font-size:10px;color:#6e5d92;text-align:left;padding:5px;border-bottom:1px solid #2a0050;text-transform:uppercase} .tbl td{padding:7px 5px;border-bottom:1px solid #120024;font-size:11px}
-.badge{font-size:10px;padding:2px 6px;border-radius:3px}.ok{background:#4fffb022;color:var(--green)}.warn{background:#ffd36a22;color:var(--gold)}.bad{background:#ff4f6a22;color:var(--red)}
-.input{width:100%;padding:7px 9px;border-radius:5px;border:1px solid #3a0060;background:var(--bg2);color:var(--fg);font-size:12px} .input:focus{outline:none;border-color:var(--purple)}
-pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;color:#d7cbe8;max-height:160px;overflow:auto}
-.f{padding:3px 12px;background:#060010;border-top:1px solid #1a0030;font-size:10px;color:#615287;display:flex;gap:14px}.f b{color:#e2d7f0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,sans-serif;background:var(--bg0);color:var(--fg);min-height:100vh;display:flex;flex-direction:column}
+.h{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--bg1);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.h h1{font-size:15px;color:var(--gold)} .h p{font-size:11px;color:#8673a8}
+.r{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.b{padding:5px 11px;border-radius:5px;border:1px solid #ffffff22;background:#1a0030;color:#c7b8df;font-size:12px;cursor:pointer}
+.b:hover{filter:brightness(1.08)}
+.b.gold{border-color:#ffd36a66;color:var(--gold);background:#ffd36a1a}
+.b.green{border-color:#4fffb066;color:var(--green);background:#4fffb01a}
+.b.purple{border-color:#a243ff66;color:var(--purple);background:#a243ff1a}
+.main{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;padding:10px;flex:1;min-height:0}
+.col{overflow:auto}
+.card{background:var(--bg1);border:1px solid #1a0030;border-radius:8px;padding:12px;margin-bottom:10px}
+.title{font-size:10px;color:#705f98;text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px}
+.kpi{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:10px;text-align:center}
+.kpi .v{font-size:20px;font-family:'Share Tech Mono',monospace;font-weight:700}
+.kpi .l{font-size:9px;color:#8172a5;text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.row{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin:7px 0;color:#cdbde4;gap:8px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;color:#6e5d92;text-align:left;padding:5px;border-bottom:1px solid #2a0050;text-transform:uppercase}
+.tbl td{padding:7px 5px;border-bottom:1px solid #120024;font-size:11px}
+.badge{font-size:10px;padding:2px 6px;border-radius:3px}
+.ok{background:#4fffb022;color:var(--green)} .warn{background:#ffd36a22;color:var(--gold)} .bad{background:#ff4f6a22;color:var(--red)}
+.input{width:100%;padding:7px 9px;border-radius:5px;border:1px solid #3a0060;background:var(--bg2);color:var(--fg);font-size:12px}
+pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;color:#d7cbe8;max-height:220px;overflow:auto}
+.f{padding:6px 12px;background:#060010;border-top:1px solid #1a0030;font-size:11px;color:#8c7bb3;display:flex;gap:16px;flex-wrap:wrap}
+.pill{display:inline-flex;padding:2px 7px;border-radius:999px;font-size:10px;border:1px solid #3b2f60}
+.mono{font-family:'Share Tech Mono',monospace}
+.muted{opacity:.7}
+.hidden{display:none !important}
+.auth-gate{border:1px solid #ff4f6a66;background:#ff4f6a12;color:#ffd9df}
+.auth-gate-title{font-size:12px;font-weight:700;margin-bottom:6px}
+.auth-gate-text{font-size:12px;opacity:.9;line-height:1.45}
+.auth-gate-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.is-disabled{opacity:.5;pointer-events:none}
+@media (max-width: 980px){.main{grid-template-columns:1fr}}
 </style>
 <script src="../assets/kaixu-nav.js" defer></script>
 </head>
 <body>
-<div class="h"><div style="font-size:18px">💳</div><div><h1>Billing Dash</h1><p>kAIxU plan usage + Stripe business metrics in one place</p></div><div class="r"><button class="b gold" onclick="upgrade()">⬆ Upgrade plan</button><button class="b green" onclick="refreshData()">↻ Refresh</button><button class="b purple" onclick="aiInsight()">✦ AI spend insight</button></div></div>
+<div class="h">
+  <div style="font-size:18px">💳</div>
+  <div>
+    <h1>Billing Dash</h1>
+    <p>Live billing state from Netlify billing endpoints</p>
+  </div>
+  <div class="r">
+    <button class="b gold" id="upgrade-btn">⬆ Upgrade plan</button>
+    <button class="b" id="portal-btn">↗ Manage subscription</button>
+    <button class="b green" id="refresh-btn">↻ Refresh</button>
+    <button class="b purple" id="ai-insight-btn">✦ AI spend insight</button>
+  </div>
+</div>
+
 <div class="main">
   <section class="col">
-    <div class="card"><div class="title">Plan Snapshot</div>
-      <div class="grid">
-        <div class="kpi"><div class="v" style="color:var(--cyan)">Pro</div><div class="l">Current Plan</div></div>
-        <div class="kpi"><div class="v" style="color:var(--purple)">23</div><div class="l">Seats</div></div>
-        <div class="kpi"><div class="v" style="color:var(--gold)">74%</div><div class="l">AI Cap Used</div></div>
-        <div class="kpi"><div class="v" style="color:var(--green)">1.9TB</div><div class="l">Storage</div></div>
+    <div class="card auth-gate hidden" id="auth-required-card">
+      <div class="auth-gate-title">🔒 Sign in required</div>
+      <div class="auth-gate-text">Billing data is private. Sign in to kAIxU Super IDE first so this dashboard can use your auth session token.</div>
+      <div class="auth-gate-actions">
+        <a class="b gold" href="../ide.html" target="_blank" rel="noopener">Open IDE sign-in</a>
       </div>
     </div>
 
-    <div class="card"><div class="title">Usage Breakdown</div>
-      <div class="row"><span>AI Tokens</span><span>740k / 1M</span></div><div class="bar"><div class="fill" style="width:74%;background:linear-gradient(90deg,#a243ff,#d130ff)"></div></div>
-      <div class="row"><span>Storage</span><span>1.9TB / 3TB</span></div><div class="bar"><div class="fill" style="width:63%;background:linear-gradient(90deg,#30e0ff,#4fffb0)"></div></div>
-      <div class="row"><span>Build Minutes</span><span>9,420 / 12,000</span></div><div class="bar"><div class="fill" style="width:78%;background:linear-gradient(90deg,#ffd36a,#ff9f43)"></div></div>
-      <div class="row"><span>Monthly Spend</span><span>$4,860 / $6,500 budget</span></div><div class="bar"><div class="fill" style="width:75%;background:linear-gradient(90deg,#ff9f43,#ff4f6a)"></div></div>
+    <div class="card">
+      <div class="title">Context</div>
+      <div class="row"><span>Auth token</span><span id="auth-state" class="pill">checking</span></div>
+      <div class="row"><span>Org ID</span><input id="org-id" class="input" placeholder="optional org id"/></div>
+      <div class="row"><span class="muted">If token/org are missing, this view can’t fetch private billing data.</span></div>
     </div>
 
-    <div class="card"><div class="title">Stripe Revenue</div>
-      <div class="grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="kpi"><div class="v" style="color:var(--green)">$42.1k</div><div class="l">MRR</div></div>
-        <div class="kpi"><div class="v" style="color:var(--cyan)">31</div><div class="l">New Subs</div></div>
-        <div class="kpi"><div class="v" style="color:var(--red)">2.6%</div><div class="l">Churn</div></div>
+    <div class="card">
+      <div class="title">Plan Snapshot</div>
+      <div class="grid" id="kpi-grid">
+        <div class="kpi"><div class="v" id="kpi-plan">—</div><div class="l">Current Plan</div></div>
+        <div class="kpi"><div class="v" id="kpi-status">—</div><div class="l">Subscription</div></div>
+        <div class="kpi"><div class="v" id="kpi-ai">—</div><div class="l">AI Calls Limit</div></div>
+        <div class="kpi"><div class="v" id="kpi-seats">—</div><div class="l">Seats Limit</div></div>
       </div>
-      <table class="tbl" style="margin-top:10px"><thead><tr><th>Metric</th><th>Today</th><th>7-day</th><th>30-day</th></tr></thead><tbody>
-      <tr><td>Gross revenue</td><td>$1,920</td><td>$11,480</td><td>$56,900</td></tr>
-      <tr><td>Failed payments</td><td>3</td><td>17</td><td>59</td></tr>
-      <tr><td>Refunds</td><td>1</td><td>4</td><td>12</td></tr>
-      </tbody></table>
     </div>
 
-    <div class="card"><div class="title">Invoices</div>
-      <table class="tbl"><thead><tr><th>Invoice</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>
-        <tr><td>#KX-94822</td><td>2026-03-01</td><td>$4,860.00</td><td><span class="badge ok">Paid</span></td></tr>
-        <tr><td>#KX-93311</td><td>2026-02-01</td><td>$4,210.00</td><td><span class="badge ok">Paid</span></td></tr>
-        <tr><td>#KX-92108</td><td>2026-01-01</td><td>$3,980.00</td><td><span class="badge warn">Pending tax doc</span></td></tr>
-      </tbody></table>
+    <div class="card">
+      <div class="title">Available Plans</div>
+      <div id="plans-list" class="muted">Loading…</div>
+    </div>
+
+    <div class="card">
+      <div class="title">Invoices</div>
+      <table class="tbl">
+        <thead><tr><th>Invoice</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="invoices-body"><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+      </table>
     </div>
   </section>
 
   <aside class="col">
-    <div class="card"><div class="title">Spend Alerts</div>
-      <div class="row"><span>AI usage > 80%</span><span class="badge warn">Watch</span></div>
-      <div class="row"><span>Monthly budget > 90%</span><span class="badge bad">Critical</span></div>
-      <div class="row"><span>Failed payments > 20/week</span><span class="badge warn">Watch</span></div>
-      <button class="b" style="margin-top:8px;width:100%" onclick="setAlerts()">Configure thresholds</button>
+    <div class="card">
+      <div class="title">Derived Metrics</div>
+      <div class="row"><span>Invoices (30d)</span><span class="mono" id="m-invoices">—</span></div>
+      <div class="row"><span>Paid amount (30d)</span><span class="mono" id="m-paid">—</span></div>
+      <div class="row"><span>Failed invoices</span><span class="mono" id="m-failed">—</span></div>
+      <div class="row"><span>MRR proxy</span><span class="mono" id="m-mrr">—</span></div>
+      <div class="row muted">Metrics are calculated from live `billing-plans` + `billing-invoices` responses.</div>
     </div>
 
-    <div class="card"><div class="title">Billing Settings</div>
-      <label style="font-size:11px;color:#8a7aa9">Billing Email</label><input class="input" value="billing@solenterprises.org"/>
-      <label style="font-size:11px;color:#8a7aa9;margin-top:8px;display:block">Stripe Key Alias</label><input class="input" value="stripe_live_prod"/>
-      <label style="font-size:11px;color:#8a7aa9;margin-top:8px;display:block">Auto-upgrade policy</label><select class="input"><option>Ask before upgrade</option><option>Auto-upgrade at 85%</option></select>
-      <button class="b green" style="margin-top:10px;width:100%" onclick="saveSettings()">Save settings</button>
+    <div class="card">
+      <div class="title">AI Insight</div>
+      <pre id="aiOut">No insight yet.</pre>
     </div>
-
-    <div class="card"><div class="title">AI Insight</div><pre id="aiOut">No insight yet.</pre><div style="display:flex;gap:8px;margin-top:10px"><button onclick="navigator.clipboard.writeText(document.getElementById('aiOut').textContent).then(()=>setStatus('Copied ✓'))" style="background:transparent;border:1px solid rgba(138,79,255,.4);color:#a78bfa;border-radius:6px;padding:3px 12px;font-size:11px;cursor:pointer;font-family:inherit">📋 Copy Insight</button><button onclick="(function(){const t=document.getElementById('aiOut').textContent;if(!t||t==='No insight yet.'){setStatus('Nothing to download');return;}const b=new Blob([t],{type:'text/plain'});const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(b),download:'kaixu-billing-insight.txt'});a.click();URL.revokeObjectURL(a.href);setStatus('Downloaded ✓');})()" style="background:transparent;border:1px solid rgba(138,79,255,.4);color:#a78bfa;border-radius:6px;padding:3px 12px;font-size:11px;cursor:pointer;font-family:inherit">⬇ Download</button></div></div>
   </aside>
 </div>
-<div class="f"><span>Status: <b id="status">Idle</b></span><span>Next invoice: <b>2026-04-01</b></span><span>Payment method: <b>Visa •••• 4421</b></span></div>
+
+<div class="f">
+  <span>Status: <b id="status">Idle</b></span>
+  <span>Source: <b>/.netlify/functions/billing-*</b></span>
+  <span>Token key: <b>KAIXU_AUTH_TOKEN</b></span>
+</div>
+
 <script>
-const WORKER=(window.KAIXU_WORKER||'https://kaixusi'+'.skyesoverlondon.workers.dev');
-function setStatus(s){document.getElementById('status').textContent=s}
-function refreshData(){setStatus('Data refreshed')}
-function upgrade(){setStatus('Upgrade flow opened')}
-function setAlerts(){setStatus('Alert thresholds updated')}
-function saveSettings(){setStatus('Billing settings saved')}
-async function aiInsight(){
-  const out=document.getElementById('aiOut'); out.textContent='kAIxU analyzing spend...';
-  const token=(JSON.parse(localStorage.getItem('sovereign_brain_cfg')||'{}').token)||'';
-  if(!token){out.textContent='Missing kAIxU gate token in sovereign_brain_cfg.';return;}
-  const prompt='Analyze billing data and provide: 1) cost risks 2) quick savings 3) upgrade recommendation.';
-  try{
-    const body={messages:[{role:'user',content:prompt}],max_tokens:260,app_id:'kaixu-billing-dash'};
-    const r=await fetch(`${WORKER}/v1/chat`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)});
-    const d=await r.json(); out.textContent=d.output_text||'No insight returned.'; setStatus('AI insight ready');
-  }catch(e){out.textContent=`Error: ${e.message}`;setStatus('AI insight failed')}
+const WORKER = (window.KAIXU_WORKER || 'https://kaixusi' + '.skyesoverlondon.workers.dev');
+
+const state = {
+  token: localStorage.getItem('KAIXU_AUTH_TOKEN') || '',
+  orgId: '',
+  plans: [],
+  subscription: null,
+  invoices: []
+};
+
+const GATED_SECTION_IDS = ['plans-list', 'invoices-body', 'kpi-grid'];
+const ACTION_BUTTON_IDS = ['upgrade-btn', 'portal-btn', 'refresh-btn', 'ai-insight-btn'];
+
+function setStatus(s) { document.getElementById('status').textContent = s; }
+function fmtMoney(cents, currency = 'usd') {
+  if (cents == null || Number.isNaN(Number(cents))) return '—';
+  const amount = Number(cents) / 100;
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency: String(currency || 'usd').toUpperCase() }).format(amount);
 }
+function authHeaders() {
+  return state.token ? { Authorization: `Bearer ${state.token}` } : {};
+}
+
+async function getJson(path) {
+  const res = await fetch(path, { headers: authHeaders() });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+  return data;
+}
+
+function renderAuthState() {
+  const authEl = document.getElementById('auth-state');
+  if (!state.token) {
+    authEl.textContent = 'missing';
+    authEl.className = 'pill bad';
+  } else {
+    authEl.textContent = 'present';
+    authEl.className = 'pill ok';
+  }
+}
+
+function setAuthRequiredUI(required) {
+  document.getElementById('auth-required-card')?.classList.toggle('hidden', !required);
+
+  for (const id of ACTION_BUTTON_IDS) {
+    const btn = document.getElementById(id);
+    if (!btn) continue;
+    btn.disabled = !!required;
+    btn.setAttribute('aria-disabled', required ? 'true' : 'false');
+  }
+
+  for (const id of GATED_SECTION_IDS) {
+    document.getElementById(id)?.classList.toggle('is-disabled', !!required);
+  }
+}
+
+function clearBillingView(reasonText = 'Sign in required to load billing data.') {
+  state.plans = [];
+  state.subscription = null;
+  state.invoices = [];
+
+  document.getElementById('kpi-plan').textContent = '—';
+  document.getElementById('kpi-status').textContent = '—';
+  document.getElementById('kpi-ai').textContent = '—';
+  document.getElementById('kpi-seats').textContent = '—';
+  document.getElementById('plans-list').innerHTML = `<div class="muted">${reasonText}</div>`;
+  document.getElementById('invoices-body').innerHTML = `<tr><td colspan="4" class="muted">${reasonText}</td></tr>`;
+  document.getElementById('m-invoices').textContent = '—';
+  document.getElementById('m-paid').textContent = '—';
+  document.getElementById('m-failed').textContent = '—';
+  document.getElementById('m-mrr').textContent = '—';
+}
+
+function renderPlans() {
+  const host = document.getElementById('plans-list');
+  if (!state.plans.length) {
+    host.innerHTML = '<div class="muted">No plans returned.</div>';
+    return;
+  }
+  const activeSlug = state.subscription?.plan_slug || '';
+  host.innerHTML = state.plans.map((plan) => {
+    const active = activeSlug && activeSlug === plan.slug;
+    const free = Number(plan.price_cents || 0) === 0;
+    const canUpgrade = !active && !free && !!plan.stripe_price_id;
+    return `
+      <div class="card" style="margin:0 0 8px 0;padding:10px;background:var(--bg2)">
+        <div class="row"><b>${plan.name || plan.slug || 'Plan'}</b>${active ? '<span class="pill ok">current</span>' : ''}</div>
+        <div class="row"><span class="mono">${free ? 'Free' : fmtMoney(plan.price_cents, plan.currency || 'usd') + '/mo'}</span></div>
+        <div class="row muted">${plan.description || ''}</div>
+        ${canUpgrade ? `<button class="b gold" data-upgrade="${plan.stripe_price_id}">Upgrade</button>` : ''}
+      </div>`;
+  }).join('');
+
+  host.querySelectorAll('[data-upgrade]').forEach((btn) => {
+    btn.addEventListener('click', () => upgrade(btn.getAttribute('data-upgrade')));
+  });
+}
+
+function renderSubscription() {
+  const sub = state.subscription;
+  document.getElementById('kpi-plan').textContent = sub?.plan_name || 'Free';
+  document.getElementById('kpi-status').textContent = (sub?.status || 'none').toUpperCase();
+  document.getElementById('kpi-ai').textContent = sub?.ai_calls_limit == null ? '—' : (Number(sub.ai_calls_limit) < 0 ? '∞' : String(sub.ai_calls_limit));
+  document.getElementById('kpi-seats').textContent = sub?.seats_limit == null ? '—' : (Number(sub.seats_limit) < 0 ? '∞' : String(sub.seats_limit));
+}
+
+function invoiceStatusClass(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'paid') return 'ok';
+  if (s === 'open' || s === 'draft') return 'warn';
+  return 'bad';
+}
+
+function renderInvoices() {
+  const tbody = document.getElementById('invoices-body');
+  if (!state.invoices.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="muted">No invoices yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = state.invoices.map((inv) => {
+    const when = inv.created ? new Date(inv.created * 1000).toISOString().slice(0, 10) : '—';
+    const num = inv.number || inv.id || 'invoice';
+    const amount = fmtMoney(inv.amountPaid ?? inv.amountDue ?? 0, inv.currency || 'usd');
+    const status = String(inv.status || 'unknown');
+    const url = inv.hostedUrl || inv.pdfUrl || '';
+    const numCell = url ? `<a href="${url}" target="_blank" rel="noopener">${num}</a>` : num;
+    return `<tr><td>${numCell}</td><td>${when}</td><td class="mono">${amount}</td><td><span class="badge ${invoiceStatusClass(status)}">${status}</span></td></tr>`;
+  }).join('');
+}
+
+function renderMetrics() {
+  const now = Date.now();
+  const recent = state.invoices.filter((inv) => {
+    const created = Number(inv.created || 0) * 1000;
+    return created > 0 && (now - created) <= (30 * 24 * 60 * 60 * 1000);
+  });
+
+  const paid = recent.filter((inv) => String(inv.status || '').toLowerCase() === 'paid');
+  const failed = recent.filter((inv) => String(inv.status || '').toLowerCase() === 'uncollectible' || String(inv.status || '').toLowerCase() === 'void');
+  const paidAmount = paid.reduce((acc, inv) => acc + Number(inv.amountPaid || 0), 0);
+  const mrrProxy = Number(state.subscription?.price_cents || 0);
+
+  document.getElementById('m-invoices').textContent = String(recent.length);
+  document.getElementById('m-paid').textContent = fmtMoney(paidAmount);
+  document.getElementById('m-failed').textContent = String(failed.length);
+  document.getElementById('m-mrr').textContent = mrrProxy > 0 ? fmtMoney(mrrProxy) : '—';
+}
+
+async function loadBilling() {
+  setStatus('Loading billing data…');
+  renderAuthState();
+  if (!state.token) {
+    setAuthRequiredUI(true);
+    clearBillingView('Sign in required to fetch billing data.');
+    setStatus('Missing KAIXU_AUTH_TOKEN');
+    return;
+  }
+
+  setAuthRequiredUI(false);
+
+  const qs = state.orgId ? `?orgId=${encodeURIComponent(state.orgId)}` : '';
+  const planData = await getJson(`/.netlify/functions/billing-plans${qs}`);
+  const invData = await getJson(`/.netlify/functions/billing-invoices${qs}`);
+
+  state.plans = Array.isArray(planData.plans) ? planData.plans : [];
+  state.subscription = planData.subscription || null;
+  state.invoices = Array.isArray(invData.invoices) ? invData.invoices : [];
+
+  renderSubscription();
+  renderPlans();
+  renderInvoices();
+  renderMetrics();
+  setStatus('Billing data refreshed');
+}
+
+async function upgrade(priceId = '') {
+  if (!priceId) {
+    const candidate = state.plans.find((p) => !!p.stripe_price_id && p.slug !== 'free');
+    priceId = candidate?.stripe_price_id || '';
+  }
+  if (!priceId) {
+    setStatus('No upgradeable price found');
+    return;
+  }
+  try {
+    setStatus('Opening checkout…');
+    const res = await fetch('/.netlify/functions/billing-create-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ priceId, orgId: state.orgId || '' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+    if (data.url) window.open(data.url, '_blank');
+    setStatus(data.alreadySubscribed ? 'Already subscribed' : 'Checkout opened');
+  } catch (e) {
+    setStatus(`Upgrade failed: ${e.message}`);
+  }
+}
+
+async function openPortal() {
+  try {
+    setStatus('Opening billing portal…');
+    const res = await fetch('/.netlify/functions/billing-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ returnUrl: location.href })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+    if (data.url) window.open(data.url, '_blank');
+    setStatus('Billing portal opened');
+  } catch (e) {
+    setStatus(`Portal failed: ${e.message}`);
+  }
+}
+
+async function aiInsight(){
+  const out = document.getElementById('aiOut');
+  out.textContent = 'kAIxU analyzing live billing context...';
+  const token = (JSON.parse(localStorage.getItem('sovereign_brain_cfg') || '{}').token) || '';
+  if(!token){
+    out.textContent = 'Missing kAIxU gate token in sovereign_brain_cfg.';
+    setStatus('AI insight unavailable');
+    return;
+  }
+  const prompt = `Analyze this billing state and provide: 1) cost risks 2) savings actions 3) plan recommendation. Data: ${JSON.stringify({ subscription: state.subscription, invoices: state.invoices.slice(0, 30) })}`;
+  try {
+    const body = { messages:[{role:'user',content:prompt}], max_tokens:320, app_id:'kaixu-billing-dash' };
+    const r = await fetch(`${WORKER}/v1/chat`, { method:'POST', headers:{ 'Content-Type':'application/json','Authorization':`Bearer ${token}` }, body: JSON.stringify(body) });
+    const d = await r.json();
+    out.textContent = d.output_text || 'No insight returned.';
+    setStatus('AI insight ready');
+  } catch(e) {
+    out.textContent = `Error: ${e.message}`;
+    setStatus('AI insight failed');
+  }
+}
+
+document.getElementById('refresh-btn').addEventListener('click', () => {
+  state.token = localStorage.getItem('KAIXU_AUTH_TOKEN') || '';
+  state.orgId = String(document.getElementById('org-id').value || '').trim();
+  localStorage.setItem('KAIXU_BILLING_ORG_ID', state.orgId);
+  loadBilling().catch((e) => setStatus(`Load failed: ${e.message}`));
+});
+document.getElementById('upgrade-btn').addEventListener('click', () => upgrade());
+document.getElementById('portal-btn').addEventListener('click', openPortal);
+document.getElementById('ai-insight-btn').addEventListener('click', aiInsight);
+
+state.orgId = localStorage.getItem('KAIXU_BILLING_ORG_ID') || '';
+document.getElementById('org-id').value = state.orgId;
+renderAuthState();
+setAuthRequiredUI(!state.token);
+loadBilling().catch((e) => setStatus(`Load failed: ${e.message}`));
 </script>
 </body>
 </html>

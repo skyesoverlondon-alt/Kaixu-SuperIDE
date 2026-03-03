@@ -26,6 +26,9 @@ describe('smoke-run function', () => {
   });
 
   test('stores smoke run with verification hash', async () => {
+    process.env.SMOKE_SIGNING_KEY = 'test-signing-key';
+    process.env.SMOKE_SIGNING_KEY_VERSION = '2026-q1';
+
     db.query
       .mockResolvedValueOnce({ rows: [{ id: 'ws-1', org_id: null, user_id: 'user-123' }] })
       .mockResolvedValueOnce({ rows: [{ id: 'log-1', created_at: '2026-03-02T00:00:00.000Z' }] });
@@ -48,6 +51,11 @@ describe('smoke-run function', () => {
     expect(body.run.runId).toBeTruthy();
     expect(body.run.verifyHash).toMatch(/^[a-f0-9]{64}$/);
     expect(body.run.chainHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(body.run.signature).toMatch(/^[a-f0-9]{64}$/);
+    expect(body.run.keyVersion).toBe('2026-q1');
+
+    delete process.env.SMOKE_SIGNING_KEY;
+    delete process.env.SMOKE_SIGNING_KEY_VERSION;
   });
 
   test('lists stored smoke runs', async () => {

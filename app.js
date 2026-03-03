@@ -33,6 +33,71 @@
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const _lazyScriptCache = new Map();
+
+function loadLazyScript(src) {
+  if (!src) return Promise.resolve();
+  if (_lazyScriptCache.has(src)) return _lazyScriptCache.get(src);
+  const task = new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-lazy-src="${src}"]`);
+    if (existing) {
+      if (existing.dataset.loaded === '1') return resolve();
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error(`Failed loading ${src}`)), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false;
+    script.dataset.lazySrc = src;
+    script.addEventListener('load', () => {
+      script.dataset.loaded = '1';
+      resolve();
+    }, { once: true });
+    script.addEventListener('error', () => reject(new Error(`Failed loading ${src}`)), { once: true });
+    document.body.appendChild(script);
+  });
+  _lazyScriptCache.set(src, task);
+  return task;
+}
+
+function readLazyModuleList() {
+  try {
+    const raw = document.getElementById('lazy-modules-config')?.textContent || '[]';
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function initOptionalModules() {
+  const modules = readLazyModuleList();
+  if (!modules.length) return;
+  for (const src of modules) {
+    await loadLazyScript(src);
+  }
+  if (typeof initGitHub === 'function') initGitHub();
+  if (typeof initDiff === 'function') initDiff();
+  if (typeof initDemo === 'function') initDemo();
+  if (typeof initScm === 'function') initScm();
+  if (typeof initAdmin === 'function') initAdmin();
+  if (typeof initCollab === 'function') initCollab();
+}
+
+function queueOptionalModuleInit() {
+  const launch = () => {
+    initOptionalModules().catch((err) => {
+      console.warn('[kAIxU] optional module load failed:', err?.message || err);
+    });
+  };
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(() => launch(), { timeout: 1200 });
+  } else {
+    setTimeout(launch, 300);
+  }
+}
 
 // ─── Accessibility: modal focus trap ───────────────────────────────────────
 let _focusTrapCleanup = null;
@@ -76,6 +141,152 @@ var currentOrgId = null;
 var chatMessages = [];
 var selectedPaths = new Set();
 var selectedCommitId = null;
+
+const LAYOUT_KEY_SIDE = 'KAIXU_LAYOUT_SIDE_W';
+const LAYOUT_KEY_PREV = 'KAIXU_LAYOUT_PREVIEW_W';
+const LAYOUT_KEY_ACTIVE_TAB = 'KAIXU_ACTIVE_TAB';
+const LAYOUT_PRESET_PREFIX = 'KAIXU_LAYOUT_PRESET_';
+const LAYOUT_SYNC_CHANNEL = 'kaixu-layout-sync-v1';
+const LAYOUT_SYNC_SELF = `win-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+let _layoutSyncChannel = null;
+let _suppressLayoutBroadcast = false;
+
+function _isEditableTarget(target) {
+  const el = target instanceof Element ? target : null;
+  if (!el) return false;
+  const tag = String(el.tagName || '').toUpperCase();
+  return el.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
+function captureLayoutState() {
+  const side = document.getElementById('side');
+  const preview = document.getElementById('preview-section');
+  const sideWidth = side?.getBoundingClientRect?.().width;
+  const previewWidth = preview?.getBoundingClientRect?.().width;
+  return {
+    sideWidth: Number.isFinite(sideWidth) ? Math.round(sideWidth) : parseInt(localStorage.getItem(LAYOUT_KEY_SIDE) || '260', 10),
+    previewWidth: Number.isFinite(previewWidth) ? Math.round(previewWidth) : parseInt(localStorage.getItem(LAYOUT_KEY_PREV) || '420', 10),
+    previewVisible: !!preview && !preview.classList.contains('hidden'),
+    activeTab: getActiveSidebarTab()
+  };
+}
+
+function applyLayoutState(state = {}, options = {}) {
+  const { source = 'local', broadcast = false } = options;
+  const preview = document.getElementById('preview-section');
+  const tab = String(state.activeTab || '').trim();
+
+  if (Number.isFinite(Number(state.sideWidth))) {
+    localStorage.setItem(LAYOUT_KEY_SIDE, String(Math.round(Number(state.sideWidth))));
+  }
+  if (Number.isFinite(Number(state.previewWidth))) {
+    localStorage.setItem(LAYOUT_KEY_PREV, String(Math.round(Number(state.previewWidth))));
+  }
+
+  if (typeof state.previewVisible === 'boolean' && preview) {
+    preview.classList.toggle('hidden', !state.previewVisible);
+  }
+
+  if (tab) setActiveTab(tab, { suppressBroadcast: true });
+  if (typeof window.__syncPanelLayout === 'function') window.__syncPanelLayout();
+
+  if (broadcast) {
+    emitLayoutStateChange(source, {
+      sideWidth: state.sideWidth,
+      previewWidth: state.previewWidth,
+      previewVisible: state.previewVisible,
+      activeTab: tab || undefined
+    });
+  }
+}
+
+function emitLayoutStateChange(reason = 'layout-change', partialState = null) {
+  if (_suppressLayoutBroadcast) return;
+  const channel = _layoutSyncChannel;
+  if (!channel) return;
+  const state = partialState || captureLayoutState();
+  try {
+    channel.postMessage({
+      type: 'layout-state',
+      sender: LAYOUT_SYNC_SELF,
+      reason,
+      state,
+      at: Date.now()
+    });
+  } catch {}
+}
+
+function initLayoutSyncChannel() {
+  if (typeof BroadcastChannel !== 'function') return;
+  try {
+    _layoutSyncChannel = new BroadcastChannel(LAYOUT_SYNC_CHANNEL);
+    _layoutSyncChannel.addEventListener('message', (event) => {
+      const msg = event?.data || {};
+      if (msg.type !== 'layout-state') return;
+      if (msg.sender === LAYOUT_SYNC_SELF) return;
+      _suppressLayoutBroadcast = true;
+      try {
+        applyLayoutState(msg.state || {}, { source: msg.reason || 'remote', broadcast: false });
+      } finally {
+        _suppressLayoutBroadcast = false;
+      }
+    });
+  } catch {}
+}
+
+function saveLayoutPreset(slot) {
+  const n = Number(slot);
+  if (!Number.isInteger(n) || n < 1 || n > 3) return;
+  localStorage.setItem(`${LAYOUT_PRESET_PREFIX}${n}`, JSON.stringify(captureLayoutState()));
+  toast(`Saved layout preset ${n}`, 'success');
+}
+
+function loadLayoutPreset(slot) {
+  const n = Number(slot);
+  if (!Number.isInteger(n) || n < 1 || n > 3) return;
+  const raw = localStorage.getItem(`${LAYOUT_PRESET_PREFIX}${n}`);
+  if (!raw) {
+    toast(`Preset ${n} is empty`, 'info');
+    return;
+  }
+  try {
+    const state = JSON.parse(raw);
+    applyLayoutState(state, { source: `preset-${n}`, broadcast: true });
+    toast(`Loaded layout preset ${n}`, 'success');
+  } catch {
+    toast(`Preset ${n} is invalid`, 'error');
+  }
+}
+
+function resetDefaultLayout() {
+  applyLayoutState({
+    sideWidth: 260,
+    previewWidth: 420,
+    previewVisible: true,
+    activeTab: 'files'
+  }, { source: 'layout-reset', broadcast: true });
+  toast('Layout reset to default', 'success');
+}
+
+function bindLayoutPresetControls() {
+  [1, 2, 3].forEach((slot) => {
+    document.getElementById(`layout-save-${slot}`)?.addEventListener('click', () => saveLayoutPreset(slot));
+    document.getElementById(`layout-load-${slot}`)?.addEventListener('click', () => loadLayoutPreset(slot));
+  });
+  document.getElementById('layout-reset-default')?.addEventListener('click', () => resetDefaultLayout());
+
+  document.addEventListener('keydown', (event) => {
+    if (_isEditableTarget(event.target)) return;
+    if (!event.ctrlKey || !event.altKey) return;
+    const key = String(event.key || '');
+    if (!/^[123]$/.test(key)) return;
+    event.preventDefault();
+    const slot = Number(key);
+    if (event.shiftKey) saveLayoutPreset(slot);
+    else loadLayoutPreset(slot);
+  });
+}
 
 // ─── Import / Export ───────────────────────────────────────────────────────
 
@@ -1595,7 +1806,8 @@ async function doResetConfirm() {
 }
 
 // ─── Side tab switcher ─────────────────────────────────────────────────────
-function setActiveTab(name) {
+function setActiveTab(name, options = {}) {
+  const { suppressBroadcast = false } = options;
   $$('.tabBtn').forEach((b) => {
     const active = b.dataset.tab === name;
     b.classList.toggle('active', active);
@@ -1618,6 +1830,129 @@ function setActiveTab(name) {
   }
   // Load tasks when switching to tasks pane
   if (name === 'tasks') loadTasks();
+  try { localStorage.setItem(LAYOUT_KEY_ACTIVE_TAB, String(name || 'files')); } catch {}
+  if (!suppressBroadcast) emitLayoutStateChange('tab-change', { activeTab: String(name || 'files') });
+}
+
+function getActiveSidebarTab() {
+  return document.querySelector('.tabBtn.active')?.dataset?.tab || 'files';
+}
+
+function openDetachedWorkspace(mode) {
+  const allowed = new Set(['side', 'code', 'files', 'chat', 'scm', 'tasks', 'activity', 'github', 'outline', 'problems']);
+  if (!allowed.has(mode)) return;
+  const undock = (mode === 'side' || mode === 'code') ? mode : `tab:${mode}`;
+  const url = new URL(window.location.href);
+  url.searchParams.set('undock', undock);
+  const winName = `kaixu-undock-${mode}`;
+  window.open(url.toString(), winName, 'popup=yes,resizable=yes,scrollbars=yes,width=1400,height=900');
+}
+
+function initDragUndock() {
+  const handles = Array.from(document.querySelectorAll('.undock-drag-handle'));
+  if (!handles.length) return;
+
+  const DRAG_THRESHOLD = 28;
+  let dragState = null;
+
+  function resolveTarget(handle) {
+    const target = String(handle?.dataset?.undockTarget || '').trim();
+    if (!target) return null;
+    if (target === 'preview') return 'preview';
+    if (target === 'side') return 'side';
+    if (target === 'code') return 'code';
+    if (target === 'active-tab') return getActiveSidebarTab();
+    return null;
+  }
+
+  function begin(handle, event) {
+    if (event.button != null && event.button !== 0) return;
+    const point = event.touches?.[0] || event;
+    dragState = {
+      handle,
+      startX: Number(point.clientX || 0),
+      startY: Number(point.clientY || 0),
+      moved: false,
+      undocked: false
+    };
+  }
+
+  function move(event) {
+    if (!dragState) return;
+    const point = event.touches?.[0] || event;
+    const dx = Number(point.clientX || 0) - dragState.startX;
+    const dy = Number(point.clientY || 0) - dragState.startY;
+    const distance = Math.hypot(dx, dy);
+    if (distance < DRAG_THRESHOLD) return;
+    dragState.moved = true;
+    if (dragState.undocked) return;
+
+    const target = resolveTarget(dragState.handle);
+    if (!target) return;
+    dragState.undocked = true;
+    openDetachedWorkspace(target);
+  }
+
+  function end() {
+    dragState = null;
+  }
+
+  handles.forEach((handle) => {
+    handle.addEventListener('mousedown', (event) => begin(handle, event));
+    handle.addEventListener('touchstart', (event) => begin(handle, event), { passive: true });
+    handle.addEventListener('dragstart', (event) => event.preventDefault());
+  });
+
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, { passive: true });
+  document.addEventListener('mouseup', end);
+  document.addEventListener('touchend', end, { passive: true });
+  document.addEventListener('touchcancel', end, { passive: true });
+}
+
+function applyUndockMode() {
+  const params = new URLSearchParams(window.location.search || '');
+  const undock = String(params.get('undock') || '').trim();
+  if (!undock) return false;
+
+  const side = document.getElementById('side');
+  const sideHandle = document.getElementById('sidebar-resize-handle');
+  const editor = document.getElementById('editor-section');
+  const prevHandle = document.getElementById('preview-resize-handle');
+  const preview = document.getElementById('preview-section');
+  if (!side || !editor || !preview) return false;
+
+  document.body.classList.add('undock-mode');
+  document.documentElement.style.height = '100%';
+
+  if (undock === 'code') {
+    side.classList.add('hidden');
+    sideHandle?.classList.add('hidden');
+    prevHandle?.classList.add('hidden');
+    preview.classList.add('hidden');
+    editor.classList.remove('hidden');
+    editor.style.flex = '1';
+    editor.style.width = '100%';
+    return true;
+  }
+
+  if (undock === 'side' || undock.startsWith('tab:')) {
+    if (undock.startsWith('tab:')) {
+      const tab = undock.slice(4) || 'files';
+      setActiveTab(tab);
+    }
+    editor.classList.add('hidden');
+    preview.classList.add('hidden');
+    sideHandle?.classList.add('hidden');
+    prevHandle?.classList.add('hidden');
+    side.classList.remove('hidden');
+    side.style.width = '100%';
+    side.style.maxWidth = 'none';
+    side.style.flex = '1 1 auto';
+    return true;
+  }
+
+  return false;
 }
 
 function openTutorial() { $('#tutorialModal')?.classList.remove('hidden'); }
@@ -1627,6 +1962,13 @@ function closeTutorial() { $('#tutorialModal')?.classList.add('hidden'); }
 function bindEvents() {
   // Side tabs
   $$('.tabBtn').forEach((b) => b.addEventListener('click', () => setActiveTab(b.dataset.tab)));
+
+  $('#tab-detach-btn')?.addEventListener('click', () => {
+    openDetachedWorkspace(getActiveSidebarTab());
+  });
+  $('#side-detach-window')?.addEventListener('click', () => openDetachedWorkspace('side'));
+  $('#code-detach-window')?.addEventListener('click', () => openDetachedWorkspace('code'));
+  bindLayoutPresetControls();
 
   // New file dialog
   $('#new-file')?.addEventListener('click', () => {
@@ -1734,6 +2076,7 @@ function bindEvents() {
   $('#preview-toggle')?.addEventListener('click', async () => {
     $('#preview-section').classList.toggle('hidden');
     if (typeof window.__syncPanelLayout === 'function') window.__syncPanelLayout();
+    emitLayoutStateChange('preview-toggle');
     if (!$('#preview-section').classList.contains('hidden')) {
       await _populatePreviewEntry();
       updatePreview();
@@ -2758,9 +3101,6 @@ function initPanelResize() {
   const MIN_PREVIEW = 240;
   const HANDLE_W = 8;
 
-  const KEY_SIDE = 'KAIXU_LAYOUT_SIDE_W';
-  const KEY_PREV = 'KAIXU_LAYOUT_PREVIEW_W';
-
   function getTotalWidth() {
     return Math.max(0, main.getBoundingClientRect().width || 0);
   }
@@ -2792,8 +3132,8 @@ function initPanelResize() {
     const currentSide = side.getBoundingClientRect().width || 260;
     const currentPreview = preview.getBoundingClientRect().width || Math.round(total * 0.4);
 
-    const savedSide = parseFloat(localStorage.getItem(KEY_SIDE));
-    const savedPrev = parseFloat(localStorage.getItem(KEY_PREV));
+    const savedSide = parseFloat(localStorage.getItem(LAYOUT_KEY_SIDE));
+    const savedPrev = parseFloat(localStorage.getItem(LAYOUT_KEY_PREV));
 
     const nextPreview = Number.isFinite(savedPrev) ? savedPrev : currentPreview;
     const nextSide = Number.isFinite(savedSide) ? savedSide : currentSide;
@@ -2808,10 +3148,10 @@ function initPanelResize() {
       const clampedPreview = clamp(nextPreview, MIN_PREVIEW, maxPreview);
       preview.style.width = clampedPreview + 'px';
       preview.style.flex = 'none';
-      localStorage.setItem(KEY_PREV, String(Math.round(clampedPreview)));
+      localStorage.setItem(LAYOUT_KEY_PREV, String(Math.round(clampedPreview)));
     }
 
-    localStorage.setItem(KEY_SIDE, String(Math.round(clampedSide)));
+    localStorage.setItem(LAYOUT_KEY_SIDE, String(Math.round(clampedSide)));
     syncHandleVisibility();
   }
 
@@ -2857,7 +3197,7 @@ function initPanelResize() {
       const w = clamp(tentative, MIN_SIDE, maxSide);
       side.style.width = w + 'px';
       side.style.flex = 'none';
-      localStorage.setItem(KEY_SIDE, String(Math.round(w)));
+      localStorage.setItem(LAYOUT_KEY_SIDE, String(Math.round(w)));
     }
 
     if (draggingPreview && isPreviewVisible()) {
@@ -2868,11 +3208,12 @@ function initPanelResize() {
       const w = clamp(tentative, MIN_PREVIEW, maxPreview);
       preview.style.width = w + 'px';
       preview.style.flex = 'none';
-      localStorage.setItem(KEY_PREV, String(Math.round(w)));
+      localStorage.setItem(LAYOUT_KEY_PREV, String(Math.round(w)));
     }
   });
 
   document.addEventListener('mouseup', () => {
+    const changed = draggingSide || draggingPreview;
     if (draggingSide || draggingPreview) {
       draggingSide = false;
       draggingPreview = false;
@@ -2881,20 +3222,23 @@ function initPanelResize() {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     }
+    if (changed) emitLayoutStateChange('pane-resize');
   });
 
   sideHandle.addEventListener('dblclick', () => {
     side.style.width = '260px';
     side.style.flex = 'none';
-    localStorage.setItem(KEY_SIDE, '260');
+    localStorage.setItem(LAYOUT_KEY_SIDE, '260');
     applySavedWidths();
+    emitLayoutStateChange('side-reset');
   });
 
   prevHandle.addEventListener('dblclick', () => {
     preview.style.width = '40%';
     preview.style.flex = 'none';
-    localStorage.removeItem(KEY_PREV);
+    localStorage.removeItem(LAYOUT_KEY_PREV);
     applySavedWidths();
+    emitLayoutStateChange('preview-reset');
   });
 
   window.__syncPanelLayout = applySavedWidths;
@@ -2952,17 +3296,16 @@ async function init() {
   initProblems();            // problems.js — lint / problems panel
   initTemplates();           // templates.js — template browser
   initSnippets();            // snippets.js — snippet manager + Tab expansion
-  if (typeof initGitHub === 'function') initGitHub(); // github.js — push/pull
-  if (typeof initDiff === 'function')   initDiff();   // diff.js — commit history viewer
-  if (typeof initDemo === 'function')   initDemo();   // demo.js — starter project loader
-  if (typeof initScm === 'function')    initScm();    // scm.js — branches, stash, blame
-  if (typeof initAdmin === 'function')  initAdmin();  // admin.js — admin panel
-  if (typeof initCollab === 'function') initCollab(); // collab.js — presence, activity, share
   if (typeof checkKeybindingConflicts === 'function') checkKeybindingConflicts();
   initSecretsScanner();      // app.js — secrets pattern watcher
   bindSettingsModal();       // ui.js — settings modal bindings
   bindEvents();              // app.js — auth, chat, uploads, preview, commits
-  initPanelResize();         // app.js — sidebar + preview drag-resize handles
+  initLayoutSyncChannel();   // app.js — broadcast layout changes across windows
+  initDragUndock();          // app.js — drag gesture undock for panels/windows
+  const undocked = applyUndockMode();
+  if (!undocked) {
+    initPanelResize();       // app.js — sidebar + preview drag-resize handles
+  }
 
   // Watch mode toggle
   const watchChk = document.getElementById('watchMode');
@@ -2989,7 +3332,10 @@ async function init() {
   const amBtn = document.getElementById('agent-memory-btn');
   if (amBtn) amBtn.addEventListener('click', openAgentMemoryModal);
 
-  setActiveTab('files');
+  const savedTab = localStorage.getItem(LAYOUT_KEY_ACTIVE_TAB) || 'files';
+  const undockParam = String(new URLSearchParams(window.location.search || '').get('undock') || '');
+  const startTab = undockParam.startsWith('tab:') ? (undockParam.slice(4) || savedTab) : savedTab;
+  setActiveTab(startTab);
   setUserChip();
 
   await registerServiceWorker();
@@ -3012,6 +3358,7 @@ async function init() {
   }
 
   initReleaseNotesModal();
+  queueOptionalModuleInit();
 }
 
 init().catch((e) => {

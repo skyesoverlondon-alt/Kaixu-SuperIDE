@@ -7,6 +7,70 @@ const {
   buildVerificationPayload,
   computeEvidence
 } = require('./_lib/smoke-evidence');
+const { sendEmail } = require('./_lib/email');
+
+async function postJson(url, payload) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return { ok: res.ok, status: res.status };
+}
+
+async function sendSmokeFailureAlerts({ runId, summary, checks }) {
+  const failedChecks = (Array.isArray(checks) ? checks : []).filter((c) => !c?.ok).map((c) => ({
+    name: c?.name,
+    latencyMs: c?.latencyMs,
+    message: c?.message
+  }));
+  const eventPayload = {
+    event: 'smoke.failed',
+    source: 'scheduler',
+    runId,
+    summary,
+    failedChecks,
+    generatedAt: new Date().toISOString()
+  };
+
+  const webhookEnv = String(process.env.SMOKE_ALERT_WEBHOOK_URLS || process.env.SMOKE_ALERT_WEBHOOK_URL || '');
+  const webhookUrls = webhookEnv.split(',').map((s) => s.trim()).filter(Boolean);
+  const webhookResults = await Promise.all(webhookUrls.map(async (url) => {
+    try {
+      const result = await postJson(url, eventPayload);
+      return { url, ok: result.ok, status: result.status };
+    } catch (err) {
+      return { url, ok: false, error: String(err?.message || err) };
+    }
+  }));
+
+  const emailEnv = String(process.env.SMOKE_ALERT_EMAIL_TO || '');
+  const emails = emailEnv.split(',').map((s) => s.trim()).filter(Boolean);
+  const textBody = [
+    'kAIxU scheduled smoke failure',
+    `runId: ${runId}`,
+    `status: ${summary?.status || 'fail'}`,
+    `failed: ${summary?.failed || 0}/${summary?.total || 0}`,
+    '',
+    ...failedChecks.map((check) => `- ${check.name}: ${check.message || 'failed'}`)
+  ].join('\n');
+  const emailResults = await Promise.all(emails.map(async (to) => {
+    const result = await sendEmail({
+      to,
+      subject: '[kAIxU] Scheduled smoke failure',
+      text: textBody,
+      html: `<pre>${textBody.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]))}</pre>`
+    });
+    return { to, ...result };
+  }));
+
+  return {
+    attempted: webhookUrls.length + emails.length,
+    delivered: webhookResults.filter((r) => r.ok).length + emailResults.filter((r) => r.ok).length,
+    webhookResults,
+    emailResults
+  };
+}
 
 async function timed(name, fn) {
   const start = Date.now();
@@ -74,6 +138,7 @@ async function runScheduledSmoke() {
   const createdAt = new Date().toISOString();
   const runId = crypto.randomUUID();
   const signingKey = String(process.env.SMOKE_SIGNING_KEY || '');
+  const signingKeyVersion = String(process.env.SMOKE_SIGNING_KEY_VERSION || '').trim() || null;
   const prevChainHash = await loadPreviousSchedulerChainHash();
 
   const verificationPayload = buildVerificationPayload({
@@ -87,7 +152,12 @@ async function runScheduledSmoke() {
     version: 2
   });
 
-  const evidence = computeEvidence(verificationPayload, { prevChainHash, signingKey });
+  const evidence = computeEvidence(verificationPayload, { prevChainHash, signingKey, signingKeyVersion });
+
+  let alerts = null;
+  if (summary.status === 'fail') {
+    alerts = await sendSmokeFailureAlerts({ runId, summary, checks: normalizedChecks });
+  }
 
   const details = {
     ...verificationPayload,
@@ -97,7 +167,8 @@ async function runScheduledSmoke() {
       job: 'netlify-scheduled-smoke',
       cron: '0 */6 * * *',
       environment: process.env.CONTEXT || process.env.NODE_ENV || 'unknown'
-    }
+    },
+    alerts
   };
 
   const inserted = await query(
@@ -114,7 +185,9 @@ async function runScheduledSmoke() {
     summary,
     verifyHash: evidence.verifyHash,
     chainHash: evidence.chainHash,
-    signature: evidence.signature
+    signature: evidence.signature,
+    keyVersion: evidence.keyVersion,
+    alerts
   };
 }
 

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>kAIxU SuperIDE — Status</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; background:#070510; color:#e8ecff; margin:0; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 20px; }
+    .top, .card { background:#111020; border:1px solid #2a2640; border-radius:12px; padding:16px; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .links a { color:#a243ff; text-decoration:none; margin-right:10px; }
+    .grid { margin-top:14px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .k { color:#9b90d4; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+    .v { font-size:22px; font-weight:700; margin-top:4px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { border-bottom:1px solid #2a2640; padding:8px 6px; text-align:left; }
+    .ok { color:#4fffb0; }
+    .bad { color:#ff5c72; }
+    button { border-radius:8px; border:1px solid #3b3658; background:#1e1b33; color:#e8ecff; padding:9px 11px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h2 style="margin:0">Status &amp; SLA History</h2>
+        <div style="color:#b7b0d8;font-size:13px">Public uptime transparency from smoke verification history</div>
+      </div>
+      <div class="links">
+        <a href="/api/status-history" target="_blank" rel="noopener">Status JSON</a>
+        <a href="/api/smoke-monthly-report?months=12&format=csv" target="_blank" rel="noopener">Monthly CSV</a>
+        <a href="/investor-trust">Investor Trust</a>
+        <a href="/ide">← SuperIDE</a>
+      </div>
+    </div>
+
+    <div class="grid" id="metrics"></div>
+
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <h3 style="margin:0">Daily Availability (30d)</h3>
+        <button id="refreshBtn">Refresh</button>
+      </div>
+      <table style="margin-top:10px">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Availability</th>
+            <th>Runs</th>
+            <th>Failures</th>
+          </tr>
+        </thead>
+        <tbody id="dailyBody">
+          <tr><td colspan="4" class="mono">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin:0 0 10px">Recent Incidents</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Source</th>
+            <th>Failed Checks</th>
+          </tr>
+        </thead>
+        <tbody id="incidentsBody">
+          <tr><td colspan="3" class="mono">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const metricsEl = document.getElementById('metrics');
+    const dailyBody = document.getElementById('dailyBody');
+    const incidentsBody = document.getElementById('incidentsBody');
+
+    function metric(label, value, ok = true) {
+      return `<div class="card"><div class="k">${label}</div><div class="v ${ok ? 'ok' : 'bad'}">${value}</div></div>`;
+    }
+
+    async function loadStatus() {
+      const [historyRes, smokeRes] = await Promise.all([
+        fetch('/api/status-history', { cache: 'no-store' }),
+        fetch('/api/smoke-status', { cache: 'no-store' })
+      ]);
+      const history = await historyRes.json();
+      const smoke = await smokeRes.json();
+
+      if (!historyRes.ok || !history.ok) throw new Error(history.error || `status-history HTTP ${historyRes.status}`);
+      if (!smokeRes.ok || !smoke.ok) throw new Error(smoke.error || `smoke-status HTTP ${smokeRes.status}`);
+
+      const target = Number(history.slaTarget || 99.9);
+      const d30 = Number(history.uptime?.['30d']?.availability || 0);
+      const d7 = Number(history.uptime?.['7d']?.availability || 0);
+      const d24 = Number(history.uptime?.['24h']?.availability || 0);
+
+      metricsEl.innerHTML = [
+        metric('SLA Target', `${target}%`, true),
+        metric('24h Uptime', `${d24}%`, d24 >= target),
+        metric('7d Uptime', `${d7}%`, d7 >= target),
+        metric('30d Uptime', `${d30}%`, d30 >= target),
+        metric('Latest Smoke', String(smoke.latest?.status || 'unknown').toUpperCase(), String(smoke.latest?.status || '') === 'pass'),
+        metric('30d Fail Runs', String(history.uptime?.['30d']?.failedRuns || 0), Number(history.uptime?.['30d']?.failedRuns || 0) === 0)
+      ].join('');
+
+      const daily = Array.isArray(history.daily) ? history.daily : [];
+      dailyBody.innerHTML = daily.length
+        ? daily.slice(-30).reverse().map((row) => `
+            <tr>
+              <td class="mono">${row.date}</td>
+              <td class="mono ${Number(row.availability || 0) >= target ? 'ok' : 'bad'}">${row.availability}%</td>
+              <td class="mono">${row.passRuns}/${row.totalRuns}</td>
+              <td class="mono">${row.failRuns}</td>
+            </tr>`).join('')
+        : '<tr><td colspan="4" class="mono">No data available.</td></tr>';
+
+      const incidents = Array.isArray(history.incidents) ? history.incidents : [];
+      incidentsBody.innerHTML = incidents.length
+        ? incidents.slice(0, 20).map((row) => `
+            <tr>
+              <td class="mono">${new Date(row.createdAt).toISOString()}</td>
+              <td class="mono">${row.source || 'manual'}</td>
+              <td class="mono">${row.failedChecks}/${row.totalChecks}</td>
+            </tr>`).join('')
+        : '<tr><td colspan="3" class="mono">No recent incidents.</td></tr>';
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      loadStatus().catch((err) => {
+        dailyBody.innerHTML = `<tr><td colspan="4" class="mono">Failed to load: ${String(err.message || err)}</td></tr>`;
+        incidentsBody.innerHTML = '<tr><td colspan="3" class="mono">Failed to load incidents.</td></tr>';
+      });
+    });
+
+    loadStatus().catch((err) => {
+      dailyBody.innerHTML = `<tr><td colspan="4" class="mono">Failed to load: ${String(err.message || err)}</td></tr>`;
+      incidentsBody.innerHTML = '<tr><td colspan="3" class="mono">Failed to load incidents.</td></tr>';
+    });
+  </script>
+</body>
+</html>

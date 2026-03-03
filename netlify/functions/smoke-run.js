@@ -78,6 +78,7 @@ exports.handler = async (event) => {
 
   const userId = claims.sub;
   const signingKey = String(process.env.SMOKE_SIGNING_KEY || '');
+  const signingKeyVersion = String(process.env.SMOKE_SIGNING_KEY_VERSION || '').trim() || null;
 
   if (event.httpMethod === 'GET') {
     const workspaceId = String(event.queryStringParameters?.workspaceId || '').trim();
@@ -91,7 +92,7 @@ exports.handler = async (event) => {
 
       const runs = rows.rows.map((row) => {
         const d = row.details || {};
-        const verification = buildVerificationState(d, { prevChainHash, signingKey });
+        const verification = buildVerificationState(d, { prevChainHash, signingKey, signingKeyVersion });
         prevChainHash = verification.evidence.chainHash || prevChainHash;
         return {
           id: row.id,
@@ -100,6 +101,7 @@ exports.handler = async (event) => {
           verifyHash: verification.evidence.verifyHash,
           chainHash: verification.evidence.chainHash,
           signature: verification.evidence.signature,
+          keyVersion: verification.evidence.keyVersion,
           verification,
           status: d.summary?.status || 'unknown',
           total: d.summary?.total || 0,
@@ -150,7 +152,7 @@ exports.handler = async (event) => {
     });
 
     const prevChainHash = await loadPreviousChainHash({ userId, workspaceId: workspaceId || null });
-    const evidence = computeEvidence(verificationPayload, { prevChainHash, signingKey });
+    const evidence = computeEvidence(verificationPayload, { prevChainHash, signingKey, signingKeyVersion });
 
     const details = {
       ...verificationPayload,
@@ -178,6 +180,7 @@ exports.handler = async (event) => {
         verifyHash: evidence.verifyHash,
         chainHash: evidence.chainHash,
         signature: evidence.signature,
+        keyVersion: evidence.keyVersion,
         workspaceId: workspaceId || null,
         summary
       }

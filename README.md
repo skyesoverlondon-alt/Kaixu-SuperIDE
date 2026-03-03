@@ -4,6 +4,26 @@ Enterprise-grade browser IDE built on Netlify Functions + Neon PostgreSQL + kAIx
 
 ---
 
+## Latest release (2026-03-03)
+
+Smoke Trust + Investor Visibility update:
+
+- Added in-app “What’s New” popup for release visibility inside the IDE.
+- Improved preview UX with a wider default preview column (40%) and full-column fill behavior.
+- Added explicit “Sign in required” UX in Billing Dash when auth token is missing, with clean disabled-state handling for non-auth sessions.
+- Fixed Activity Feed 502 failures by correcting activity-list auth flow and response handling, plus added regression coverage.
+- Added Investor Trust dashboard with public smoke status and trust metrics.
+- Added public status page (`/status`) with SLA/uptime history endpoint (`/api/status-history`).
+- Added monthly smoke trust export endpoint (`/api/smoke-monthly-report`) with JSON/CSV output.
+- Added scheduled smoke failure alerting via webhook/email env configuration.
+- Added signing key version metadata for smoke signatures (`keyVersion`).
+- Added automated changelog generation (`npm run changelog:generate`) and linked it in release notes.
+- Added public smoke history and status badge endpoints for no-signup visibility.
+- Added tamper-evident smoke evidence integrity (`verifyHash`, `chainHash`, optional `signature`).
+- Added scheduled smoke verification runs plus smoke export/public verification upgrades.
+
+---
+
 ## What it is
 
 A fully cloud-backed coding environment deployable in minutes. No servers to manage — Netlify hosts the functions, Neon hosts the database, kAIxU Gateway handles all AI inference.
@@ -96,6 +116,10 @@ Netlify → Site settings → Environment variables:
 | `SENTRY_DSN`           | Sentry project DSN (error tracking)                      |
 | `SAML_CERT`            | IdP certificate (enterprise SAML SSO)                    |
 | `SAML_PRIVATE_KEY`     | SP private key (enterprise SAML SSO)                     |
+| `SMOKE_SIGNING_KEY`    | Optional HMAC key for smoke evidence signatures           |
+| `SMOKE_SIGNING_KEY_VERSION` | Optional signature key version label (default: `v1`) |
+| `SMOKE_ALERT_WEBHOOK_URLS` | Comma-separated webhook URLs for smoke failure alerts |
+| `SMOKE_ALERT_EMAIL_TO` | Comma-separated email recipients for smoke failure alerts |
 
 ### 5. Validate + go live
 
@@ -145,6 +169,7 @@ Validate `/smoke` route + download controls (`Download Latest` and `Download All
 ```bash
 npm run smoke:downloads
 npm run smoke:gate
+npm run changelog:generate
 ```
 
 Output location:
@@ -157,16 +182,21 @@ Investor no-signup smoke URLs:
 
 - `/investor-smoke`
 - `/investor-trust`
+- `/status`
 - `/smoke?public=1`
 - `/api/smoke-public?limit=200` (public smoke history feed, no signup)
 - `/api/smoke-status` (public trust/status JSON)
 - `/api/smoke-status?format=svg` (public smoke badge)
+- `/api/status-history` (public SLA/uptime history JSON)
+- `/api/smoke-monthly-report?months=12` (public monthly trust report JSON)
+- `/api/smoke-monthly-report?months=12&format=csv` (public monthly trust report CSV)
 
 Smoke evidence integrity (server side):
 
 - `verifyHash` — deterministic SHA-256 hash of canonical run payload
 - `chainHash` — hash-chained to prior run in scope (tamper-evident sequence)
 - `signature` — HMAC-SHA256 of `chainHash` when `SMOKE_SIGNING_KEY` is set
+- `keyVersion` — signing key version label attached to signed evidence
 - legacy runs are verification-backfilled on read (`verification.evidence.backfilled = true`)
 
 Scheduled smoke automation:
