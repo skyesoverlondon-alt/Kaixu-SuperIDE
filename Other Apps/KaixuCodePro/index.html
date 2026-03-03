@@ -632,7 +632,7 @@
                                         <div className="space-y-2">
                                             <div className="flex justify-between">
                                                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">kAIxU Gate Key</label>
-                                                <a href="https://skyesoverlondon.netlify.app/pages/services/real-intelligence/getkaixu-api" target="_blank" className="text-[9px] text-purple-500 underline">Request</a>
+                                                <a href="https://skyesoverlondon.netlify.app/pages/services/real-intelligence/getkaixu-api" target="_blank" rel="noopener noreferrer" className="text-[9px] text-purple-500 underline">Request</a>
                                             </div>
                                             <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white focus:border-purple-500 outline-none" placeholder="kaixu_gate_key..." />
                                         </div>
@@ -652,7 +652,7 @@
                                             {n:'Founders', u:'https://solenterprises.org/pages/leadership-hub', i:'shield_person', c:'emerald'},
                                             {n:'Contact', u:'https://13thsole.netlify.app/pages/contact-hub', i:'alternate_email', c:'amber'}
                                         ].map(l => (
-                                            <a key={l.n} href={l.u} target="_blank" className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl border border-transparent hover:border-white/5 transition-all">
+                                            <a key={l.n} href={l.u} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 hover:bg-white/5 rounded-xl border border-transparent hover:border-white/5 transition-all">
                                                 <Icon name={l.i} className={`text-${l.c}-500`} />
                                                 <div className="flex flex-col">
                                                     <span className="text-xs font-bold text-gray-200">{l.n}</span>

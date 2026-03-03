@@ -1035,7 +1035,7 @@ async function loadPushDeploys() {
   if (!tbody) return;
   tbody.innerHTML = "";
   for (const d of (data.deploys || [])) {
-    const url = d.url ? `<a href="${escapeHtml(d.url)}" target="_blank" rel="noreferrer">open</a>` : "";
+    const url = d.url ? `<a href="${escapeHtml(d.url)}" target="_blank" rel="noopener noreferrer">open</a>` : "";
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><code>${escapeHtml(d.push_id)}</code></td>
@@ -1525,7 +1525,7 @@ async function ghLoadRepos() {
       <td>${r.private ? "yes" : "no"}</td>
       <td>${escapeHtml(r.default_branch || "")}</td>
       <td>${r.updated_at ? new Date(r.updated_at).toLocaleString() : ""}</td>
-      <td>${r.html_url ? `<a href="${escapeAttr(r.html_url)}" target="_blank" rel="noreferrer">Open</a>` : ""}</td>
+      <td>${r.html_url ? `<a href="${escapeAttr(r.html_url)}" target="_blank" rel="noopener noreferrer">Open</a>` : ""}</td>
     `;
     tbody.appendChild(tr);
   }
@@ -1542,7 +1542,7 @@ async function ghLoadJobs() {
   for (const j of (data.jobs || [])) {
     const tr = document.createElement("tr");
     const repo = `${j.owner}/${j.repo}`;
-    const result = j.result_url ? `<a href="${escapeAttr(j.result_url)}" target="_blank" rel="noreferrer">Commit</a>` : "";
+    const result = j.result_url ? `<a href="${escapeAttr(j.result_url)}" target="_blank" rel="noopener noreferrer">Commit</a>` : "";
     tr.innerHTML = `
       <td><code>${escapeHtml(j.job_id)}</code></td>
       <td><code>${escapeHtml(repo)}</code></td>

@@ -138,7 +138,7 @@ header{display:flex;align-items:center;gap:10px;padding:0 16px;background:rgba(4
           <span id="site-status-badge"></span>
           <button class="act-btn primary" id="trigger-btn" onclick="triggerDeploy()">▶ Trigger Deploy</button>
           <button class="act-btn" onclick="loadDeploys()">↻ Refresh</button>
-          <a id="site-ext-link" href="#" target="_blank" class="act-btn" style="text-decoration:none">↗ Open Site</a>
+          <a id="site-ext-link" href="#" target="_blank" rel="noopener noreferrer" class="act-btn" style="text-decoration:none">↗ Open Site</a>
         </div>
         <div class="stats-bar">
           <div class="stat-box"><div class="stat-val" id="stat-total">—</div><div class="stat-lbl">Total Deploys</div></div>
@@ -266,7 +266,7 @@ async function loadDeploys(){
           <div class="deploy-meta">${badges}</div>
         </div>
         <div class="deploy-time">${when}</div>
-        ${d.deploy_url?`<a class="deploy-link" href="${esc(d.deploy_url)}" target="_blank">View ↗</a>`:''}
+        ${d.deploy_url?`<a class="deploy-link" href="${esc(d.deploy_url)}" target="_blank" rel="noopener noreferrer">View ↗</a>`:''}
       </div>`;
     }).join('');
   }catch(e){toast('Fetch error: '+e.message,'err');}

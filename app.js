@@ -2526,6 +2526,8 @@ const HELP_DOCS = [
   { cat: 'Admin', kw: 'workspace delete transfer ownership', title: 'Workspace Admin', body: 'Use ws-admin API or Admin panel to soft-delete or transfer workspace ownership.' },
   { cat: 'Admin', kw: 'webhook event notification', title: 'Webhooks', body: 'In Admin → Webhooks, add a URL and select events (ws.save, chat.append, etc.) to receive.' },
   { cat: 'Shortcuts', kw: 'keyboard shortcut hotkey', title: 'Keyboard Shortcuts', body: 'Ctrl+S: Save | Ctrl+N: New file | Ctrl+\\: Split | Ctrl+Shift+P: Command palette | Ctrl+Shift+F: Search | Ctrl+Enter: Send chat | ?: Help' },
+  { cat: 'Network', kw: 'websites links skyesol skyeletix sole nexus family sentinel', title: 'SOL Network Websites', body: 'Open from nav: 🌐 SOL Network. Direct links: <a href="https://skyesol.netlify.app/" target="_blank" rel="noopener noreferrer">SkyeSOL</a> · <a href="https://skyeletix.netlify.app/" target="_blank" rel="noopener noreferrer">SkyeLetix</a> · <a href="https://northstarofficexaccounting.netlify.app/" target="_blank" rel="noopener noreferrer">NorthStar Office X Accounting</a> · <a href="https://sole-nexus.netlify.app/" target="_blank" rel="noopener noreferrer">SOLE Nexus</a> · <a href="https://solenterprisesnexusconnect.netlify.app/" target="_blank" rel="noopener noreferrer">SOL Enterprises Nexus Connect</a> · <a href="https://skyefamilyhub.netlify.app/" target="_blank" rel="noopener noreferrer">Skye Family Hub</a> · <a href="https://sentinelwebauthority.netlify.app/" target="_blank" rel="noopener noreferrer">Sentinel Web Authority</a> · <a href="https://solenteaiskyes.netlify.app/" target="_blank" rel="noopener noreferrer">SOL Entea Skyes</a> · <a href="https://familycommand.netlify.app/" target="_blank" rel="noopener noreferrer">Family Command</a> · <a href="https://skyecode-nexus.netlify.app/" target="_blank" rel="noopener noreferrer">SkyeCode Nexus</a> · <a href="https://skyesoverlondon.netlify.app/" target="_blank" rel="noopener noreferrer">Skyes Over London</a> · <a href="https://solenterprises.org/pages/skyeweb" target="_blank" rel="noopener noreferrer">SOL Enterprises Portal</a>.' },
+  { cat: 'Contact', kw: 'phone email contact skyes over london', title: 'Contact Skyes Over London', body: 'Phone: <a href="tel:+14804695416">(480) 469-5416</a> · Email: <a href="mailto:SkyesOverLondonLC@SOLEnterprises.org">SkyesOverLondonLC@SOLEnterprises.org</a> · <a href="mailto:SkyesOverLondon@gmail.com">SkyesOverLondon@gmail.com</a>.' },
 ];
 
 function openHelpModal() {
@@ -2584,7 +2586,7 @@ async function openMfaModal() {
       // Render QR as link (no canvas QR lib — show the otpauth URL)
       const wrap = document.getElementById('mfa-qr-placeholder');
       if (wrap) {
-        wrap.innerHTML = `<a href="${data.qrUrl}" target="_blank" style="font-size:11px;color:#a259ff;word-break:break-all">Open in Authenticator App →</a><br/><div style="font-size:10px;opacity:.5;margin-top:4px">(or copy the secret above)</div>`;
+        wrap.innerHTML = `<a href="${data.qrUrl}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#a259ff;word-break:break-all">Open in Authenticator App →</a><br/><div style="font-size:10px;opacity:.5;margin-top:4px">(or copy the secret above)</div>`;
       }
     }
   } catch (err) {
@@ -2983,8 +2985,8 @@ async function loadBillingInvoices() {
         ? '<span style="color:#4ade80">✓ Paid</span>'
         : `<span style="color:#f87171">${inv.status}</span>`;
       const links = [
-        inv.pdfUrl    ? `<a href="${inv.pdfUrl}" target="_blank" style="color:#a78bfa;font-size:11px">PDF</a>` : '',
-        inv.hostedUrl ? `<a href="${inv.hostedUrl}" target="_blank" style="color:#a78bfa;font-size:11px">View</a>` : '',
+        inv.pdfUrl    ? `<a href="${inv.pdfUrl}" target="_blank" rel="noopener noreferrer" style="color:#a78bfa;font-size:11px">PDF</a>` : '',
+        inv.hostedUrl ? `<a href="${inv.hostedUrl}" target="_blank" rel="noopener noreferrer" style="color:#a78bfa;font-size:11px">View</a>` : '',
       ].filter(Boolean).join(' · ');
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a3e;font-size:12px">
         <span>${date} — ${inv.planName || inv.number || inv.id}</span>

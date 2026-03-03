@@ -57,7 +57,9 @@ const REQUIRED = [
 const OPTIONAL = [
   { key: 'KAIXU_DEFAULT_MODEL', desc: 'Default AI model (default: kAIxU-flash)' },
   { key: 'DATABASE_REPLICA_URL',desc: 'Neon read replica URL (Phase 28: multi-region reads)' },
-  { key: 'SENDGRID_API_KEY',    desc: 'SendGrid API key (required for all emails)' },
+  { key: 'RESEND_API_KEY',      desc: 'Resend API key (preferred for emails)' },
+  { key: 'RESEND_FROM_EMAIL',   desc: 'From address override for Resend (optional)' },
+  { key: 'SENDGRID_API_KEY',    desc: 'SendGrid API key (fallback email provider)' },
   { key: 'SMTP_FROM_EMAIL',     desc: 'From address for transactional emails' },
   { key: 'APP_URL',             desc: 'Public site URL (used in email links)' },
   { key: 'STRIPE_SECRET_KEY',   desc: 'Stripe secret key (required for billing)' },
@@ -99,7 +101,7 @@ if (jwtSecret.length >= 64) {
 // ── Section: Optional vars ───────────────────────────────────────────────────
 console.log(c.bold('\n③ Optional environment variables\n'));
 
-const emailVars = ['SENDGRID_API_KEY', 'SMTP_FROM_EMAIL', 'APP_URL'];
+const emailVars = ['RESEND_API_KEY', 'RESEND_FROM_EMAIL', 'SENDGRID_API_KEY', 'SMTP_FROM_EMAIL', 'APP_URL'];
 const billingVars = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'];
 const githubVars = ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'];
 const ssoVars = ['SAML_SP_CERT', 'SAML_SP_KEY'];

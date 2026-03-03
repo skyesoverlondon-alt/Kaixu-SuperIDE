@@ -450,7 +450,7 @@ const store = {
     body.innerHTML = rows.map(j=>{
       const when = new Date(j.created_at || j.updated_at || Date.now()).toLocaleString();
       const repo = `${j.owner}/${j.repo}`;
-      const commit = j.result_url ? `<a href="${j.result_url}" target="_blank" rel="noopener">link</a>` : (j.result_commit_sha ? j.result_commit_sha.slice(0,7) : "");
+      const commit = j.result_url ? `<a href="${j.result_url}" target="_blank" rel="noopener noreferrer">link</a>` : (j.result_commit_sha ? j.result_commit_sha.slice(0,7) : "");
       const next = j.next_attempt_at ? new Date(j.next_attempt_at).toLocaleString() : "";
       const status = j.status || "";
       const attempts = (j.attempts ?? 0);

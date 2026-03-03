@@ -5,13 +5,14 @@
 // POST (trigger) { action:'send', event, data, orgId?, userId? }
 //
 // Env vars:
-//   SENDGRID_API_KEY      — for email notifications
+//   RESEND_API_KEY or SENDGRID_API_KEY — for email notifications
 //   SMTP_FROM_EMAIL       — sender address (e.g. noreply@yourapp.com)
 //
 // Slack webhooks are configured by the org/user in notification_preferences.config.webhook_url
 
 const { requireAuth } = require('./_lib/auth');
 const { getDb }        = require('./_lib/db');
+const { sendEmail }    = require('./_lib/email');
 const https            = require('https');
 const { URL }          = require('url');
 const logger           = require('./_lib/logger')('notifications');
@@ -41,39 +42,11 @@ async function deliverSlack(webhookUrl, text, blocks) {
   });
 }
 
-// ── Delivery: Email via SendGrid ──────────────────────────────────────────
+// ── Delivery: Email via shared provider utility (Resend/SendGrid) ─────────
 async function deliverEmail(to, subject, text) {
-  const apiKey = process.env.SENDGRID_API_KEY;
-  const from   = process.env.SMTP_FROM_EMAIL || 'noreply@kaixuide.app';
-  if (!apiKey) throw new Error('SENDGRID_API_KEY not configured');
-
-  const body = JSON.stringify({
-    personalizations: [{ to: [{ email: to }] }],
-    from: { email: from, name: 'kAIxU IDE' },
-    subject,
-    content: [{ type: 'text/plain', value: text }],
-  });
-
-  return new Promise((resolve, reject) => {
-    const opts = {
-      hostname: 'api.sendgrid.com',
-      path: '/v3/mail/send',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-      },
-    };
-    const req = https.request(opts, (res) => {
-      let d = '';
-      res.on('data', (c) => (d += c));
-      res.on('end', () => resolve({ status: res.statusCode, body: d }));
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
+  const result = await sendEmail({ to, subject, text });
+  if (!result.ok) throw new Error(result.error || 'Email delivery failed');
+  return { status: result.statusCode || 200 };
 }
 
 // ── Delivery: Custom Webhook ───────────────────────────────────────────────

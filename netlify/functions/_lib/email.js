@@ -1,5 +1,5 @@
 /*
-  _lib/email.js — SendGrid email utility
+  _lib/email.js — transactional email utility (Resend + SendGrid)
   ---------------------------------------
   Usage:
     const { sendEmail } = require('./_lib/email');
@@ -12,29 +12,64 @@
     });
     if (!result.ok) console.error('Email failed:', result.error);
 
-  Env vars required:
-    SENDGRID_API_KEY  — SendGrid API key (sg_...)
-    SMTP_FROM_EMAIL   — Sender address (e.g. hello@kaixu.app)
+  Env vars:
+    RESEND_API_KEY    — Resend API key (preferred)
+    RESEND_FROM_EMAIL — Optional sender address override for Resend
+    SENDGRID_API_KEY  — SendGrid API key (fallback)
+    SMTP_FROM_EMAIL   — Sender address (default for all providers)
 
   Graceful degradation:
-    - If SENDGRID_API_KEY is not set, logs a warning and returns ok:false.
+    - If no provider key is configured, logs a warning and returns ok:false.
     - Never throws — always returns { ok, error? }.
 */
 
+const RESEND_API = 'https://api.resend.com/emails';
 const SENDGRID_API = 'https://api.sendgrid.com/v3/mail/send';
 
 /**
- * Send a transactional email via SendGrid.
+ * Send a transactional email via Resend (preferred) or SendGrid (fallback).
  * @param {{ to: string, subject: string, html: string, text?: string }} opts
  * @returns {Promise<{ ok: boolean, error?: string, statusCode?: number }>}
  */
 async function sendEmail({ to, subject, html, text }) {
-  const apiKey  = process.env.SENDGRID_API_KEY;
-  const from    = process.env.SMTP_FROM_EMAIL || 'hello@kaixu.app';
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || 'hello@kaixu.app';
 
-  if (!apiKey) {
-    console.warn('[email] SENDGRID_API_KEY not set — email not sent');
-    return { ok: false, error: 'SENDGRID_API_KEY not configured' };
+  if (resendApiKey) {
+    const payload = {
+      from,
+      to: [to],
+      subject,
+      ...(html ? { html } : {}),
+      ...(text ? { text } : {}),
+    };
+
+    try {
+      const res = await fetch(RESEND_API, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) return { ok: true, statusCode: res.status };
+
+      const body = await res.json().catch(() => ({}));
+      const errMsg = body?.message || body?.error?.message || `Resend HTTP ${res.status}`;
+      console.error('[email] Resend error:', errMsg, { to, subject });
+      return { ok: false, error: errMsg, statusCode: res.status };
+    } catch (err) {
+      console.error('[email] Resend fetch error:', err.message);
+      return { ok: false, error: err.message };
+    }
+  }
+
+  if (!sendgridApiKey) {
+    console.warn('[email] No email provider configured — set RESEND_API_KEY or SENDGRID_API_KEY');
+    return { ok: false, error: 'No email provider configured (set RESEND_API_KEY or SENDGRID_API_KEY)' };
   }
 
   const payload = {
@@ -51,7 +86,7 @@ async function sendEmail({ to, subject, html, text }) {
     const res = await fetch(SENDGRID_API, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${sendgridApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),

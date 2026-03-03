@@ -97,8 +97,9 @@ Netlify → Site settings → Environment variables:
 |-------------------------|-------------------------------------------------|
 | `DATABASE_URL`          | Neon connection string                          |
 | `JWT_SECRET`            | Random 64-char string (`openssl rand -hex 32`)  |
-| `KAIXU_GATE_TOKEN`      | Your kAIxU gateway token                        |
-| `SENDGRID_API_KEY`      | SendGrid API key (for emails)                   |
+| `KAIXUSI_SECRET`        | Shared bearer token for Netlify ↔ KaixuSI worker |
+| `KAIXUSI_WORKER_URL`    | KaixuSI worker URL (`https://...workers.dev`)   |
+| `RESEND_API_KEY` or `SENDGRID_API_KEY` | Email provider API key (Resend preferred) |
 | `SMTP_FROM_EMAIL`       | e.g. `hello@kaixu.app`                         |
 | `APP_URL`               | Your Netlify site URL                           |
 | `STRIPE_SECRET_KEY`     | `sk_live_...` or `sk_test_...`                  |
@@ -111,6 +112,7 @@ Netlify → Site settings → Environment variables:
 | `KAIXU_GATE_BASE`      | `https://kaixu67.skyesoverlondon.workers.dev`            |
 | `KAIXU_DEFAULT_MODEL`  | `kAIxU-flash` (or `kAIxU-pro`)                          |
 | `DATABASE_REPLICA_URL` | Neon read replica — falls back to primary if unset       |
+| `RESEND_FROM_EMAIL`    | Optional Resend-specific sender override (else `SMTP_FROM_EMAIL`) |
 | `GITHUB_CLIENT_ID`     | GitHub OAuth App (for GitHub integration)                |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App                                         |
 | `SENTRY_DSN`           | Sentry project DSN (error tracking)                      |

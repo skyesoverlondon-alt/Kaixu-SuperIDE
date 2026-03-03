@@ -314,7 +314,7 @@ function selectRepo(repo){
       <div class="push-section-title">Repository Details</div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:11px;display:flex;flex-direction:column;gap:6px">
         <div><span style="color:var(--muted)">Full name: </span><span style="color:var(--cyan)">${esc(repo.full_name)}</span></div>
-        <div><span style="color:var(--muted)">HTML URL: </span><a href="${esc(repo.html_url)}" target="_blank" style="color:var(--purple);text-decoration:none">${esc(repo.html_url)}</a></div>
+        <div><span style="color:var(--muted)">HTML URL: </span><a href="${esc(repo.html_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--purple);text-decoration:none">${esc(repo.html_url)}</a></div>
       </div>
     </div>
   `;
@@ -462,7 +462,7 @@ async function pollJobStatus(base,jobId,btn,resultEl){
             <div class="job-tag">repo: ${esc(document.getElementById('push-repo').value)}</div>
             <div class="job-tag">branch: ${esc(document.getElementById('push-branch').value)}</div>
             ${d.sha?`<div class="job-tag">sha: ${esc(d.sha.slice(0,8))}</div>`:''}
-            ${d.html_url?`<div class="job-tag"><a href="${esc(d.html_url)}" target="_blank" style="color:var(--purple)">View on GitHub ↗</a></div>`:''}
+            ${d.html_url?`<div class="job-tag"><a href="${esc(d.html_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--purple)">View on GitHub ↗</a></div>`:''}
           </div>
         </div>`;
         btn.disabled=false; btn.textContent='🚀 Push to GitHub';

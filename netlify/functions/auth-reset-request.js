@@ -68,10 +68,10 @@ exports.handler = async (event) => {
 
     const emailResult = await sendPasswordResetEmail({ to: email, resetUrl });
     if (!emailResult.ok) {
-      // If SendGrid not configured (dev), return token directly for testing
+      // If no email provider is configured (dev), return token directly for testing
       log.warn('reset_email_failed', { email, error: emailResult.error });
-      if (!process.env.SENDGRID_API_KEY) {
-        return ok({ ok: true, dev_token: token, dev_reset_url: resetUrl, message: 'Dev mode: SENDGRID_API_KEY not set. Use dev_reset_url to test.' });
+      if (!process.env.RESEND_API_KEY && !process.env.SENDGRID_API_KEY) {
+        return ok({ ok: true, dev_token: token, dev_reset_url: resetUrl, message: 'Dev mode: no email provider key set. Use dev_reset_url to test.' });
       }
     }
     return ok({ ok: true, message: 'If that email is registered, a reset link has been sent.' });

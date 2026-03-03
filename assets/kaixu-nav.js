@@ -37,6 +37,7 @@ window.KAIXU_WORKER = 'https://kaixusi' + '.skyesoverlondon.workers.dev';
       id: 'chat-ide', label: 'Chat & IDE', icon: '⚡', col: '#8A4FFF',
       items: [
         { n: 'kAIxU Super IDE',    i: '🧠', h: 'ide.html' },
+        { n: 'About the Creator',  i: '👑', h: 'AboutTheCreator.html' },
         { n: 'kAIxU Code Pro',     i: '💻', h: 'Other Apps/KaixuCodePro/index.html' },
         { n: 'Neural Space Pro',   i: '🌌', h: 'Other Apps/NeuralSpacePro/index.html' },
         { n: 'Sign In Pro',        i: '🔐', h: 'Other Apps/SignInPro/index.html' },
@@ -136,6 +137,26 @@ window.KAIXU_WORKER = 'https://kaixusi' + '.skyesoverlondon.workers.dev';
         { n: 'Certifications',     i: '🏆', h: null },
       ]
     },
+    {
+      id: 'sol-network', label: 'SOL Network', icon: '🌐', col: '#60A5FA',
+      items: [
+        { n: 'SkyeSOL',                        i: '🔗', h: 'https://skyesol.netlify.app/' },
+        { n: 'SkyeLetix',                      i: '🎟️', h: 'https://skyeletix.netlify.app/' },
+        { n: 'NorthStar Office X Accounting', i: '📊', h: 'https://northstarofficexaccounting.netlify.app/' },
+        { n: 'SOLE Nexus',                     i: '🧩', h: 'https://sole-nexus.netlify.app/' },
+        { n: 'SOL Enterprises Nexus Connect',  i: '🏢', h: 'https://solenterprisesnexusconnect.netlify.app/' },
+        { n: 'Skye Family Hub',                i: '🏠', h: 'https://skyefamilyhub.netlify.app/' },
+        { n: 'Sentinel Web Authority',         i: '🛡️', h: 'https://sentinelwebauthority.netlify.app/' },
+        { n: 'SOL Entea Skyes',                i: '🍵', h: 'https://solenteaiskyes.netlify.app/' },
+        { n: 'Family Command',                 i: '🧭', h: 'https://familycommand.netlify.app/' },
+        { n: 'SkyeCode Nexus',                 i: '💻', h: 'https://skyecode-nexus.netlify.app/' },
+        { n: 'Skyes Over London',              i: '👑', h: 'https://skyesoverlondon.netlify.app/' },
+        { n: 'SOL Enterprises Portal',         i: '🏛️', h: 'https://solenterprises.org/pages/skyeweb' },
+        { n: 'Call (480) 469-5416',            i: '📞', h: 'tel:+14804695416' },
+        { n: 'Email (SOLEnterprises)',         i: '✉️', h: 'mailto:SkyesOverLondonLC@SOLEnterprises.org' },
+        { n: 'Email (Gmail)',                  i: '📧', h: 'mailto:SkyesOverLondon@gmail.com' },
+      ]
+    },
   ];
 
   // ── CSS ─────────────────────────────────────────────────────────────────────
@@ -182,13 +203,20 @@ window.KAIXU_WORKER = 'https://kaixusi' + '.skyesoverlondon.workers.dev';
     white-space: nowrap;
     flex-shrink: 0;
   }
-  .kn-logo-icon {
-    width: 26px; height: 26px;
-    background: linear-gradient(135deg, #8A4FFF, #30E0FF);
-    border-radius: 7px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
+  .kn-logo-img {
+    height: 28px;
+    width: auto;
     flex-shrink: 0;
+    filter: drop-shadow(0 0 8px rgba(201,168,76,.55)) drop-shadow(0 0 22px rgba(201,168,76,.2));
+    animation: knLogoFloat 4s ease-in-out infinite, knLogoPulse 2.8s ease-in-out infinite;
+  }
+  @keyframes knLogoFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  @keyframes knLogoPulse {
+    0%, 100% { filter: drop-shadow(0 0 7px rgba(201,168,76,.42)) drop-shadow(0 0 18px rgba(201,168,76,.15)); }
+    50% { filter: drop-shadow(0 0 12px rgba(201,168,76,.72)) drop-shadow(0 0 28px rgba(201,168,76,.26)); }
   }
 
   /* Menus wrapper */
@@ -335,6 +363,25 @@ window.KAIXU_WORKER = 'https://kaixusi' + '.skyesoverlondon.workers.dev';
   }
   .kn-cta:hover { opacity: 0.88; transform: translateY(-1px); }
 
+  .kn-quick-smoke {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #1f8f6a, #23b37f);
+    color: #f3fff9;
+    font-weight: 700;
+    font-size: 11.5px;
+    border-radius: 8px;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 8px;
+    transition: opacity 0.15s, transform 0.15s;
+    letter-spacing: 0.01em;
+    box-shadow: 0 0 16px rgba(35,179,127,0.35);
+  }
+  .kn-quick-smoke:hover { opacity: 0.9; transform: translateY(-1px); }
+
   /* Spacer (pushes page content below fixed nav) */
   #kn-spacer { height: var(--kn-h); width: 100%; flex-shrink: 0; }
 
@@ -392,7 +439,10 @@ window.KAIXU_WORKER = 'https://kaixusi' + '.skyesoverlondon.workers.dev';
       const panelColor = m.col;
       const items = m.items.map(item => {
         if (item.h) {
-          return `<a class="kn-item" href="${url(item.h)}" target="_blank">
+          const href = /^(https?:)?\/\//i.test(item.h) || /^(mailto:|tel:)/i.test(item.h)
+            ? item.h
+            : url(item.h);
+          return `<a class="kn-item" href="${href}" target="_blank" rel="noopener noreferrer">
             <span class="kn-item-icon">${item.i}</span>${item.n}
           </a>`;
         }
@@ -412,10 +462,11 @@ window.KAIXU_WORKER = 'https://kaixusi' + '.skyesoverlondon.workers.dev';
 
     return `<nav id="kn-nav" role="navigation" aria-label="kAIxU Suite Navigation">
       <a class="kn-logo" href="${url('index.html')}">
-        <span class="kn-logo-icon">⚡</span>
+        <img class="kn-logo-img" src="https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png" alt="logo1 transparent" border="0" />
         <span>kAIxU</span>
       </a>
       <div class="kn-menus">${menuHTML}</div>
+      <a class="kn-quick-smoke" href="${url('smoke-live.html?public=1')}" target="_blank" rel="noopener noreferrer">Smoke Test</a>
       <a class="kn-cta" href="${url('ide.html')}">Open IDE →</a>
       <button class="kn-hamburger" aria-label="Toggle menu" onclick="document.getElementById('kn-nav').classList.toggle('kn-mobile-open')">☰</button>
     </nav>

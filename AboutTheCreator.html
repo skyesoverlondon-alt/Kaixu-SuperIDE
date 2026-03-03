@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="canonical" href="https://skyesol.netlify.app/leadership/skyesoverlondon" />
+	<title>Skyes Over London — Operator Profile | Creator of kAIxU Super IDE</title>
+	<meta name="description" content="Skyes Over London operator profile based on the SkyeSOL leadership page. Founder and creator of the kAIxU Super IDE." />
+	<meta property="og:title" content="Skyes Over London — Operator Profile" />
+	<meta property="og:description" content="Founder and creator of the kAIxU Super IDE. Multi-state operator, contract builder, AI-enabled systems leader." />
+	<meta property="og:url" content="https://skyesol.netlify.app/leadership/skyesoverlondon" />
+	<meta property="og:type" content="website" />
+	<style>
+		:root {
+			--gold: #c9a84c;
+			--gold-light: #e8d48b;
+			--dark: #0e0e1a;
+			--darker: #07070f;
+			--surface: #0c0c14;
+			--text: #e8e6e1;
+			--text-dim: #8a8880;
+			--glow-gold: 0 0 30px rgba(201,168,76,.3), 0 0 60px rgba(201,168,76,.1);
+		}
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		body {
+			background: var(--darker);
+			color: var(--text);
+			font: 300 16px/1.7 "DM Sans", Inter, system-ui, sans-serif;
+			overflow-x: hidden;
+		}
+		.main-nav {
+			position: sticky;
+			top: 0;
+			z-index: 20;
+			background: rgba(5, 5, 8, 0.92);
+			border-bottom: 1px solid rgba(201,168,76,.08);
+			padding: 12px 20px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			backdrop-filter: blur(10px);
+		}
+		.main-nav a {
+			color: var(--text-dim);
+			text-decoration: none;
+			font-size: 12px;
+			letter-spacing: 1.5px;
+			text-transform: uppercase;
+		}
+		.main-nav a:hover { color: var(--gold); }
+		.nav-left {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.nav-logo-img {
+			height: 34px;
+			width: auto;
+			filter: drop-shadow(0 0 8px rgba(201,168,76,.55)) drop-shadow(0 0 22px rgba(201,168,76,.22));
+			animation: floatLogo 4s ease-in-out infinite, pulseLogoGlow 2.8s ease-in-out infinite;
+		}
+		.nav-links {
+			display: flex;
+			gap: 16px;
+			flex-wrap: wrap;
+			justify-content: flex-end;
+		}
+		.hero-wrapper {
+			padding: 48px 20px 36px;
+		}
+		.hero-grid {
+			max-width: 1200px;
+			margin: 0 auto;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 28px;
+			align-items: center;
+		}
+		.hero-tagline {
+			color: var(--gold);
+			font-size: 12px;
+			letter-spacing: 4px;
+			text-transform: uppercase;
+			margin-bottom: 10px;
+		}
+		h1 {
+			font-family: "Playfair Display", Georgia, serif;
+			font-size: clamp(36px, 6vw, 70px);
+			line-height: 1.02;
+			margin-bottom: 12px;
+		}
+		h1 span {
+			background: linear-gradient(135deg, var(--gold), var(--gold-light), var(--gold));
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+		.hero-subtitle {
+			color: var(--text-dim);
+			max-width: 680px;
+			margin-bottom: 18px;
+		}
+		.hero-cta-row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 12px;
+		}
+		.btn-gold, .btn-outline {
+			display: inline-flex;
+			align-items: center;
+			text-decoration: none;
+			font-size: 11px;
+			letter-spacing: 2px;
+			text-transform: uppercase;
+			padding: 12px 20px;
+			border-radius: 4px;
+			transition: transform .2s ease;
+		}
+		.btn-gold {
+			background: linear-gradient(135deg, var(--gold), #b8943f);
+			color: #161109;
+			font-weight: 700;
+		}
+		.btn-outline {
+			border: 1px solid rgba(201,168,76,.35);
+			color: var(--gold);
+		}
+		.btn-gold:hover, .btn-outline:hover { transform: translateY(-2px); }
+		.hero-img-col {
+			display: flex;
+			justify-content: center;
+		}
+		.hero-img-col img {
+			width: 100%;
+			max-width: 420px;
+			border-radius: 0;
+			box-shadow: none;
+			filter: drop-shadow(0 0 16px rgba(201,168,76,.45)) drop-shadow(0 0 40px rgba(201,168,76,.16));
+			animation: floatHero 5s ease-in-out infinite, pulseHeroGlow 3.1s ease-in-out infinite;
+		}
+		@keyframes floatHero {
+			0%, 100% { transform: translateY(0); }
+			50% { transform: translateY(-10px); }
+		}
+		@keyframes pulseHeroGlow {
+			0%, 100% { filter: drop-shadow(0 0 12px rgba(201,168,76,.35)) drop-shadow(0 0 30px rgba(201,168,76,.12)); }
+			50% { filter: drop-shadow(0 0 22px rgba(201,168,76,.62)) drop-shadow(0 0 52px rgba(201,168,76,.24)); }
+		}
+		@keyframes floatLogo {
+			0%, 100% { transform: translateY(0); }
+			50% { transform: translateY(-4px); }
+		}
+		@keyframes pulseLogoGlow {
+			0%, 100% { filter: drop-shadow(0 0 7px rgba(201,168,76,.45)) drop-shadow(0 0 20px rgba(201,168,76,.16)); }
+			50% { filter: drop-shadow(0 0 13px rgba(201,168,76,.72)) drop-shadow(0 0 30px rgba(201,168,76,.28)); }
+		}
+		.divider {
+			max-width: 1200px;
+			margin: 0 auto;
+			height: 1px;
+			background: linear-gradient(90deg, transparent, rgba(201,168,76,.28), transparent);
+		}
+		.content-section {
+			max-width: 1100px;
+			margin: 0 auto;
+			padding: 56px 20px;
+		}
+		.section-label {
+			color: var(--gold);
+			font-size: 11px;
+			letter-spacing: 4px;
+			text-transform: uppercase;
+			margin-bottom: 10px;
+		}
+		.section-title {
+			font-family: "Playfair Display", Georgia, serif;
+			font-size: clamp(28px, 4.2vw, 46px);
+			line-height: 1.15;
+			margin-bottom: 12px;
+		}
+		.section-desc {
+			color: var(--text-dim);
+			margin-bottom: 24px;
+			max-width: 800px;
+		}
+		.card-grid-2,
+		.card-grid-3 {
+			display: grid;
+			gap: 16px;
+		}
+		.card-grid-2 { grid-template-columns: 1fr 1fr; }
+		.card-grid-3 { grid-template-columns: repeat(3, 1fr); }
+		.platform-card, .metric-card {
+			background: var(--surface);
+			border: 1px solid rgba(201,168,76,.08);
+			border-radius: 6px;
+			padding: 24px;
+		}
+		.platform-card h3 {
+			font-size: 18px;
+			margin-bottom: 8px;
+		}
+		.platform-card p, .platform-card li {
+			color: var(--text-dim);
+			font-size: 14px;
+		}
+		.platform-card ul { margin: 10px 0 0 18px; }
+		.card-type {
+			color: var(--gold);
+			font-size: 10px;
+			letter-spacing: 2px;
+			text-transform: uppercase;
+			margin-bottom: 12px;
+		}
+		.metric-card {
+			text-align: center;
+			padding: 28px 16px;
+		}
+		.metric-number {
+			font-size: 44px;
+			line-height: 1;
+			font-weight: 700;
+			color: var(--gold);
+			margin-bottom: 8px;
+		}
+		.metric-label {
+			color: var(--text-dim);
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: 2px;
+		}
+		.superide-claim {
+			font-weight: 700;
+			border-left: 3px solid var(--gold);
+			padding-left: 12px;
+			margin-bottom: 14px;
+		}
+		.network-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+			gap: 10px;
+			margin-top: 8px;
+		}
+		.network-grid a {
+			display: block;
+			color: var(--text);
+			text-decoration: none;
+			background: var(--surface);
+			border: 1px solid rgba(201,168,76,.12);
+			border-radius: 6px;
+			padding: 10px 12px;
+		}
+		.network-grid a:hover { border-color: rgba(201,168,76,.4); }
+		footer {
+			text-align: center;
+			padding: 46px 20px 28px;
+			border-top: 1px solid rgba(201,168,76,.08);
+			color: var(--text-dim);
+			font-size: 13px;
+			line-height: 1.8;
+		}
+		footer a { color: var(--gold); text-decoration: none; }
+		footer a:hover { text-decoration: underline; }
+		@media (max-width: 960px) {
+			.hero-grid,
+			.card-grid-2,
+			.card-grid-3 { grid-template-columns: 1fr; }
+			.main-nav { align-items: flex-start; gap: 10px; flex-direction: column; }
+			.nav-links { justify-content: flex-start; }
+		}
+	</style>
+	<script src="assets/kaixu-nav.js" defer></script>
+</head>
+<body>
+	<nav class="main-nav">
+		<div class="nav-left">
+			<img class="nav-logo-img" src="https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png" alt="logo1 transparent" border="0" />
+		</div>
+		<div class="nav-links">
+			<a href="index.html">Home</a>
+			<a href="ide.html">kAIxU IDE</a>
+			<a href="https://skyesol.netlify.app/leadership/skyesoverlondon" target="_blank" rel="noopener noreferrer">Leadership Source</a>
+			<a href="smoke-live.html?public=1" target="_blank" rel="noopener noreferrer">Smoke Test</a>
+			<a href="mailto:SkyesOverLondonLC@SOLEnterprises.org">Contact</a>
+		</div>
+	</nav>
+
+	<div class="hero-wrapper">
+		<div class="hero-grid">
+			<div>
+				<div class="hero-tagline">Operating Company | Monaccor</div>
+				<h1>Skyes Over<br><span>London</span></h1>
+				<p class="hero-subtitle">
+					Operator profile modeled from your SkyeSOL leadership page and adapted for kAIxU Super IDE.
+					Multi-state operations leader, contract builder, systems architect, and platform steward.
+				</p>
+				<div class="hero-cta-row">
+					<a href="mailto:SkyesOverLondonLC@SOLEnterprises.org" class="btn-gold">Email Operations</a>
+					<a href="tel:+14804695416" class="btn-outline">Call (480) 469-5416</a>
+				</div>
+			</div>
+			<div class="hero-img-col">
+				<img src="https://cdn1.sharemyimage.com/2026/02/23/ChatGPTImageFeb23202610_24_00AM.png" alt="Skyes Over London" />
+			</div>
+		</div>
+	</div>
+
+	<div class="divider"></div>
+
+	<section class="content-section">
+		<div class="section-label">Operating Overview</div>
+		<div class="section-title">Operator that builds trust and throughput</div>
+		<p class="section-desc">
+			Skyes Over London leads SOLEnterprises ecosystem operations with systems that combine people,
+			technology, and contract execution into repeatable, audit-ready workflows.
+		</p>
+		<p class="superide-claim">Skyes Over London is the creator of the kAIxU Super IDE.</p>
+		<div class="card-grid-2">
+			<div class="platform-card">
+				<h3>🌐 Multi-state command</h3>
+				<div class="card-type">AZ / TX / CO / IL</div>
+				<p>Built and operated logistics and healthcare-adjacent systems under real-world pressure.</p>
+				<ul>
+					<li>Contractor network leadership</li>
+					<li>Time-critical routing and escalation</li>
+					<li>Partner-grade reliability</li>
+				</ul>
+			</div>
+			<div class="platform-card">
+				<h3>🤝 Contract & credibility</h3>
+				<div class="card-type">B2B & Procurement</div>
+				<p>Drives delivery standards, KPIs, trust surfaces, and enforcement mechanisms for durable outcomes.</p>
+				<ul>
+					<li>Authority-grade web presence</li>
+					<li>Escalation/remediation playbooks</li>
+					<li>Executive operational communication</li>
+				</ul>
+			</div>
+		</div>
+	</section>
+
+	<div class="divider"></div>
+
+	<section class="content-section">
+		<div class="section-label">Proof Points</div>
+		<div class="section-title">Signal metrics from the field</div>
+		<div class="card-grid-3">
+			<div class="metric-card"><div class="metric-number">1,099</div><div class="metric-label">Contractor Network Built</div></div>
+			<div class="metric-card"><div class="metric-number">10K+</div><div class="metric-label">Peak Pieces / Day</div></div>
+			<div class="metric-card"><div class="metric-number">4</div><div class="metric-label">States Operated</div></div>
+		</div>
+	</section>
+
+	<div class="divider"></div>
+
+	<section class="content-section">
+		<div class="section-label">SOL Network</div>
+		<div class="section-title">Websites across your ecosystem</div>
+		<div class="network-grid">
+			<a href="https://skyesol.netlify.app/" target="_blank" rel="noopener noreferrer">SkyeSOL</a>
+			<a href="https://skyeletix.netlify.app" target="_blank" rel="noopener noreferrer">SkyeLetix</a>
+			<a href="https://northstarofficexaccounting.netlify.app" target="_blank" rel="noopener noreferrer">NorthStar Office X Accounting</a>
+			<a href="https://sole-nexus.netlify.app" target="_blank" rel="noopener noreferrer">SOLE Nexus</a>
+			<a href="https://solenterprisesnexusconnect.netlify.app/" target="_blank" rel="noopener noreferrer">SOL Enterprises Nexus Connect</a>
+			<a href="https://skyefamilyhub.netlify.app/" target="_blank" rel="noopener noreferrer">Skye Family Hub</a>
+			<a href="https://sentinelwebauthority.netlify.app/" target="_blank" rel="noopener noreferrer">Sentinel Web Authority</a>
+			<a href="https://solenteaiskyes.netlify.app/" target="_blank" rel="noopener noreferrer">SOL Entea Skyes</a>
+			<a href="https://familycommand.netlify.app/" target="_blank" rel="noopener noreferrer">Family Command</a>
+			<a href="https://skyecode-nexus.netlify.app/" target="_blank" rel="noopener noreferrer">SkyeCode Nexus</a>
+			<a href="https://skyesoverlondon.netlify.app/" target="_blank" rel="noopener noreferrer">Skyes Over London</a>
+			<a href="https://solenterprises.org/pages/skyeweb" target="_blank" rel="noopener noreferrer">SOL Enterprises Portal</a>
+		</div>
+	</section>
+
+	<div class="divider"></div>
+
+	<section class="content-section" style="text-align:center;">
+		<div class="section-label">Contact</div>
+		<div class="section-title">Work directly with the founder</div>
+		<p class="section-desc" style="margin:0 auto 20px;">
+			For contracts, partnerships, and platform operations.
+		</p>
+		<div class="hero-cta-row" style="justify-content:center;">
+			<a href="mailto:SkyesOverLondonLC@SOLEnterprises.org" class="btn-gold">Email (SOLEnterprises)</a>
+			<a href="mailto:SkyesOverLondon@gmail.com" class="btn-outline">Email (Gmail)</a>
+			<a href="tel:+14804695416" class="btn-outline">Call (480) 469-5416</a>
+			<a href="https://skyesol.netlify.app/" target="_blank" rel="noopener noreferrer" class="btn-outline">Enter Skye SOL</a>
+		</div>
+	</section>
+
+	<footer>
+		<p><strong style="color:var(--text)">SKYES OVER LONDON</strong> | Creator of kAIxU Super IDE</p>
+		<p>
+			<a href="mailto:SkyesOverLondonLC@SOLEnterprises.org">SkyesOverLondonLC@SOLEnterprises.org</a>
+			&nbsp;|&nbsp;
+			<a href="mailto:SkyesOverLondon@gmail.com">SkyesOverLondon@gmail.com</a>
+			&nbsp;|&nbsp;
+			<a href="tel:+14804695416">(480) 469-5416</a>
+		</p>
+		<p>
+			Based on leadership profile source:
+			<a href="https://skyesol.netlify.app/leadership/skyesoverlondon" target="_blank" rel="noopener noreferrer">skyesol.netlify.app/leadership/skyesoverlondon</a>
+		</p>
+	</footer>
+</body>
+</html>

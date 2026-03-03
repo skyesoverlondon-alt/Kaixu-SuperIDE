@@ -68,7 +68,7 @@ pre{background:var(--bg2);border:1px solid #2a0050;border-radius:6px;padding:8px
       <div class="auth-gate-title">🔒 Sign in required</div>
       <div class="auth-gate-text">Billing data is private. Sign in to kAIxU Super IDE first so this dashboard can use your auth session token.</div>
       <div class="auth-gate-actions">
-        <a class="b gold" href="../ide.html" target="_blank" rel="noopener">Open IDE sign-in</a>
+        <a class="b gold" href="../ide.html" target="_blank" rel="noopener noreferrer">Open IDE sign-in</a>
       </div>
     </div>
 
@@ -252,7 +252,7 @@ function renderInvoices() {
     const amount = fmtMoney(inv.amountPaid ?? inv.amountDue ?? 0, inv.currency || 'usd');
     const status = String(inv.status || 'unknown');
     const url = inv.hostedUrl || inv.pdfUrl || '';
-    const numCell = url ? `<a href="${url}" target="_blank" rel="noopener">${num}</a>` : num;
+    const numCell = url ? `<a href="${url}" target="_blank" rel="noopener noreferrer">${num}</a>` : num;
     return `<tr><td>${numCell}</td><td>${when}</td><td class="mono">${amount}</td><td><span class="badge ${invoiceStatusClass(status)}">${status}</span></td></tr>`;
   }).join('');
 }
