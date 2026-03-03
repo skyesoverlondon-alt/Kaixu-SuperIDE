@@ -15,6 +15,21 @@
   from = "/ide"
   to = "/ide.html"
   status = 200
+
+[[redirects]]
+  from = "/smoke"
+  to = "/smoke-live.html"
+  status = 200
+
+[[redirects]]
+  from = "/investor-smoke"
+  to = "/smoke-live.html?public=1"
+  status = 200
+
+[[redirects]]
+  from = "/investor-trust"
+  to = "/investor-trust.html"
+  status = 200
 # ── Legal page redirects ──────────────────────────────────────────────────
 [[redirects]]
   from = "/privacy"
@@ -75,6 +90,11 @@
   for = "/.netlify/functions/health"
   [headers.values]
     Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/.netlify/functions/smoke-status"
+  [headers.values]
+    Cache-Control = "public, max-age=30, s-maxage=120, stale-while-revalidate=300"
 
 # ── Static asset caching ─────────────────────────────────────────────────
 [[headers]]

@@ -77,7 +77,7 @@ window.KAIXU_WORKER = 'https://kaixusi' + '.skyesoverlondon.workers.dev';
         { n: 'Cron Scheduler',     i: '⏰', h: 'TOOLS/CronScheduler.html' },
         { n: 'Deploy Center',      i: '🚀', h: 'TOOLS/DeployCenter.html' },
         { n: 'Log Viewer',         i: '📋', h: 'TOOLS/LogViewer.html' },
-        { n: 'Smoke Tests',        i: '🔬', h: 'smoketest.html' },
+        { n: 'Smoke Tests',        i: '🔬', h: 'smoke-live.html?public=1' },
       ]
     },
     {

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>kAIxU SuperIDE — Live Smoke</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; background:#070510; color:#e8ecff; margin:0; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 20px; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .links a { color:#a243ff; text-decoration:none; margin-right:10px; }
+    .card { background:#111020; border:1px solid #2a2640; border-radius:12px; padding:16px; margin-top:14px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    input, button { border-radius:8px; border:1px solid #3b3658; background:#16142a; color:#e8ecff; padding:9px 11px; }
+    input { min-width: 260px; }
+    button { cursor:pointer; background:linear-gradient(135deg,#6f2fff,#a243ff); border:none; font-weight:600; }
+    button.secondary { background:#1e1b33; border:1px solid #3b3658; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    .status { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:13px; color:#b7b0d8; }
+    .good { color:#4fffb0; }
+    .bad { color:#ff5c72; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { border-bottom:1px solid #2a2640; padding:8px 6px; text-align:left; vertical-align:top; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; }
+    .pill.pass { background:rgba(79,255,176,.15); color:#4fffb0; }
+    .pill.fail { background:rgba(255,92,114,.15); color:#ff5c72; }
+    .pill.public { background:rgba(48,224,255,.15); color:#30e0ff; }
+    pre { background:#0d0b18; border:1px solid #26223a; border-radius:8px; padding:10px; overflow:auto; max-height:280px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top card">
+      <div>
+        <h2 style="margin:0">Live Verified Smoke</h2>
+        <div class="status">Public mode available (no signup) + authenticated mode (server-saved evidence hash)</div>
+      </div>
+      <div class="links">
+        <a href="/investor-smoke">Public Smoke</a>
+        <a href="/investor-trust">Investor Trust</a>
+        <a href="/api/smoke-public?limit=200" target="_blank" rel="noopener">Public Ledger JSON</a>
+        <a href="/api/smoke-status?format=svg" target="_blank" rel="noopener">Status Badge</a>
+        <a href="ide.html">← Back to SuperIDE</a>
+        <a href="smoketest.html">Gateway Brain Test</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <span id="modeBadge" class="pill public">PUBLIC MODE</span>
+        <label class="status" for="workspaceId">Workspace ID</label>
+        <input id="workspaceId" placeholder="workspace uuid" />
+        <button id="runBtn">Run Verified Smoke</button>
+        <button id="refreshBtn" class="secondary">Refresh History</button>
+        <button id="downloadLatestBtn" class="secondary">Download Latest</button>
+        <button id="downloadAllBtn" class="secondary">Download All</button>
+      </div>
+      <div id="runStatus" class="status">Ready.</div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Latest Run</h3>
+      <pre id="latest">No run yet.</pre>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Stored Smoke Ledger</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Status</th>
+            <th>Run ID</th>
+            <th>Verification Hash</th>
+            <th>Checks</th>
+          </tr>
+        </thead>
+        <tbody id="ledgerBody">
+          <tr><td colspan="5" class="status">No stored runs loaded.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const token = localStorage.getItem('KAIXU_AUTH_TOKEN') || '';
+const forcedPublic = qs.get('public') === '1';
+const mode = (!token || forcedPublic) ? 'public' : 'authenticated';
+const PUBLIC_LEDGER_PATH = '/api/smoke-public?limit=200';
+let latestRunPayload = null;
+let ledgerRuns = [];
+
+function setStatus(message, ok = null) {
+  const el = $('runStatus');
+  el.textContent = message;
+  el.className = 'status' + (ok === true ? ' good' : ok === false ? ' bad' : '');
+}
+
+function api(path, { method = 'GET', body = null } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return fetch(path, { method, headers, body: body ? JSON.stringify(body) : null }).then(async (res) => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  });
+}
+
+async function timed(name, fn) {
+  const start = performance.now();
+  try {
+    const result = await fn();
+    return { name, ok: true, latencyMs: Math.round(performance.now() - start), message: result || 'ok' };
+  } catch (err) {
+    return { name, ok: false, latencyMs: Math.round(performance.now() - start), message: String(err.message || err) };
+  }
+}
+
+async function runSmoke() {
+  if (mode === 'public') {
+    return runPublicSmoke();
+  }
+
+  if (!token) {
+    setStatus('Not signed in. Open SuperIDE and sign in first, then run smoke again.', false);
+    return;
+  }
+
+  const workspaceId = ($('workspaceId').value || '').trim();
+  const runBtn = $('runBtn');
+  runBtn.disabled = true;
+  const started = Date.now();
+  setStatus('Running live checks…');
+
+  const checks = [];
+  checks.push(await timed('Health endpoint', async () => {
+    const d = await api('/api/health');
+    return `db=${d.db || 'unknown'} gate=${d.gate || 'unknown'}`;
+  }));
+
+  checks.push(await timed('Auth profile', async () => {
+    const d = await api('/api/auth-me');
+    if (!d.user?.id) throw new Error('Missing user profile');
+    return `user=${d.user.email || d.user.id}`;
+  }));
+
+  if (workspaceId) {
+    let snapshot = null;
+    let markerPath = null;
+    try {
+      checks.push(await timed('Workspace read', async () => {
+        const d = await api(`/api/ws-get?id=${encodeURIComponent(workspaceId)}`);
+        snapshot = d.workspace || null;
+        if (!snapshot?.id) throw new Error('Workspace not returned');
+        return `name=${snapshot.name || 'unnamed'}`;
+      }));
+
+      checks.push(await timed('Workspace write/verify', async () => {
+        if (!snapshot) throw new Error('Workspace read was not successful');
+        const files = { ...(snapshot.files || {}) };
+        markerPath = `smoke/verified-${Date.now()}.txt`;
+        files[markerPath] = `verified smoke ${new Date().toISOString()}`;
+        await api('/api/ws-save', { method: 'POST', body: { id: snapshot.id, files, name: snapshot.name } });
+        const check = await api(`/api/ws-get?id=${encodeURIComponent(snapshot.id)}`);
+        if (check.workspace?.files?.[markerPath] !== files[markerPath]) {
+          throw new Error('Marker file not persisted');
+        }
+        return `marker=${markerPath}`;
+      }));
+    } finally {
+      if (snapshot) {
+        try {
+          await api('/api/ws-save', {
+            method: 'POST',
+            body: { id: snapshot.id, files: snapshot.files || {}, name: snapshot.name }
+          });
+        } catch {
+          checks.push({ name: 'Workspace rollback', ok: false, latencyMs: 0, message: 'Failed to restore original files' });
+        }
+      }
+    }
+  } else {
+    checks.push({ name: 'Workspace read', ok: false, latencyMs: 0, message: 'Skipped: no workspace id provided' });
+    checks.push({ name: 'Workspace write/verify', ok: false, latencyMs: 0, message: 'Skipped: no workspace id provided' });
+  }
+
+  const durationMs = Date.now() - started;
+  const failed = checks.filter(c => !c.ok).length;
+
+  try {
+    const persisted = await api('/api/smoke-run', {
+      method: 'POST',
+      body: {
+        workspaceId: workspaceId || null,
+        durationMs,
+        checks,
+        client: { userAgent: navigator.userAgent, appVersion: 'smoke-live-v1' }
+      }
+    });
+
+    $('latest').textContent = JSON.stringify({
+      persisted: persisted.run,
+      checks
+    }, null, 2);
+    latestRunPayload = { persisted: persisted.run, checks };
+
+    setStatus(
+      failed === 0
+        ? `Smoke PASS. Stored with verification hash ${persisted.run.verifyHash.slice(0, 16)}…`
+        : `Smoke FAIL (${failed} checks). Stored with verification hash ${persisted.run.verifyHash.slice(0, 16)}…`,
+      failed === 0
+    );
+
+    await loadLedger();
+  } catch (err) {
+    $('latest').textContent = JSON.stringify({ checks, persistError: String(err.message || err) }, null, 2);
+    setStatus(`Smoke executed but storage failed: ${String(err.message || err)}`, false);
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+async function runPublicSmoke() {
+  const runBtn = $('runBtn');
+  runBtn.disabled = true;
+  const started = Date.now();
+  setStatus('Running public smoke checks…');
+
+  const checks = [];
+  checks.push(await timed('Public health endpoint', async () => {
+    const res = await fetch('/api/health');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(`HTTP ${res.status}`);
+    return `db=${data.db || 'unknown'} gate=${data.gate || 'unknown'}`;
+  }));
+
+  checks.push(await timed('Smoke UI controls', async () => {
+    if (!document.getElementById('downloadLatestBtn') || !document.getElementById('downloadAllBtn')) {
+      throw new Error('Missing download controls');
+    }
+    return 'download controls present';
+  }));
+
+  checks.push(await timed('Public ledger accessibility', async () => {
+    const res = await fetch(PUBLIC_LEDGER_PATH, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return `runs=${data.totalRuns || 0}`;
+  }));
+
+  const durationMs = Date.now() - started;
+  const failed = checks.filter((entry) => !entry.ok).length;
+
+  latestRunPayload = {
+    mode: 'public',
+    createdAt: new Date().toISOString(),
+    durationMs,
+    checks,
+    summary: {
+      status: failed === 0 ? 'pass' : 'fail',
+      total: checks.length,
+      failed
+    }
+  };
+
+  $('latest').textContent = JSON.stringify({ latest: latestRunPayload }, null, 2);
+  setStatus(
+    failed === 0
+      ? 'Public smoke PASS. No signup required.'
+      : `Public smoke FAIL (${failed} checks).`,
+    failed === 0
+  );
+
+  await loadLedger();
+  runBtn.disabled = false;
+}
+
+async function loadLedger() {
+  if (mode === 'public') {
+    try {
+      const res = await fetch(PUBLIC_LEDGER_PATH, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const rows = data.runs || [];
+      ledgerRuns = rows;
+
+      if (!rows.length) {
+        $('ledgerBody').innerHTML = '<tr><td colspan="5" class="status">No public runs found.</td></tr>';
+        return;
+      }
+
+      $('ledgerBody').innerHTML = rows.map((row) => {
+        const statusClass = row.status === 'pass' ? 'pass' : 'fail';
+        const checks = Array.isArray(row.checks) ? row.checks : [];
+        const total = Number(row.total || checks.length || 0);
+        const failed = Number(row.failed || checks.filter((entry) => !entry.ok).length || 0);
+        const passed = Math.max(total - failed, 0);
+        return `
+          <tr>
+            <td class="mono">${new Date(row.createdAt || Date.now()).toISOString()}</td>
+            <td><span class="pill ${statusClass}">${String(row.status || 'unknown').toUpperCase()}</span></td>
+            <td class="mono">${row.runId || ''}</td>
+            <td class="mono" style="word-break:break-all">${row.verifyHash || ''}</td>
+            <td class="mono">${total}/${passed} pass</td>
+          </tr>`;
+      }).join('');
+      return;
+    } catch (err) {
+      ledgerRuns = [];
+      $('ledgerBody').innerHTML = `<tr><td colspan="5" class="status bad">Failed to load public ledger: ${String(err.message || err)}</td></tr>`;
+      return;
+    }
+  }
+
+  if (!token) return;
+  const workspaceId = ($('workspaceId').value || '').trim();
+  const qs = new URLSearchParams({ limit: '30' });
+  if (workspaceId) qs.set('workspaceId', workspaceId);
+
+  try {
+    const data = await api(`/api/smoke-run?${qs.toString()}`);
+    const rows = data.runs || [];
+    ledgerRuns = rows;
+    if (!rows.length) {
+      $('ledgerBody').innerHTML = '<tr><td colspan="5" class="status">No runs found.</td></tr>';
+      return;
+    }
+
+    $('ledgerBody').innerHTML = rows.map((r) => {
+      const statusClass = r.status === 'pass' ? 'pass' : 'fail';
+      return `
+        <tr>
+          <td class="mono">${new Date(r.createdAt).toISOString()}</td>
+          <td><span class="pill ${statusClass}">${r.status.toUpperCase()}</span></td>
+          <td class="mono">${r.runId || ''}</td>
+          <td class="mono" style="word-break:break-all">${r.verifyHash || ''}</td>
+          <td class="mono">${r.total || 0}/${(r.total || 0) - (r.failed || 0)} pass</td>
+        </tr>`;
+    }).join('');
+  } catch (err) {
+    ledgerRuns = [];
+    $('ledgerBody').innerHTML = `<tr><td colspan="5" class="status bad">Failed to load ledger: ${String(err.message || err)}</td></tr>`;
+  }
+}
+
+function downloadJson(filename, payload) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function stamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth()+1)}${p(d.getUTCDate())}-${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
+}
+
+async function downloadLatest() {
+  if (!latestRunPayload) {
+    setStatus('No latest run in memory. Run smoke first.', false);
+    return;
+  }
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    kind: 'latest-smoke-run',
+    mode,
+    latest: latestRunPayload
+  };
+  downloadJson(`smoke-latest-${stamp()}.json`, payload);
+  setStatus('Downloaded latest smoke run.', true);
+}
+
+async function downloadAll() {
+  if (mode === 'public') {
+    if (!ledgerRuns.length) {
+      await loadLedger();
+    }
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      kind: 'public-smoke-history',
+      source: PUBLIC_LEDGER_PATH,
+      totalRuns: ledgerRuns.length,
+      runs: ledgerRuns
+    };
+    downloadJson(`smoke-history-public-${stamp()}.json`, payload);
+    setStatus(`Downloaded ${payload.totalRuns} public smoke runs.`, true);
+    return;
+  }
+
+  if (!token) {
+    setStatus('Not signed in. Cannot export smoke history.', false);
+    return;
+  }
+  const workspaceId = ($('workspaceId').value || '').trim();
+  const qs = new URLSearchParams();
+  if (workspaceId) qs.set('workspaceId', workspaceId);
+
+  try {
+    const data = await api(`/api/smoke-export?${qs.toString()}`);
+    downloadJson(`smoke-history-${stamp()}.json`, data);
+    setStatus(`Downloaded ${data.totalRuns || 0} stored smoke runs.`, true);
+  } catch (err) {
+    setStatus(`Failed to download smoke history: ${String(err.message || err)}`, false);
+  }
+}
+
+(function init() {
+  $('workspaceId').value = qs.get('workspaceId') || localStorage.getItem('KAIXU_LAST_WORKSPACE_ID') || '';
+  const isPublic = mode === 'public';
+  $('modeBadge').textContent = isPublic ? 'PUBLIC MODE' : 'AUTH MODE';
+  $('modeBadge').className = `pill ${isPublic ? 'public' : 'pass'}`;
+  $('workspaceId').disabled = isPublic;
+  if (isPublic) {
+    $('workspaceId').value = '';
+    $('workspaceId').placeholder = 'Workspace checks require sign-in';
+    setStatus('Public mode enabled. Investors can run smoke with no signup.');
+  }
+
+  $('runBtn').addEventListener('click', runSmoke);
+  $('refreshBtn').addEventListener('click', loadLedger);
+  $('downloadLatestBtn').addEventListener('click', downloadLatest);
+  $('downloadAllBtn').addEventListener('click', downloadAll);
+  loadLedger();
+})();
+</script>
+</body>
+</html>

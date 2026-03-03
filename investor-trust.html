@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>kAIxU SuperIDE — Investor Trust</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; background:#070510; color:#e8ecff; margin:0; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 20px; }
+    .top, .card { background:#111020; border:1px solid #2a2640; border-radius:12px; padding:16px; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .links a { color:#a243ff; text-decoration:none; margin-right:10px; }
+    .grid { margin-top:14px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .k { color:#9b90d4; font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+    .v { font-size:24px; font-weight:700; margin-top:4px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { border-bottom:1px solid #2a2640; padding:8px 6px; text-align:left; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; }
+    .pass { background:rgba(79,255,176,.15); color:#4fffb0; }
+    .fail { background:rgba(255,92,114,.15); color:#ff5c72; }
+    button { border-radius:8px; border:1px solid #3b3658; background:#1e1b33; color:#e8ecff; padding:9px 11px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h2 style="margin:0">Investor Trust Dashboard</h2>
+        <div style="color:#b7b0d8;font-size:13px">Public smoke status, badge, and verifiable run history</div>
+      </div>
+      <div class="links">
+        <a href="/investor-smoke">Investor Smoke</a>
+        <a href="/api/smoke-public?limit=200" target="_blank" rel="noopener">Public Ledger JSON</a>
+        <a href="/api/smoke-status" target="_blank" rel="noopener">Status JSON</a>
+        <a href="/ide">← SuperIDE</a>
+      </div>
+    </div>
+
+    <div class="grid" id="metrics"></div>
+
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <h3 style="margin:0">Status Badge</h3>
+        <div>
+          <button id="refreshBtn">Refresh</button>
+        </div>
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <img id="statusBadge" src="/api/smoke-status?format=svg" alt="Smoke status badge" height="20" />
+        <span id="badgeText" class="mono"></span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin-top:0">Recent Runs</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Status</th>
+            <th>Source</th>
+            <th>Pass Rate Snapshot</th>
+          </tr>
+        </thead>
+        <tbody id="runsBody">
+          <tr><td colspan="4" class="mono">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const metricsEl = document.getElementById('metrics');
+    const runsBody = document.getElementById('runsBody');
+    const badge = document.getElementById('statusBadge');
+    const badgeText = document.getElementById('badgeText');
+
+    function metric(label, value) {
+      return `<div class="card"><div class="k">${label}</div><div class="v">${value}</div></div>`;
+    }
+
+    async function loadTrust() {
+      const [statusRes, publicRes] = await Promise.all([
+        fetch('/api/smoke-status', { cache: 'no-store' }),
+        fetch('/api/smoke-public?limit=25', { cache: 'no-store' })
+      ]);
+      const statusData = await statusRes.json();
+      const publicData = await publicRes.json();
+
+      if (!statusRes.ok || !statusData.ok) throw new Error(statusData.error || `status HTTP ${statusRes.status}`);
+      if (!publicRes.ok || !publicData.ok) throw new Error(publicData.error || `public HTTP ${publicRes.status}`);
+
+      const latest = statusData.latest || {};
+      metricsEl.innerHTML = [
+        metric('Latest Status', String(latest.status || 'unknown').toUpperCase()),
+        metric('Pass Rate', `${statusData.passRate || 0}%`),
+        metric('Total Runs', String(statusData.totalRuns || 0)),
+        metric('Last Updated', latest.createdAt ? new Date(latest.createdAt).toISOString().slice(0, 19) + 'Z' : 'n/a')
+      ].join('');
+
+      badge.src = `/api/smoke-status?format=svg&t=${Date.now()}`;
+      badgeText.textContent = `${statusData.badge?.label || 'smoke'}: ${statusData.badge?.value || 'unknown'}`;
+
+      const runs = Array.isArray(publicData.runs) ? publicData.runs : [];
+      if (!runs.length) {
+        runsBody.innerHTML = '<tr><td colspan="4" class="mono">No runs found.</td></tr>';
+        return;
+      }
+
+      runsBody.innerHTML = runs.slice(0, 25).map((run) => {
+        const total = Number(run.total || 0);
+        const failed = Number(run.failed || 0);
+        const passed = Math.max(total - failed, 0);
+        const runRate = total ? Math.round((passed / total) * 1000) / 10 : 0;
+        return `
+          <tr>
+            <td class="mono">${new Date(run.createdAt || Date.now()).toISOString()}</td>
+            <td><span class="pill ${run.status === 'pass' ? 'pass' : 'fail'}">${String(run.status || 'unknown').toUpperCase()}</span></td>
+            <td class="mono">${String(run.source || 'manual')}</td>
+            <td class="mono">${passed}/${total} (${runRate}%)</td>
+          </tr>`;
+      }).join('');
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      loadTrust().catch((err) => {
+        runsBody.innerHTML = `<tr><td colspan="4" class="mono">Failed to load trust data: ${String(err.message || err)}</td></tr>`;
+      });
+    });
+
+    loadTrust().catch((err) => {
+      runsBody.innerHTML = `<tr><td colspan="4" class="mono">Failed to load trust data: ${String(err.message || err)}</td></tr>`;
+    });
+  </script>
+</body>
+</html>

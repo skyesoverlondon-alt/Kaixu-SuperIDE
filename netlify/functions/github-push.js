@@ -18,10 +18,26 @@ const { readJson } = require('./_lib/body');
 const crypto = require('crypto');
 
 // Compute git blob SHA locally — avoids fetching unchanged file contents from GitHub
-function gitBlobSha(content) {
-  const buf = Buffer.from(content, 'utf8');
+function gitBlobShaFromBuffer(buf) {
   const header = Buffer.from(`blob ${buf.length}\0`);
   return crypto.createHash('sha1').update(header).update(buf).digest('hex');
+}
+
+function normalizeWorkspaceFileContent(rawContent) {
+  const raw = String(rawContent ?? '');
+  if (raw.startsWith('__b64__:')) {
+    const b64 = raw.slice('__b64__:'.length).replace(/\s+/g, '');
+    const bytes = Buffer.from(b64, 'base64');
+    return {
+      sha: gitBlobShaFromBuffer(bytes),
+      githubBase64: bytes.toString('base64')
+    };
+  }
+  const bytes = Buffer.from(raw, 'utf8');
+  return {
+    sha: gitBlobShaFromBuffer(bytes),
+    githubBase64: bytes.toString('base64')
+  };
 }
 
 async function ghFetch(pat, method, path, body = null) {
@@ -56,6 +72,39 @@ async function verifyWorkspaceAccess(userId, workspaceId) {
   }
 }
 
+async function resolveHeadRef({ pat, owner, repo, branch }) {
+  const encodedBranch = encodeURIComponent(branch);
+  try {
+    const targetRef = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${encodedBranch}`);
+    return { branchUsed: branch, branchExists: true, baseCommitSha: targetRef.object.sha };
+  } catch (err) {
+    if (err?.ghStatus !== 404 && err?.ghStatus !== 409) throw err;
+  }
+
+  const repoData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}`);
+  const defaultBranch = String(repoData.default_branch || 'main');
+  const encodedDefault = encodeURIComponent(defaultBranch);
+
+  try {
+    const fallbackRef = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${encodedDefault}`);
+    return {
+      branchUsed: branch,
+      branchExists: false,
+      baseCommitSha: fallbackRef.object.sha,
+      fallbackFromBranch: defaultBranch
+    };
+  } catch (err) {
+    if (err?.ghStatus !== 404 && err?.ghStatus !== 409) throw err;
+  }
+
+  return {
+    branchUsed: branch,
+    branchExists: false,
+    baseCommitSha: null,
+    fallbackFromBranch: defaultBranch
+  };
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
 
@@ -84,26 +133,28 @@ exports.handler = async (event) => {
 
     const { github_pat: pat, github_owner: owner, github_repo: repo, github_branch: branch } = gh;
 
-    // 1. Get branch HEAD
-    const refData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${branch}`);
-    const baseCommitSha = refData.object.sha;
+    // 1. Resolve branch HEAD (supports missing branch and empty repos)
+    const { branchExists, baseCommitSha, fallbackFromBranch } = await resolveHeadRef({ pat, owner, repo, branch });
 
-    // 2. Get full recursive tree
-    const treeData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/trees/${baseCommitSha}?recursive=1`);
+    // 2. Get full recursive tree for base commit (if any)
     const remoteTree = {}; // path → git blob SHA
-    for (const item of treeData.tree || []) {
-      if (item.type === 'blob') remoteTree[item.path] = item.sha;
+    let baseTreeSha = null;
+    if (baseCommitSha) {
+      const treeData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/trees/${baseCommitSha}?recursive=1`);
+      baseTreeSha = treeData.sha;
+      for (const item of treeData.tree || []) {
+        if (item.type === 'blob') remoteTree[item.path] = item.sha;
+      }
     }
 
     // 3. Compute local git blob SHAs — detect what actually changed
     const localShas = {};
     const toUpload = []; // files that differ from remote
     for (const [path, content] of Object.entries(files)) {
-      // Skip binary placeholders
-      if (String(content).startsWith('__b64__:')) continue;
-      const sha = gitBlobSha(content);
+      const normalized = normalizeWorkspaceFileContent(content);
+      const sha = normalized.sha;
       localShas[path] = sha;
-      if (remoteTree[path] !== sha) toUpload.push({ path, content });
+      if (remoteTree[path] !== sha) toUpload.push({ path, githubBase64: normalized.githubBase64 });
     }
 
     // 4. Find deleted files (in remote but not in local)
@@ -125,9 +176,9 @@ exports.handler = async (event) => {
     const uploadedBlobs = {}; // path → github blob sha
     for (let i = 0; i < toUpload.length; i += BATCH_SIZE) {
       const batch = toUpload.slice(i, i + BATCH_SIZE);
-      const results = await Promise.all(batch.map(async ({ path, content }) => {
+      const results = await Promise.all(batch.map(async ({ path, githubBase64 }) => {
         const blob = await ghFetch(pat, 'POST', `/repos/${owner}/${repo}/git/blobs`, {
-          content: Buffer.from(content, 'utf8').toString('base64'),
+          content: githubBase64,
           encoding: 'base64'
         });
         return { path, sha: blob.sha };
@@ -146,24 +197,32 @@ exports.handler = async (event) => {
     }
 
     // 7. Create new tree inheriting from base
-    const newTreeData = await ghFetch(pat, 'POST', `/repos/${owner}/${repo}/git/trees`, {
-      base_tree: treeData.sha,
-      tree: treeEntries
-    });
+    const newTreeBody = { tree: treeEntries };
+    if (baseTreeSha) newTreeBody.base_tree = baseTreeSha;
+    const newTreeData = await ghFetch(pat, 'POST', `/repos/${owner}/${repo}/git/trees`, newTreeBody);
 
     // 8. Create commit
     const commitMsg = String(message || '').trim() || `kAIxU push — ${new Date().toUTCString()}`;
-    const newCommit = await ghFetch(pat, 'POST', `/repos/${owner}/${repo}/git/commits`, {
+    const commitBody = {
       message: commitMsg,
-      tree: newTreeData.sha,
-      parents: [baseCommitSha]
-    });
+      tree: newTreeData.sha
+    };
+    if (baseCommitSha) commitBody.parents = [baseCommitSha];
+    const newCommit = await ghFetch(pat, 'POST', `/repos/${owner}/${repo}/git/commits`, commitBody);
 
     // 9. Update branch ref
-    await ghFetch(pat, 'PATCH', `/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
-      sha: newCommit.sha,
-      force: false
-    });
+    if (branchExists) {
+      const encodedBranch = encodeURIComponent(branch);
+      await ghFetch(pat, 'PATCH', `/repos/${owner}/${repo}/git/refs/heads/${encodedBranch}`, {
+        sha: newCommit.sha,
+        force: false
+      });
+    } else {
+      await ghFetch(pat, 'POST', `/repos/${owner}/${repo}/git/refs`, {
+        ref: `refs/heads/${branch}`,
+        sha: newCommit.sha
+      });
+    }
 
     // 10. Persist new SHA + local blob map for next push diff
     await query(
@@ -179,7 +238,8 @@ exports.handler = async (event) => {
       filesDeleted: deleted.length,
       totalFiles: Object.keys(localShas).length,
       repo: `${owner}/${repo}`,
-      branch
+      branch,
+      baseBranch: fallbackFromBranch || branch
     });
 
   } catch (err) {

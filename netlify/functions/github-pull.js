@@ -47,6 +47,36 @@ async function verifyWorkspaceAccess(userId, workspaceId) {
   return ws;
 }
 
+function decodeGitHubBlobToWorkspaceContent(blobData) {
+  const rawB64 = String(blobData?.content || '').replace(/\n/g, '').trim();
+  const bytes = Buffer.from(rawB64, 'base64');
+  const text = bytes.toString('utf8');
+  const isValidUtf8RoundTrip = Buffer.from(text, 'utf8').equals(bytes);
+  const hasNullByte = bytes.includes(0);
+  if (!isValidUtf8RoundTrip || hasNullByte) return `__b64__:${rawB64}`;
+  return text;
+}
+
+async function resolveBranchHead({ pat, owner, repo, branch }) {
+  const encodedBranch = encodeURIComponent(branch);
+  try {
+    const refData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${encodedBranch}`);
+    return { headSha: refData.object.sha, branchUsed: branch, fallbackFromBranch: null };
+  } catch (err) {
+    if (err?.status !== 404 && err?.status !== 409) throw err;
+  }
+
+  const repoData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}`);
+  const defaultBranch = String(repoData.default_branch || 'main');
+  const encodedDefault = encodeURIComponent(defaultBranch);
+  const fallbackRef = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${encodedDefault}`);
+  return {
+    headSha: fallbackRef.object.sha,
+    branchUsed: defaultBranch,
+    fallbackFromBranch: branch
+  };
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { ok: false, error: 'Method not allowed' });
 
@@ -74,9 +104,8 @@ exports.handler = async (event) => {
     const { github_pat: pat, github_owner: owner, github_repo: repo, github_branch: branch } = gh;
     const storedMap = gh.github_tree_map || {}; // { path: gitBlobSha } from last sync
 
-    // 1. Get branch HEAD
-    const refData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${branch}`);
-    const headSha = refData.object.sha;
+    // 1. Get branch HEAD (fallback to default branch if configured branch is missing)
+    const { headSha, branchUsed, fallbackFromBranch } = await resolveBranchHead({ pat, owner, repo, branch });
 
     // 2. Get full recursive tree
     const treeData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/trees/${headSha}?recursive=1`);
@@ -103,7 +132,7 @@ exports.handler = async (event) => {
       const batch = toFetch.slice(i, i + BATCH);
       const results = await Promise.all(batch.map(async ({ path, url }) => {
         const blobData = await ghFetch(pat, 'GET', url.replace('https://api.github.com', ''));
-        const content = Buffer.from(blobData.content.replace(/\n/g, ''), 'base64').toString('utf8');
+        const content = decodeGitHubBlobToWorkspaceContent(blobData);
         return { path, content };
       }));
       for (const { path, content } of results) fetchedFiles[path] = content;
@@ -145,6 +174,8 @@ exports.handler = async (event) => {
       filesUpdated: toFetch.length,
       filesDeleted: deletedPaths.length,
       totalFiles: Object.keys(remoteTree).length,
+      branch: branchUsed,
+      fallbackFromBranch,
       files: mergedFiles // client writes these to IndexedDB
     });
 

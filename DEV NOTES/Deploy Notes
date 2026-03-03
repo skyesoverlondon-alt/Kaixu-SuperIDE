@@ -1,0 +1,279 @@
+# kAIxU SuperIDE — Deploy Notes
+
+---
+
+## MULTIPLE PROJECTS + ONE DATABASE
+
+Yes. Multiple Netlify sites (or any app) can point at the same Neon database.
+Just set the same DATABASE_URL in each project's Netlify env vars.
+All data is separated at the application layer by org_id and user_id,
+so projects don't bleed into each other. Works fine.
+
+---
+
+## STEP 1 — Neon Database
+
+Go to https://console.neon.tech → your project → SQL Editor
+
+### Enable pgvector (required for AI semantic search / embeddings)
+Without this the /embeddings endpoint crashes on first use.
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+### Run the schema (first time only)
+Either paste the contents of sql/schema.sql into the SQL Editor,
+or run locally:
+
+```bash
+node scripts/migrate.js
+```
+
+### Optional: Enable Row-Level Security
+For production databases where you want Postgres-level tenant isolation
+(in addition to the application-layer checks), run sql/rls.sql after schema.sql.
+This adds per-row access policies to users, workspaces, orgs, and audit_logs.
+Requires setting `SET LOCAL app.current_user_id = '<uuid>'` before queries.
+
+```sql
+-- Paste contents of sql/rls.sql into Neon SQL Editor
+```
+
+### Insert plan rows (required for billing to work)
+Fill in your real Stripe price IDs before running:
+
+```sql
+INSERT INTO plans (name, ai_calls_limit, storage_gb, max_workspaces, max_members, stripe_price_id) VALUES
+  ('free',       100,    1,   3,   1,  null),
+  ('pro',        2000,   10,  20,  5,  'price_XXXX'),
+  ('team',       10000,  50,  100, 25, 'price_XXXX'),
+  ('enterprise', -1,     500, -1,  -1, 'price_XXXX');
+```
+
+---
+
+## STEP 2 — Stripe Webhooks
+
+Go to https://dashboard.stripe.com/webhooks → Add endpoint
+
+- URL: https://YOUR-NETLIFY-SITE.netlify.app/.netlify/functions/stripe-webhook
+- Events to enable:
+  - customer.subscription.created
+  - customer.subscription.updated
+  - customer.subscription.deleted
+  - invoice.payment_succeeded
+  - invoice.payment_failed
+
+After saving, copy the Signing Secret (whsec_...) and add it to Netlify
+env vars as STRIPE_WEBHOOK_SECRET.
+
+Also create your products in Stripe → Products → Add product (Pro, Team, Enterprise).
+Copy the price_XXXX IDs and paste them into the INSERT above.
+
+---
+
+## STEP 3 — Netlify Environment Variables
+
+Netlify Dashboard → Site settings → Environment variables → Add all of these:
+
+### Required (nothing works without these)
+| Variable              | Value                                              |
+|-----------------------|----------------------------------------------------|
+| DATABASE_URL          | Neon connection string (postgres://...)            |
+| JWT_SECRET            | Random 64-char string (use: openssl rand -hex 32)  |
+| KAIXU_GATE_TOKEN      | Bearer token for kAIxU gateway                     |
+
+### Required for email
+| Variable              | Value                                              |
+|-----------------------|----------------------------------------------------|
+| SENDGRID_API_KEY      | From SendGrid dashboard                            |
+| SMTP_FROM_EMAIL       | e.g. hello@kaixu.app                              |
+| APP_URL               | Your Netlify site URL (https://kaixu.netlify.app)  |
+
+### Required for billing
+| Variable              | Value                                              |
+|-----------------------|----------------------------------------------------|
+| STRIPE_SECRET_KEY     | sk_live_... or sk_test_... from Stripe             |
+| STRIPE_WEBHOOK_SECRET | whsec_... from Stripe webhook (see Step 2)         |
+
+### Optional
+| Variable              | Value                                              |
+|-----------------------|----------------------------------------------------|
+| KAIXU_GATE_BASE       | https://kaixu67.skyesoverlondon.workers.dev        |
+| KAIXU_DEFAULT_MODEL   | kAIxU-flash (this is already the default)          |
+| DATABASE_REPLICA_URL  | Neon read replica URL (falls back to primary)      |
+| GITHUB_CLIENT_ID      | GitHub OAuth App client ID                         |
+| GITHUB_CLIENT_SECRET  | GitHub OAuth App client secret                     |
+| SENTRY_DSN            | From Sentry dashboard (error tracking)             |
+| SAML_CERT             | SAML IdP certificate (for SAML SSO)                |
+| SAML_PRIVATE_KEY      | SAML SP private key (for SAML SSO)                 |
+
+---
+
+## STEP 4 — Pre-flight Validation
+
+After setting all env vars, run locally before going live:
+
+```bash
+npm run setup:check        # checks env vars + model name compliance
+npm run setup:check:all    # + live DB connection, gateway ping, Stripe format
+```
+
+All items should show PASS. Fix anything that shows FAIL before deploying.
+
+---
+
+## STEP 5 — Health Check
+
+After deploying to Netlify:
+
+```
+GET https://YOUR-SITE.netlify.app/.netlify/functions/health
+```
+
+Expected response:
+```json
+{ "ok": true, "db": "ok", "gate": "ok" }
+```
+
+If db or gate shows "error", check DATABASE_URL and KAIXU_GATE_TOKEN.
+
+---
+
+## POST-LAUNCH (not blocking go-live)
+
+- OWASP ZAP scan — free automated security scan against your staging URL
+- Formal pentest report — required before signing enterprise contracts ($3k–15k)
+- Enable Neon read replica → set DATABASE_REPLICA_URL for read scaling
+
+---
+
+## STRIPE SETUP — FULL WALKTHROUGH
+
+### Step A — Create Products in Stripe
+
+Go to https://dashboard.stripe.com/products → Add product for each plan below.
+
+**Product 1: kAIxU Pro**
+- Name: kAIxU Pro
+- Description: 2,000 AI calls/mo, 20 workspaces, 5 members, 10GB storage
+- Pricing model: Recurring
+- Price: $19.00 / month
+- Save → copy the price ID (price_XXXX) → this is your PRO_PRICE_ID
+
+**Product 2: kAIxU Team**
+- Name: kAIxU Team
+- Description: 10,000 AI calls/mo, 100 workspaces, 25 members, 50GB storage
+- Pricing model: Recurring
+- Price: $79.00 / month
+- Save → copy the price ID → this is your TEAM_PRICE_ID
+
+**Product 3: kAIxU Enterprise**
+- Name: kAIxU Enterprise
+- Description: Unlimited AI calls, unlimited workspaces, unlimited members, 500GB storage
+- Pricing model: Recurring
+- Price: custom / contact sales (set $499.00 as placeholder or use Stripe quotes)
+- Save → copy the price ID → this is your ENTERPRISE_PRICE_ID
+
+### Step B — Insert Plans into Neon
+
+Replace the price_XXXX values with your real IDs from Step A, then run in Neon SQL Editor:
+
+```sql
+INSERT INTO plans (name, ai_calls_limit, storage_gb, max_workspaces, max_members, stripe_price_id) VALUES
+  ('free',       100,    1,   3,   1,  null),
+  ('pro',        2000,   10,  20,  5,  'price_XXXX'),
+  ('team',       10000,  50,  100, 25, 'price_XXXX'),
+  ('enterprise', -1,     500, -1,  -1, 'price_XXXX');
+```
+
+(-1 means unlimited in the codebase — quota checks treat -1 as no limit)
+
+### Step C — Add Webhook
+
+Stripe Dashboard → Webhooks → Add endpoint:
+- URL: https://YOUR-SITE.netlify.app/.netlify/functions/stripe-webhook
+- Events:
+  - customer.subscription.created
+  - customer.subscription.updated
+  - customer.subscription.deleted
+  - invoice.payment_succeeded
+  - invoice.payment_failed
+- Save → copy Signing Secret (whsec_...) → add to Netlify as STRIPE_WEBHOOK_SECRET
+
+### Step D — Stripe env vars to add to Netlify
+
+| Variable              | Where to get it                                         |
+|-----------------------|---------------------------------------------------------|
+| STRIPE_SECRET_KEY     | Stripe Dashboard → Developers → API keys → Secret key   |
+| STRIPE_WEBHOOK_SECRET | Stripe Dashboard → Webhooks → your endpoint → signing secret |
+
+Use sk_test_... and the test webhook secret while testing.
+Switch to sk_live_... and a new live webhook when going live.
+
+---
+
+## PLAN TIERS — FULL REFERENCE
+
+This is what users get on each plan. Keep this in sync with Stripe and the plans table.
+
+| Feature              | Free     | Pro        | Team        | Enterprise  |
+|----------------------|----------|------------|-------------|-------------|
+| AI calls / month     | 100      | 2,000      | 10,000      | Unlimited   |
+| Workspaces           | 3        | 20         | 100         | Unlimited   |
+| Members per org      | 1        | 5          | 25          | Unlimited   |
+| Storage              | 1 GB     | 10 GB      | 50 GB       | 500 GB      |
+| AI model access      | Flash    | Flash+Pro  | Flash+Pro   | Flash+Pro   |
+| SSO (SAML/OIDC)      | ✗        | ✗          | ✓           | ✓           |
+| Priority support     | ✗        | ✗          | ✓           | ✓ (SLA)     |
+| Custom domain        | ✗        | ✗          | ✗           | ✓           |
+| DPA / BAA            | ✗        | ✗          | ✗           | ✓           |
+| Price                | Free     | $19/mo     | $79/mo      | Custom      |
+
+---
+
+## AI MODEL TIERS — FULL REFERENCE
+
+The gateway sits at: https://kaixu67.skyesoverlondon.workers.dev
+All model names are branded — never expose the underlying provider.
+
+| kAIxU Model   | Speed   | Context  | Best for                                  | Plans           |
+|---------------|---------|----------|-------------------------------------------|-----------------|
+| kAIxU-flash   | Fast    | 128k     | Code edits, autocomplete, quick tasks     | All plans       |
+| kAIxU-pro     | Slower  | 1M       | Complex reasoning, large file analysis    | Pro, Team, Ent. |
+
+Default model is kAIxU-flash unless overridden by KAIXU_DEFAULT_MODEL env var.
+To change the default for a deployment, set:
+  KAIXU_DEFAULT_MODEL=kAIxU-pro  (in Netlify env vars)
+
+AI call counting: every request to /ai-edit or /embeddings counts as 1 call against
+the user's plan quota. Quota resets monthly (tracked in ai_usage_log table).
+
+---
+
+## QUICK COPY — ENV VARS CHECKLIST
+
+Use this as a checklist when setting up Netlify env vars. Tick off each one.
+
+```
+[ ] DATABASE_URL          — Neon → Dashboard → Connection string
+[ ] JWT_SECRET            — run: openssl rand -hex 32
+[ ] KAIXU_GATE_TOKEN      — from your gateway credentials
+[ ] SENDGRID_API_KEY      — SendGrid → Settings → API Keys
+[ ] SMTP_FROM_EMAIL       — e.g. hello@kaixu.app
+[ ] APP_URL               — your Netlify site URL
+[ ] STRIPE_SECRET_KEY     — Stripe → Developers → API keys
+[ ] STRIPE_WEBHOOK_SECRET — Stripe → Webhooks → signing secret
+[ ] GITHUB_CLIENT_ID      — GitHub → Settings → Developer settings → OAuth Apps
+[ ] GITHUB_CLIENT_SECRET  — same as above
+```
+
+Optional (add when ready):
+```
+[ ] KAIXU_DEFAULT_MODEL   — kAIxU-flash or kAIxU-pro
+[ ] DATABASE_REPLICA_URL  — Neon read replica connection string
+[ ] SENTRY_DSN            — Sentry → Project → Settings → Client Keys
+[ ] SAML_CERT             — your IdP's certificate (for enterprise SAML SSO)
+[ ] SAML_PRIVATE_KEY      — SP private key (for enterprise SAML SSO)
+```

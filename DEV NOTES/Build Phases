@@ -1,0 +1,370 @@
+# kAIxU Super IDE — Build Phases
+# Systematic plan to deliver every Core IDE Must-Have
+
+Each phase ships independently and builds on the last.
+All work targets the existing vanilla-JS + Netlify Functions + Neon stack.
+No framework rewrites. No new bundlers. Ship fast, iterate.
+
+---
+## COMPLETION KEY
+- ✅ = Fully implemented
+- ⚠️ = Partially implemented (see notes)
+- ❌ = Not yet implemented
+
+---
+
+## ✅ PHASE 1 — Editor Foundation
+### Goal: Replace the single-file editor with a real multi-tab, split-pane workspace
+
+**1.1 Multi-tab editor** ✅
+- ✅ Tab bar above editor (per pane, 2 panes)
+- ✅ Each tab = { id, path, pane, dirty, scrollTop }
+- ✅ Tabs persisted in IndexedDB (survive refresh)
+- ✅ ✕ button to close; Ctrl+W closes active tab
+- ✅ Unsaved indicator (dot on tab) + dirty state tracking
+- ✅ Tab bar rendered independently per pane
+
+**1.2 Split panes** ✅
+- ✅ CSS flex splitter component (no library)
+- ✅ Vertical split (side-by-side) via toggleSplit()
+- ✅ Each pane has independent tab bar + textarea editor
+- ✅ Keyboard: Ctrl+\ toggle split; Ctrl+1/2 focus pane 1/2
+
+**Acceptance:** ✅ Can open files across 2 panes, edit independently.
+
+---
+
+## ✅ PHASE 2 — File Explorer Upgrade
+### Goal: Full file management inside the sidebar
+
+**2.1 Rename / move / duplicate** ✅
+- ✅ Right-click context menu: Rename, Move To…, Duplicate, Delete, Download, Open in split pane
+- ✅ Rename: prompt input, updates open tabs
+- ✅ Move: prompt for destination path, updates open tabs
+- ✅ Duplicate: appends `-copy` suffix
+
+**2.2 Drag-and-drop reorder** ✅
+- ✅ File rows have `draggable="true"`
+- ✅ dragstart tracks source path; dragend clears indicators
+- ✅ dragover on file rows shows above/below drop indicator line
+- ✅ dragover on folder rows highlights folder in purple
+- ✅ drop on file → moves dragged file into same folder as target
+- ✅ drop on folder → moves dragged file into that folder
+- ✅ _moveFileTo() updates open tabs + re-renders tab bars
+
+**2.3 Breadcrumb path bar** ✅
+- ✅ Breadcrumb rendered per pane below tab bar (_renderBreadcrumb)
+- ✅ Updates on tab switch and file open
+
+**Acceptance:** ✅ Rename, drag-drop into folders, and breadcrumb all work without page reload.
+
+---
+
+## ✅ PHASE 3 — Search & Replace
+### Goal: Workspace-wide search with a full results panel
+
+**3.1 Search panel** ✅
+- ✅ Toggle with Ctrl+Shift+F
+- ✅ Regex, Case-sensitive, Whole Word options
+- ✅ Searches all files in IndexedDB on demand
+- ✅ Results grouped by file with highlighted match excerpts
+- ✅ Click result → opens file, scrolls + selects match
+
+**3.2 Replace** ✅
+- ✅ Replace input below search input
+- ✅ "Replace All in Workspace" applies to all matching files
+- ✅ Open tabs updated live on replace
+
+**3.3 Results panel** ✅
+- ✅ File groups with match count
+- ✅ Summary line (N matches in M files)
+
+**Acceptance:** ✅ Regex search works across workspace. Replace all updates files correctly.
+
+---
+
+## ✅ PHASE 4 — Code Intelligence (Lightweight)
+### Goal: Symbols outline, go-to-line, go-to-symbol, recent files
+
+**4.1 Symbols / outline panel** ✅
+- ✅ "Outline" sidebar panel
+- ✅ Client-side regex parsing per language:
+  - ✅ JS/TS: function, class, const arrow functions, methods
+  - ✅ CSS: selectors, at-rules
+  - ✅ HTML: id attributes, landmark tags
+  - ✅ Python: def, class
+  - ✅ JSON: top-level keys
+  - ✅ Markdown: headings
+- ✅ Click symbol → jumps editor to line
+- ✅ Updates on tab switch (called from _activateTab)
+
+**4.2 Go-to-line** ✅
+- ✅ Ctrl+G → modal input "Go to line:"
+- ✅ Accepts line:col format (e.g. 42:8)
+- ✅ Jumps editor to position
+
+**4.3 Go-to-symbol** ✅
+- ✅ Ctrl+Shift+O → dedicated `#goto-symbol-modal` fuzzy search modal
+- ✅ Reads symbols from current file's `_outlineCache`
+- ✅ Real-time filter as you type, arrow key navigation, Enter to jump
+- ✅ Shows symbol kind icon, name, line number
+- ✅ Jumps editor to line + selects symbol text
+- ✅ Also available via command palette entry "Go to Symbol…"
+
+**4.4 Recent files** ✅
+- ✅ _trackRecent() logs last opened files
+- ✅ Recent files shown at top of command palette
+
+**Acceptance:** ✅ Outline updates live. Go-to-line + Go-to-symbol both work. Recent files in palette.
+
+---
+
+## ✅ PHASE 5 — Problems Panel
+### Goal: Surface errors and warnings from the editor and AI
+
+**5.1 Client-side linting** ✅
+- ✅ JS: unbalanced brackets/braces/parens, debugger, console.error
+- ✅ CSS: unbalanced braces, !important overuse
+- ✅ HTML: unclosed tags, missing alt on img
+- ✅ JSON: full parse error with line/col
+- ✅ Problem shape: { file, line, col, severity, message, source }
+
+**5.2 Problems panel UI** ✅
+- ✅ "Problems" panel tab with badge count (errors + warnings)
+- ✅ Severity icon + file + line:col + message
+- ✅ Click row → opens file, scrolls to line
+- ✅ Filter: Errors / Warnings / All
+- ✅ Per-file problems replaced on re-lint
+
+**5.3 AI-generated problems** ✅
+- ✅ lintFile() called on every file open/tab switch
+- ✅ Source label shown per linter (JS / CSS / HTML / JSON)
+
+**Acceptance:** ✅ Syntax errors surface in Problems panel. Click navigates correctly.
+
+---
+
+## ✅ PHASE 6 — Command Palette & Keyboard Shortcuts
+### Goal: Ctrl+Shift+P command palette + discoverable keybindings
+
+**6.1 Command palette** ✅
+- ✅ Ctrl+Shift+P → overlay modal with search input
+- ✅ COMMANDS registry: { group, id, label, kb, action }
+- ✅ Filter by label/group; Arrow keys + Enter; Esc closes
+- ✅ Grouped by: Editor, File, View, Settings
+
+**6.2 Default commands** ✅
+- ✅ New File, Close Tab, Save, Save All
+- ✅ Toggle Split Pane, Focus Left/Right Pane
+- ✅ Format Document (Shift+Alt+F)
+- ✅ Go to Line (Ctrl+G)
+- ✅ Search in Workspace (Ctrl+Shift+F)
+- ✅ Toggle Preview (Ctrl+P)
+- ✅ Open Settings
+- ✅ Upload Files / Folder / Export ZIP
+
+**6.3 Keyboard shortcuts cheat sheet** ✅
+- ✅ Ctrl+Shift+K → dedicated `#shortcuts-modal` standalone modal
+- ✅ Searchable: filter by action name or shortcut key
+- ✅ Two-column table: Shortcut (kbd styled) | Action
+- ✅ Populated dynamically from COMMANDS registry — always up to date
+- ✅ Also accessible via command palette entry "Keyboard Shortcuts"
+- ✅ Backdrop click + Esc close
+
+**6.4 Keybinding conflict detection** ✅
+- ✅ Implemented: console warning + toast when duplicate keybindings are detected
+
+**Acceptance:** ✅ All core commands reachable via palette or keyboard. Shortcuts modal searchable.
+
+---
+
+## ✅ PHASE 7 — Formatting & Snippets
+### Goal: Client-side code formatting + user snippet library
+
+**7.1 Formatting** ✅
+- ✅ Custom client-side formatter for JS/TS, CSS, HTML, Markdown, JSON (no Prettier dependency)
+- ✅ Shift+Alt+F runs formatDocument()
+- ✅ Format on save option wired to IDE.formatOnSave setting
+- ✅ Generic fallback: tab→space normalization + trailing whitespace strip
+
+**7.2 Snippet manager** ✅
+- ✅ Settings → Snippets tab
+- ✅ Stored in IndexedDB via getMeta/setMeta
+- ✅ CRUD UI: add, edit, delete user snippets
+- ✅ Tab expansion: type prefix + Tab → expands with $N tab stops
+- ✅ 40+ built-in snippets for JS, HTML, CSS, Python
+- ✅ Import/export snippets as JSON
+
+**Acceptance:** ✅ Format document works in one keystroke. Snippets expand with tab-stop navigation.
+
+---
+
+## ✅ PHASE 8 — Auto-Save & Settings Panel
+### Goal: Configurable auto-save + a real settings UI
+
+**8.1 Auto-save modes** ✅
+- ✅ Off | On Idle (1s) | On Keystroke | On Blur
+- ✅ Idle timer via _autoSaveTimers per pane
+- ✅ Status bar shows auto-save mode
+- ✅ "Problems gate" before auto-save blocks save when file has lint errors
+
+**8.2 Settings panel** ✅
+- ✅ Gear icon + command palette "Open Settings"
+- ✅ Sections: font size, tab size, word wrap, auto-save, format on save
+- ✅ Settings stored in IndexedDB via loadSettings/saveSettings
+- ✅ Applied live (applySettings() — no reload required)
+- ✅ Snippets tab accessible from settings modal
+
+**Acceptance:** ✅ Switch auto-save mode works. Settings persist through refresh.
+
+---
+
+## ✅ PHASE 9 — File Type Handling
+### Goal: Correct view/edit experience for every file type
+
+**9.1 Binary image viewer** ✅
+- ✅ Detect: png, jpg, jpeg, gif, webp, svg, ico, bmp
+- ✅ Renders `<img>` from base64 in scrollable container
+- ✅ Read-only (textarea hidden, viewer shown)
+
+**9.2 PDF viewer** ✅
+- ✅ Detect: .pdf
+- ✅ Renders via `<iframe>` with blob URL
+- ✅ Download button
+
+**9.3 CSV preview** ✅
+- ✅ Detect: .csv, .tsv
+- ✅ Parsed and rendered as styled `<table>`
+- ✅ Column sort (click header)
+- ✅ Search/filter rows
+- ✅ Toggle between Table view and Raw edit mode
+
+**9.4 Markdown preview** ✅
+- ✅ Detect: .md, .markdown
+- ✅ Toggle Edit / Preview / Split via buttons
+- ✅ Preview renders via marked.js (lazy-loaded inline)
+
+**9.5 Fallback for unknown binaries** ✅
+- ✅ Shows "Binary file — cannot display" with Download button
+
+**Acceptance:** ✅ PNG → image, CSV → table, PDF → iframe, binary → download.
+
+---
+
+## ✅ PHASE 10 — Import / Upload
+### Goal: Every import vector working seamlessly
+
+**10.1 Multi-file upload** ✅
+- ✅ `<input multiple>` file picker
+- ✅ Progress toast per batch; all files written to IndexedDB
+
+**10.2 Folder upload** ✅
+- ✅ `<input webkitdirectory>` preserves full relative paths
+
+**10.3 ZIP import** ✅
+- ✅ JSZip extraction for .zip files
+- ✅ Text files as string; binary files as __b64__ encoded
+- ✅ Progress toast (Importing N/M)
+
+**10.4 Drag & drop anywhere** ✅
+- ✅ Global drop zone on the IDE window
+- ✅ Files/folders/zips all handled through importFiles()
+
+**10.5 Clipboard import ("paste project")** ✅
+- ✅ Wired to Ctrl+Shift+V shortcut and command palette entry
+- ✅ Supports FILE-block manifest/context parsing in paste import
+
+**Acceptance:** ✅ ZIP import works. Folder drag-drop works. Paste-manifest works.
+
+---
+
+## ✅ PHASE 11 — Export
+### Goal: Every export vector working
+
+**11.1 ZIP export (full)** ✅
+- ✅ "Export ZIP" command + button
+- ✅ Bundles all workspace files via JSZip → browser download
+- ✅ Filename includes workspace name + date
+
+**11.2 Selective export** ✅
+- ✅ Checkbox multi-select in file tree (selectedPaths Set)
+- ✅ "Export selected as ZIP" wired to selectedPaths
+
+**11.3 Export single file** ✅
+- ✅ Right-click → "Download" (explorer context menu → _downloadFile)
+
+**11.4 Export patch / Apply patch** ✅
+- ✅ Patch export implemented
+- ✅ Patch preview + apply flow implemented
+
+**Acceptance:** ✅ Full ZIP + single file download, Export selected ZIP, and patch export/apply all done.
+
+---
+
+## ✅ PHASE 12 — Workspace Templates
+### Goal: One-click scaffold from a template
+
+**12.1 Template format** ✅
+- ✅ Template = JS object: { id, name, description, tags, emoji, files: {} }
+- ✅ Built-in templates in templates.js; Neon table + Netlify functions for server-side
+
+**12.2 Template browser UI** ✅
+- ✅ openTemplatesModal() → modal with template cards
+- ✅ Search/filter by name or tag
+- ✅ Tabs: Built-in | Server templates
+- ✅ Click → scaffolds all files into IndexedDB instantly
+
+**12.3 Built-in templates** ✅
+- ✅ Blank HTML/CSS/JS
+- ✅ Single-Page App (vanilla JS router)
+- ✅ React CDN App
+- ✅ Node.js Netlify Function starter
+- ✅ Markdown site
+- ✅ Additional: Vue CDN, Canvas Game, REST API Client, Portfolio, and more
+
+**12.4 Save as template** ✅
+- ✅ "Save as Template" option present
+- ✅ Saves to Neon templates table via POST /api/templates-create
+
+**12.5 Netlify functions: templates CRUD** ✅
+- ✅ `netlify/functions/templates-list.js`
+- ✅ `netlify/functions/templates-create.js`
+- ✅ `netlify/functions/templates-get.js`
+
+**Acceptance:** ✅ Built-in templates scaffold instantly. Server-side CRUD functions exist.
+
+---
+
+## SEQUENCING SUMMARY
+
+| Phase | What ships | Status |
+|-------|-----------|--------|
+| 1 | Multi-tab + split panes | ✅ Complete |
+| 2 | File explorer upgrade | ✅ Complete |
+| 3 | Search & replace | ✅ Complete |
+| 4 | Symbols, go-to-line, recent files | ✅ Complete |
+| 5 | Problems panel | ✅ Complete |
+| 6 | Command palette + shortcuts | ✅ Complete |
+| 7 | Formatting + snippets | ✅ Complete |
+| 8 | Auto-save + settings panel | ✅ Complete |
+| 9 | File type handling | ✅ Complete |
+| 10 | Import / upload | ✅ Complete |
+| 11 | Export (ZIP, patch, selective) | ✅ Complete |
+| 12 | Templates | ✅ Complete |
+
+---
+
+## ✅ ALL PHASES COMPLETE
+
+All 12 build phases and every tracked remaining item have been shipped.
+No open items remaining as of February 28, 2026.
+
+---
+
+## DEFINITION OF DONE (per phase)
+- Feature works in Chrome, Firefox, Safari (latest)
+- No console errors in normal usage paths
+- Keyboard-navigable (tab order + Esc exits all modals)
+- State survives page refresh (IndexedDB persisted)
+- Tested with a 100-file workspace for performance regressions
+- Committed, pushed, Netlify deploy green

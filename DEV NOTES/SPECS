@@ -1,0 +1,658 @@
+kAIxU SuperIDE — Technical Specifications
+==========================================
+Last updated: 2026-03-01
+Version: 1.1.0
+Endpoints: 58
+
+All endpoints live at:  /.netlify/functions/<name>
+Auth token format:      Authorization: Bearer <JWT>
+JWT secret env var:     JWT_SECRET
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 1. AUTH  (9 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+auth-signup
+  POST   { email, password, name? }
+  Auth:  none
+  → Creates user, sends verification email (SendGrid)
+  → { ok, token, user: { id, email, name } }
+
+auth-login
+  POST   { email, password }
+  Auth:  none
+  → Returns JWT on success; 401 if MFA required (returns mfa_required flag)
+  → { ok, token, user } | { ok: false, mfa_required: true }
+
+auth-me
+  GET
+  Auth:  required
+  → Returns current user profile + org memberships
+  → { ok, user, orgs }
+
+auth-verify-email
+  GET    ?token=<jwt>
+  Auth:  required (token in query)
+  → Marks email as verified
+  → { ok }
+
+auth-reset-request
+  POST   { email }
+  Auth:  none
+  → Sends password reset email (SendGrid); dev mode returns dev_reset_url
+  → { ok }
+
+auth-reset-confirm
+  POST   { token, password }
+  Auth:  none
+  → Resets password using signed reset token
+  → { ok }
+
+auth-mfa-setup
+  GET    → generates TOTP secret + QR code URI     Auth: required
+  POST   { code }  → verifies and enables MFA      Auth: required
+  → GET: { ok, secret, otpauth_uri }
+  → POST: { ok }
+
+auth-mfa-verify
+  POST   { email, password, code }
+  Auth:  none
+  → Second-factor login step; returns JWT on success
+  → { ok, token, user }
+
+auth-mfa-disable
+  POST   { code }
+  Auth:  required
+  → Verifies current TOTP code then disables MFA
+  → { ok }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 2. WORKSPACE  (6 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ws-create
+  POST   { name, orgId? }
+  Auth:  required
+  → Creates workspace, inserts owner membership
+  → { ok, workspace }
+
+ws-list
+  GET    ?orgId=<id>?
+  Auth:  required
+  → Lists workspaces for the authed user (optionally filtered by org)
+  → { ok, workspaces }
+
+ws-get
+  GET    ?id=<workspaceId>
+  Auth:  required
+  → Returns workspace metadata + files
+  → { ok, workspace, files }
+
+ws-save
+  POST   { workspaceId, files: [{ path, content }] }
+  Auth:  required
+  → Upserts file contents for a workspace
+  → { ok, saved }
+
+ws-admin
+  GET/POST/DELETE
+  Auth:  required (admin or owner role)
+  → Manage workspace-level admin settings (rename, delete, transfer)
+
+workspace-share
+  GET    ?workspaceId=   → list shares             Auth: required
+  POST   { workspaceId, userId, role }             Auth: required
+  DELETE { workspaceId, userId }                   Auth: required
+  → Manage workspace membership/sharing
+  → { ok, shares } | { ok }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 3. AI  (5 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ai-edit
+  POST   { workspaceId, filePath, instruction, model? }
+  Auth:  required
+  Gateway: https://kaixu67.skyesoverlondon.workers.dev
+  Models:  kAIxU-flash (default, free/pro), kAIxU-pro (team/enterprise)
+  → Streams AI-edited file content
+  → { ok, result }
+
+agent-memory
+  GET    ?workspaceId=   → retrieve memories       Auth: required
+  POST   { workspaceId, key, value }               Auth: required
+  → Persist/retrieve arbitrary agent context per workspace
+  → { ok, memories } | { ok }
+
+embeddings
+  GET    ?workspaceId=&q=&limit=5
+  Auth:  required
+  → Semantic search over workspace file chunks (pgvector)
+  → { results: [{ path, chunk, score }] }
+
+  POST   { action: 'sync', workspaceId, files: [{ path, content }] }
+  Auth:  required
+  → Chunk + embed files into file_embeddings table via kAIxU gateway
+  → { synced: <count> }
+
+chat-append
+  POST   { workspaceId, role, content }
+  Auth:  required
+  → Appends a message to workspace chat history
+  → { ok, message }
+
+chat-list
+  GET    ?workspaceId=&limit=50
+  Auth:  required
+  → Returns chat message history for a workspace
+  → { ok, messages }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 4. ORG  (4 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+org-create
+  POST   { name }
+  Auth:  required
+  Rate:  5 orgs/hour per token
+  → Creates org and inserts caller as owner
+  → { ok, org }
+
+org-list
+  GET
+  Auth:  required
+  → Lists orgs the authed user belongs to
+  → { ok, orgs }
+
+org-members
+  GET    ?orgId=         → list members            Auth: required (member+)
+  PATCH  { orgId, userId, role }                   Auth: required (admin+)
+  DELETE { orgId, userId }                         Auth: required (owner)
+  → Manage org membership and roles
+  → { ok, members } | { ok }
+
+org-settings
+  GET    ?orgId=         → view settings           Auth: required (any member)
+  PATCH  { orgId, require_mfa?, sso_enabled?, sso_provider?, sso_domain? }
+                                                   Auth: required (admin+)
+  → Manage org security settings; allowlist-guarded (no arbitrary column writes)
+  → { ok, settings, role } | { ok, settings }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 5. BILLING  (6 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+billing-plans
+  GET
+  Auth:  required
+  → Returns all plans from DB + current user subscription status
+  → { ok, plans, current }
+
+billing-create-session
+  POST   { priceId, orgId? }
+  Auth:  required
+  → Creates Stripe Checkout session for subscription upgrade
+  → { ok, url }
+
+billing-portal
+  POST   { orgId? }
+  Auth:  required
+  → Creates Stripe Customer Portal session for self-serve plan management
+  → { ok, url }
+
+billing-invoices
+  GET    ?orgId=?
+  Auth:  required
+  → Lists Stripe invoices for user or org
+  → { ok, invoices }
+
+stripe-webhook
+  POST   (Stripe-Signature header required)
+  Auth:  none (Stripe HMAC signature verification)
+  Env:   STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY
+  Events handled:
+    customer.subscription.created
+    customer.subscription.updated
+    customer.subscription.deleted
+    invoice.paid
+    invoice.payment_failed
+  → { received: true }
+
+usage-meter
+  POST   { workspaceId, event, quantity? }
+  Auth:  required
+  → Records a usage event to usage_meters table (AI calls, file syncs, etc.)
+  → { ok }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 6. GITHUB  (4 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+github-connect
+  GET    ?workspaceId=   → retrieve connection      Auth: required
+  DELETE { workspaceId } → remove connection        Auth: required
+  (POST handled by github-status flow)
+  → { ok, connection } | { ok }
+
+github-pull
+  POST   { workspaceId, repo, branch?, path? }
+  Auth:  required
+  → Pulls files from GitHub repo into workspace via GitHub API
+  → { ok, files: [{ path, content }] }
+
+github-push
+  POST   { workspaceId, repo, branch, message?, files }
+  Auth:  required
+  → Pushes workspace files to GitHub using Git Trees API
+  → { ok, sha, url }
+
+github-status
+  GET    ?workspaceId=
+  Auth:  required
+  → Returns GitHub connection health + ahead/behind commit count
+  → { ok, connected, repo, ahead, behind }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 7. SSO  (2 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+sso-saml
+  GET    → initiates SAML redirect                 Auth: none
+  POST   → SAML assertion consumer (ACS)           Auth: none
+  Env:   SSO_SAML_CERT, SSO_SAML_ENTRY_POINT
+  → On success: issues JWT, redirects to IDE
+
+sso-oidc
+  GET    → initiates OIDC redirect                 Auth: none
+  Callback handled in same function
+  Env:   SSO_OIDC_CLIENT_ID, SSO_OIDC_CLIENT_SECRET, SSO_OIDC_ISSUER
+  → On success: issues JWT, redirects to IDE
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 8. TEMPLATES  (3 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+templates-list
+  GET    ?orgId=?&public=true?
+  Auth:  required
+  → Lists workspace templates (public + org-scoped)
+  → { ok, templates }
+
+templates-get
+  GET    ?id=<templateId>
+  Auth:  required
+  → Returns template metadata + files
+  → { ok, template }
+
+templates-create
+  POST   { name, description?, files, orgId?, public? }
+  Auth:  required
+  → Creates a new template from provided files
+  → { ok, template }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 9. ADMIN  (3 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+admin-kill-switch
+  GET    → check kill-switch status                Auth: required (platform admin)
+  POST   { action: 'enable'|'disable', reason? }  Auth: required (platform admin)
+  → Emergency kill-switch to disable AI endpoints platform-wide
+  → { ok, status }
+
+admin-audit-export
+  GET    ?orgId=?&from=?&to=?&limit=500
+  Auth:  required (platform admin or org owner)
+  → Exports audit log as JSON
+  → { ok, events }
+
+admin-usage
+  GET    ?orgId=?&from=?&to=?
+  Auth:  required (platform admin or org admin)
+  → Returns aggregated usage stats per org/user/event
+  → { ok, usage }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 10. COLLAB  (7 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+presence
+  GET    ?workspaceId=   → who's online            Auth: required
+  POST   { workspaceId, filePath?, status? }       Auth: required
+  → Real-time user presence within a workspace
+  → { ok, users } | { ok }
+
+comments
+  GET    ?workspaceId=&filePath=?                  Auth: required
+  POST   { workspaceId, filePath, line, body }     Auth: required
+  PATCH  { id, body }                              Auth: required (author)
+  DELETE { id }                                    Auth: required (author/admin)
+  → Inline file comments
+  → { ok, comments } | { ok, comment } | { ok }
+
+reviews
+  GET    ?workspaceId=                             Auth: required
+  POST   { workspaceId, title, files? }            Auth: required
+  PATCH  { id, status }                            Auth: required (admin+)
+  DELETE { id }                                    Auth: required (admin+)
+  → Code review requests per workspace
+  → { ok, reviews } | { ok, review } | { ok }
+
+tasks
+  GET    ?workspaceId=                             Auth: required
+  POST   { workspaceId, title, assigneeId?, dueAt? }  Auth: required
+  PATCH  { id, title?, status?, assigneeId? }      Auth: required
+  DELETE { id }                                    Auth: required
+  → Task tracker per workspace
+  → { ok, tasks } | { ok, task } | { ok }
+
+teams
+  GET    ?orgId=                                   Auth: required
+  POST   { orgId, name }                           Auth: required (admin+)
+  PATCH  { id, name?, memberIds? }                 Auth: required (admin+)
+  DELETE { id }                                    Auth: required (admin+)
+  → Sub-teams within an org
+  → { ok, teams } | { ok, team } | { ok }
+
+notifications
+  GET    ?orgId=   → list notification prefs       Auth: required
+  POST/action-based:
+    action: 'upsert-pref'  { orgId, channel, config }
+    action: 'send'         { orgId?, userId?, event, data }
+  Auth:  required
+  Channels: slack, email, webhook
+  → { ok, prefs } | { ok, delivered, results }
+
+webhooks
+  GET    ?orgId=?&workspaceId=?                    Auth: required
+  POST   { url, secret?, events?, orgId?, workspaceId? }  Auth: required
+  DELETE { id }                                    Auth: required
+  → Register outgoing webhooks for org/workspace events
+  → { ok, webhooks } | { ok, webhook } | { ok }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 11. SESSIONS  (2 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+sessions-list
+  GET
+  Auth:  required
+  → Lists all active sessions for the authed user
+  → { ok, sessions }
+
+sessions-revoke
+  POST   { sessionId }
+  Auth:  required
+  → Revokes a specific session (forces re-login on that device)
+  → { ok }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 12. INVITES  (3 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+invite-create
+  POST   { orgId, email, role? }
+  Auth:  required (org admin+)
+  → Creates invite token + sends invite email
+  → { ok, invite }
+
+invite-list
+  GET    ?orgId=
+  Auth:  required (org admin+)
+  → Lists pending invites for an org
+  → { ok, invites }
+
+invite-accept
+  GET    ?token=   → validate token                Auth: required
+  POST   { token }                                 Auth: required
+  → Accepts invite, adds user to org
+  → { ok, org }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 13. OTHER  (4 endpoints)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+health
+  GET
+  Auth:  none
+  → Checks DB connectivity + kAIxU gateway reachability
+  → { ok, db: 'ok'|'error', gate: 'ok'|'error', version }
+
+soc2
+  GET    ?orgId=?
+  Auth:  required (org admin+ or platform admin)
+  → Generates SOC 2 evidence pack (JSON attachment)
+  → {
+       generated_at, exported_by, org_id,
+       evidence: {
+         org: { id, name, require_mfa, sso_enabled, sso_provider, ... },
+         users: { total_users, verified_users, mfa_users, active_users, mfa_adoption_pct },
+         sessions: { total_sessions, active_sessions, last_session_at },
+         security: { mfa_enforced, honeypot, secrets_scanning, csp, ... },
+         access_control, audit_log
+       }
+     }
+
+activity-list
+  GET    ?workspaceId=?&orgId=?&limit=50
+  Auth:  required
+  → Returns recent audit/activity events for workspace or org
+  → { ok, events }
+
+error-report
+  POST   { message, stack?, context? }
+  Auth:  none
+  → Client-side error reporting (logged to Sentry via structured logger)
+  → { ok }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ FRONTEND MODULES  (load order matters)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. db.js           — IndexedDB wrapper (offline file storage)
+ 2. ui.js           — UI primitives, toast, modal, theme
+ 3. editor.js       — CodeMirror editor integration
+ 4. explorer.js     — File explorer / tree
+ 5. search.js       — Full-text search (delegates to search.worker.js)
+ 6. outline.js      — Symbol outline panel
+ 7. problems.js     — Diagnostics / problems panel
+ 8. snippets.js     — Code snippet library
+ 9. templates.js    — Workspace template browser
+10. commands.js     — Command palette
+11. app.js          — Main app bootstrap, AI chat, toolbar, session handling
+12. diff.js         — Diff viewer
+13. scm.js          — Source control panel (git status, commit, push/pull)
+14. collab.js       — Presence, comments, shared cursors
+15. demo.js         — Demo mode / onboarding walkthrough
+16. github.js       — GitHub connect / OAuth flow UI
+17. admin.js        — Admin panel (platform admin only)
+
+    search.worker.js — Web Worker for search indexing (loaded by search.js via
+                       new Worker('search.worker.js'), no <script> tag needed)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SHARED LIBS  (netlify/functions/_lib/)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+auth.js       — issueToken, verifyToken, getBearerToken, requireAuth, json
+body.js       — readJson (safe body parser)
+db.js         — Neon PostgreSQL pool (query, getDb); read replica routing
+email.js      — SendGrid: sendEmail, sendVerificationEmail, sendPasswordResetEmail
+logger.js     — Structured JSON logger + Sentry integration
+              — usage: const log = require('./_lib/logger')('fn-name')
+              — log.info / log.warn / log.error / log.exception
+ratelimit.js  — checkRateLimit(key, action, { maxHits, windowSecs })
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN TIERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Plan        Price       AI Model        Workspaces  Members
+ ─────────── ─────────── ─────────────── ─────────── ───────
+ Free        $0          kAIxU-flash     3           1
+ Pro         $19/mo      kAIxU-flash     unlimited   1
+ Team        $79/mo      kAIxU-pro       unlimited   10
+ Enterprise  custom      kAIxU-pro       unlimited   unlimited
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ENV VARS REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Var                     Required  Purpose
+ ─────────────────────── ───────── ────────────────────────────────────
+ DATABASE_URL            YES       Neon primary connection string
+ DATABASE_URL_READ       no        Neon read-replica (falls back to primary)
+ JWT_SECRET              YES       ≥32 char secret for signing JWTs
+ KAIXU_VIRTUAL_KEY       YES       Bearer key for XnthGateway (kAIxuGateway13)
+ SENDGRID_API_KEY        no        TransactionalEmail (dev fallback: log only)
+ SMTP_FROM_EMAIL         no        From address for emails
+ APP_URL                 YES       Public URL e.g. https://ide.kaixu.app
+ STRIPE_SECRET_KEY       YES       Stripe secret key
+ STRIPE_WEBHOOK_SECRET   YES       Stripe webhook signing secret
+ SENTRY_DSN              no        Sentry error reporting DSN
+ LOG_DEBUG               no        'true' to enable debug log level
+ KAIXU_DEFAULT_MODEL     no        Branded default model (kAIxU-flash)
+ KAIXU_FLASH_PROVIDER    no        Provider for kAIxU-flash (default: gemini)
+ KAIXU_FLASH_MODEL       no        Model for kAIxU-flash (default: gemini-2.5-flash)
+ KAIXU_PRO_PROVIDER      no        Provider for kAIxU-pro (default: anthropic)
+ KAIXU_PRO_MODEL         no        Model for kAIxU-pro (default: claude-3-5-sonnet-20241022)
+ SSO_SAML_CERT           no        SAML IdP certificate
+ SSO_SAML_ENTRY_POINT    no        SAML IdP entry point URL
+ SSO_OIDC_CLIENT_ID      no        OIDC client ID
+ SSO_OIDC_CLIENT_SECRET  no        OIDC client secret
+ SSO_OIDC_ISSUER         no        OIDC issuer URL
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ AI GATEWAY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Gateway: XnthGateway (kAIxuGateway13) at https://skyesol.netlify.app
+ Auth:    Authorization: Bearer $KAIXU_VIRTUAL_KEY
+
+ CORS rule: skyesol.netlify.app does NOT return CORS headers on OPTIONS.
+            Browser apps must NEVER call it directly.
+            All AI calls go through same-origin Netlify proxy functions:
+
+   Browser/IDE  →  /.netlify/functions/gateway-chat    → skyesol gateway-chat
+   Browser/IDE  →  /.netlify/functions/gateway-stream  → skyesol gateway-stream
+   Browser/IDE  →  /.netlify/functions/gateway-embed   → skyesol gateway-embed
+
+ Local dev: /api/* redirect in netlify.toml proxies to skyesol.netlify.app
+
+ Chat request shape (to gateway-chat / gateway-stream):
+   { provider: "openai"|"anthropic"|"gemini",
+     model: "string",
+     messages: [{role:"system"|"user"|"assistant", content:"text"}],
+     max_tokens: 8192,
+     temperature: 0 }
+
+ Chat response (non-streaming):
+   { output_text, provider, model, usage:{input_tokens,output_tokens,cost_cents},
+     month:{month,cap_cents,spent_cents} }
+
+ Streaming SSE events:
+   meta:  { provider, model, month:{month,cap_cents,spent_cents} }
+   delta: { text }
+   done:  { usage:{...}, month:{...} }
+   error: { error }
+
+ Embed request shape (to gateway-embed):
+   { provider: "gemini", model: "gemini-embedding-001",
+     input: "text"|["text1","text2"],
+     taskType: "RETRIEVAL_QUERY"|"RETRIEVAL_DOCUMENT",
+     outputDimensionality: 1536 }
+
+ Embed response:
+   { embeddings: [[float,...]], dimensions: 1536, usage, month }
+
+ IDE branded model names → XnthGateway mapping:
+   kAIxU-flash  → provider: gemini,    model: gemini-2.5-flash            (Free/Pro)
+   kAIxU-pro    → provider: anthropic, model: claude-3-5-sonnet-20241022  (Team/Enterprise)
+   (override via env: KAIXU_FLASH_PROVIDER/MODEL, KAIXU_PRO_PROVIDER/MODEL)
+
+ Error codes surfaced to user:
+   402 → "Monthly cap reached" — block calls until upgrade/top-up
+   429 → rate limit — retry guidance
+   401 → invalid/revoked virtual key
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ DATABASE TABLES (summary)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ users             — id, email, password_hash, name, mfa_enabled, mfa_secret,
+                     email_verified, deleted_at, stripe_customer_id, admin
+ orgs              — id, name, created_by, plan_id, require_mfa, sso_enabled,
+                     sso_provider, sso_domain, sso_config, deleted_at
+ org_memberships   — org_id, user_id, role (owner/admin/member/viewer)
+ workspaces        — id, owner_id, org_id, name, deleted_at
+ workspace_files   — workspace_id, path, content, updated_at
+ workspace_members — workspace_id, user_id, role
+ user_sessions     — id, user_id, token_hash, revoked, created_at, ip, ua
+ plans             — id, name, stripe_price_id, max_workspaces, max_members,
+                     ai_model, price_cents
+ subscriptions     — id, user_id, org_id, plan_id, stripe_sub_id, status
+ usage_meters      — id, workspace_id, user_id, event, quantity, recorded_at
+ audit_log         — id, user_id, org_id, action, meta, created_at
+ invites           — id, org_id, email, role, token, accepted_at, expires_at
+ templates         — id, name, description, files (jsonb), org_id, public
+ chat_messages     — id, workspace_id, role, content, created_at
+ agent_memories    — id, workspace_id, key, value, updated_at
+ file_embeddings   — id, workspace_id, path, chunk_index, embedding (vector),
+                     content, updated_at
+ github_connections— workspace_id, token, repo, branch
+ comments          — id, workspace_id, file_path, line, body, user_id, created_at
+ reviews           — id, workspace_id, title, status, files, created_by
+ tasks             — id, workspace_id, title, status, assignee_id, due_at
+ teams             — id, org_id, name, member_ids (uuid[])
+ webhooks          — id, org_id, workspace_id, url, secret, events, enabled
+ notifications_prefs — id, org_id, user_id, channel, config
+ sessions (presence) — workspace_id, user_id, file_path, last_seen
+ rate_limits       — key, hits, window_start
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TESTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ Suite                 Tests   Coverage
+ ───────────────────── ─────── ─────────────────────────────
+ tests/auth.test.js    —       signup, login, me, MFA flow, JWT validation
+ tests/ai-edit.test.js —       ai-edit auth, model routing, quota enforcement
+ tests/billing.test.js —       plans, session create, portal, invoices
+ tests/quota.test.js   —       usage enforcement by plan tier
+ tests/ws.test.js      —       workspace CRUD, file save, share
+ tests/health.test.js  —       health endpoint DB + gate checks
+
+ Total: 46 tests, 6 suites — all passing
+ Runner: Jest   Command: npm test
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ GIT HISTORY (recent)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1cd6078  feat: add org require_mfa — schema, soc2 wired, org-settings endpoint
+ 40e3f3d  fix: replace remaining console calls with structured logger
+ 5a73469  fix: critical — add all missing frontend script tags to ide.html
+ 3ded652  feat: v1.1.0 — email sending, requireAuth, structured logging, caching
+ 1f050e4  docs: full README rewrite + Deploy Notes
+ ad040b7  feat: Phase 21+24+27 — legal pages, security hardening, setup validator

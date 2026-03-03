@@ -19,6 +19,27 @@ async function ghFetch(pat, method, path) {
   return data;
 }
 
+async function resolveRemoteStatus({ pat, owner, repo, branch }) {
+  const encodedBranch = encodeURIComponent(branch);
+  try {
+    const refData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${encodedBranch}`);
+    return { remoteSha: refData.object.sha, branchUsed: branch, fallbackFromBranch: null, repoInfo: null };
+  } catch (err) {
+    if (err?.status !== 404 && err?.status !== 409) throw err;
+  }
+
+  const repoInfo = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}`);
+  const defaultBranch = String(repoInfo.default_branch || 'main');
+  const encodedDefault = encodeURIComponent(defaultBranch);
+  const fallbackRef = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${encodedDefault}`);
+  return {
+    remoteSha: fallbackRef.object.sha,
+    branchUsed: defaultBranch,
+    fallbackFromBranch: branch,
+    repoInfo
+  };
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') return json(405, { ok: false, error: 'Method not allowed' });
 
@@ -66,8 +87,10 @@ exports.handler = async (event) => {
     let behindBy = null;
 
     try {
-      const refData = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}/git/ref/heads/${branch}`);
-      remoteSha = refData.object.sha;
+      const resolved = await resolveRemoteStatus({ pat, owner, repo, branch });
+      remoteSha = resolved.remoteSha;
+      const branchUsed = resolved.branchUsed;
+      const fallbackFromBranch = resolved.fallbackFromBranch;
 
       // If we have a lastSha, compare to see if remote is ahead
       if (lastSha && remoteSha !== lastSha) {
@@ -77,7 +100,27 @@ exports.handler = async (event) => {
         } catch {}
       }
 
-      repoInfo = await ghFetch(pat, 'GET', `/repos/${owner}/${repo}`);
+      repoInfo = resolved.repoInfo || await ghFetch(pat, 'GET', `/repos/${owner}/${repo}`);
+
+      const upToDate = !!lastSha && remoteSha === lastSha;
+
+      return json(200, {
+        ok: true,
+        connected: true,
+        owner,
+        repo,
+        branch: branchUsed,
+        configuredBranch: branch,
+        fallbackFromBranch,
+        lastSha,
+        remoteSha,
+        upToDate,
+        behindBy,
+        private: repoInfo?.private ?? null,
+        stars: repoInfo?.stargazers_count ?? null,
+        updatedAt: gh.updated_at,
+        repoUrl: `https://github.com/${owner}/${repo}`
+      });
     } catch (ghErr) {
       return json(200, {
         ok: true,
@@ -88,24 +131,6 @@ exports.handler = async (event) => {
         error: `GitHub unreachable: ${ghErr.message}`
       });
     }
-
-    const upToDate = !lastSha || remoteSha === lastSha;
-
-    return json(200, {
-      ok: true,
-      connected: true,
-      owner,
-      repo,
-      branch,
-      lastSha,
-      remoteSha,
-      upToDate,
-      behindBy,
-      private: repoInfo?.private ?? null,
-      stars: repoInfo?.stargazers_count ?? null,
-      updatedAt: gh.updated_at,
-      repoUrl: `https://github.com/${owner}/${repo}`
-    });
 
   } catch (err) {
     return json(err.status || 500, { ok: false, error: String(err?.message || err) });

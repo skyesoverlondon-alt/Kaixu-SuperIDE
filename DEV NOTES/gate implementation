@@ -1,0 +1,551 @@
+# KaixuSI — Implementation Directives
+## The AI Brain Is Now Self-Hosted
+
+**KaixuSI lives at:** https://kaixusi.skyesoverlondon.workers.dev  
+**What KaixuSI is:** A Cloudflare Worker. This IS the brain. Not a proxy. Not Netlify. A self-hosted, always-on AI gateway that calls OpenAI / Anthropic / Gemini directly using YOUR keys.  
+**Netlify's job:** Host the SuperIDE UI and backend functions. Netlify functions call KaixuSI — they do not call AI providers directly.  
+**Auth:** `Authorization: Bearer KAIXUSI_SECRET` on every request (except `/health`)  
+**Format:** JSON in, JSON out (or SSE for `/v1/stream`)
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  NETLIFY — kAIxU SuperIDE                                   │
+│  ├── ide.html, index.html → IDE UI                          │
+│  └── netlify/functions/                                     │
+│       ├── ai-edit.js        → calls /v1/chat                │
+│       ├── embeddings.js     → calls /v1/embed               │
+│       ├── gateway-chat.js   → calls /v1/chat (proxies IDE)  │
+│       ├── gateway-stream.js → calls /v1/stream              │
+│       └── gateway-embed.js  → calls /v1/embed               │
+└──────────────────────────┬──────────────────────────────────┘
+                           │  Bearer KAIXUSI_SECRET
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  CLOUDFLARE WORKER — KaixuSI                                │
+│  kaixusi.skyesoverlondon.workers.dev                        │
+│  ├── Enforces KAIXUSI_SECRET auth                           │
+│  ├── Routes to OpenAI / Anthropic / Gemini via YOUR keys    │
+│  ├── Resolves per-user attribution (user_id, workspace_id)  │
+│  └── Logs every call to ai_usage_log (Neon/PostgreSQL)      │
+└──────────────────────────┬──────────────────────────────────┘
+                           │  YOUR keys (never leave the worker)
+                           ▼
+          OpenAI API  /  Anthropic API  /  Google Gemini API
+```
+
+---
+
+## Per-User Attribution
+
+Every call to KaixuSI can carry user identity. The worker reads these from the request body first, falls back to headers:
+
+| Body field     | Header equivalent       | What it is |
+|----------------|------------------------|------------|
+| `user_id`      | `X-Kaixu-User-Id`      | IDE user UUID |
+| `workspace_id` | `X-Kaixu-Workspace-Id` | Workspace UUID |
+| `org_id`       | `X-Kaixu-Org-Id`       | Org UUID |
+| `app_id`       | `X-Kaixu-App`          | Calling app tag |
+
+Every call is logged to `ai_usage_log` in Neon with these fields. This lets you query exactly which user triggered which AI call.
+
+The response always echoes back:
+```json
+"attributed_to": { "user_id": "...", "workspace_id": "...", "org_id": "...", "app_id": "kaixu-superide" }
+```
+
+---
+
+## The Four Endpoints
+
+| Method | Path | Auth | What it does |
+|--------|------|------|-------------|
+| `GET`  | `/health`    | ❌ Public    | Confirm KaixuSI is live |
+| `POST` | `/v1/chat`   | ✅ Required  | Full response — non-streaming |
+| `POST` | `/v1/stream` | ✅ Required  | SSE streaming — tokens arrive in real time |
+| `POST` | `/v1/embed`  | ✅ Required  | Text-to-vector embeddings |
+
+---
+
+## Authentication
+
+Every authenticated request needs:
+```
+Authorization: Bearer KAIXUSI_SECRET
+```
+
+`KAIXUSI_SECRET` is:
+- A Cloudflare Worker secret (set via `wrangler secret put KAIXUSI_SECRET`)
+- A Netlify env var (same value — set in Site → Environment variables)
+
+The Netlify functions read `KAIXUSI_SECRET` from their env and forward it to the worker. The IDE never exposes this token to the browser.
+
+---
+
+## 1. Health Check
+
+Public — no auth required.
+
+```bash
+curl https://kaixusi.skyesoverlondon.workers.dev/health
+```
+
+```json
+{
+  "status": "ok",
+  "brain": "KaixuSI",
+  "version": "1.0.0",
+  "ts": "2026-03-01T12:25:33.923Z",
+  "origin": "self-hosted"
+}
+```
+
+`"origin": "self-hosted"` confirms you're hitting YOUR worker, not a third-party proxy.
+
+---
+
+## 2. Chat — `/v1/chat`
+
+Non-streaming. Send messages, get back the full answer.
+
+```bash
+curl https://kaixusi.skyesoverlondon.workers.dev/v1/chat \
+  -X POST \
+  -H "Authorization: Bearer $KAIXUSI_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"openai","model":"gpt-4o-mini","messages":[{"role":"user","content":"Explain WebSockets."}]}'
+```
+
+```js
+const BASE   = 'https://kaixusi.skyesoverlondon.workers.dev';
+const SECRET = process.env.KAIXUSI_SECRET;
+
+async function ask(messages) {
+  const res = await fetch(`${BASE}/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SECRET}`,
+      'Content-Type':  'application/json'
+    },
+    body: JSON.stringify({
+      provider: 'openai',
+      model:    'gpt-4o-mini',
+      messages,
+      app_id: 'kaixu-superide'
+    })
+  });
+  const data = await res.json();
+  return data.output_text;
+}
+```
+
+---
+
+## 3. Chat Response Object
+
+```json
+{
+  "output_text": "WebSockets are a protocol that...",
+  "model": "gpt-4o-mini",
+  "provider": "openai",
+  "usage": {
+    "prompt_tokens": 28,
+    "completion_tokens": 94,
+    "total_tokens": 122
+  },
+  "latency_ms": 812,
+  "attributed_to": {
+    "user_id": "uuid-of-ide-user",
+    "workspace_id": "uuid-of-workspace",
+    "org_id": "uuid-of-org",
+    "app_id": "kaixu-superide"
+  },
+  "kaixusi": true
+}
+```
+
+| Field | Notes |
+|-------|-------|
+| `output_text` | The assistant's answer |
+| `provider` | Which AI provider handled the call |
+| `model` | Which model answered |
+| `usage` | Token counts |
+| `latency_ms` | Round-trip time to the AI provider |
+| `attributed_to` | User identity — echoed back from your request |
+| `kaixusi` | Always `true` — confirms you're on the KaixuSI brain |
+
+---
+
+## 4. Multi-Turn Conversations
+
+```js
+const messages = [
+  { role: 'user',      content: 'My name is Skye.' },
+  { role: 'assistant', content: 'Hello Skye, how can I help you?' },
+  { role: 'user',      content: 'What is my name?' }
+];
+
+const res = await fetch(`${BASE}/v1/chat`, {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${SECRET}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ provider: 'openai', model: 'gpt-4o-mini', messages })
+});
+const data = await res.json();
+// data.output_text → "Your name is Skye."
+```
+
+**Chat loop:**
+```js
+const messages = [];
+
+async function chat(userInput) {
+  messages.push({ role: 'user', content: userInput });
+
+  const res = await fetch(`${BASE}/v1/chat`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${SECRET}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider: 'openai', model: 'gpt-4o-mini', messages })
+  });
+
+  const data = await res.json();
+  messages.push({ role: 'assistant', content: data.output_text });
+  return data.output_text;
+}
+```
+
+---
+
+## 5. System Instructions
+
+Include a system message in your `messages[]` array:
+
+```js
+body: JSON.stringify({
+  provider: 'openai',
+  model: 'gpt-4o-mini',
+  messages: [
+    { role: 'system', content: 'You are a concise legal assistant. Answer in plain English.' },
+    { role: 'user',   content: 'What is habeas corpus?' }
+  ]
+})
+```
+
+---
+
+## 6. Provider + Model Reference
+
+Pass `provider` and `model` on every request:
+
+| provider | model | Notes |
+|----------|-------|-------|
+| `openai` | `gpt-4o-mini` | Fast, cheap — default for most IDE tasks |
+| `openai` | `gpt-4o` | Strongest OpenAI |
+| `anthropic` | `claude-3-5-haiku-20241022` | Fast Anthropic |
+| `anthropic` | `claude-sonnet-4-5` | Strongest Anthropic |
+| `gemini` | `gemini-2.5-flash` | Fast Gemini |
+| `gemini` | `gemini-2.5-pro` | Strongest Gemini |
+| `gemini` | `text-embedding-004` | Embeddings only |
+
+If the worker can't reach the chosen provider it returns a clear error — it does not silently fall back.
+
+---
+
+## 7. Netlify Functions → KaixuSI Wiring
+
+The Netlify functions carry the secret internally — the browser never sees it:
+
+```js
+// netlify/functions/gateway-chat.js (simplified)
+const WORKER = () => process.env.KAIXUSI_WORKER_URL.replace(/\/+$/, '');
+const SECRET = () => process.env.KAIXUSI_SECRET;
+
+export const handler = async (event) => {
+  const body = JSON.parse(event.body || '{}');
+  body.app_id = 'kaixu-superide'; // inject attribution
+
+  const resp = await fetch(`${WORKER()}/v1/chat`, {
+    method:  'POST',
+    headers: {
+      'Authorization': `Bearer ${SECRET()}`,
+      'Content-Type':  'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  return { statusCode: resp.status, body: await resp.text(),
+           headers: { 'Content-Type': 'application/json' } };
+};
+```
+
+---
+
+## 8. JSON Output
+
+Ask for JSON in your system or user message and parse `output_text`:
+
+```js
+body: JSON.stringify({
+  provider: 'openai',
+  model:    'gpt-4o-mini',
+  messages: [
+    { role: 'system', content: 'Respond only with valid JSON.' },
+    { role: 'user',   content: 'Give me name, capital, population for France.' }
+  ]
+})
+
+const data = await res.json();
+const country = JSON.parse(data.output_text);
+// { name: 'France', capital: 'Paris', population: 68000000 }
+```
+
+---
+
+## 9. Streaming — `/v1/stream`
+
+Same request body as `/v1/chat`. Returns SSE.
+
+> **⚠ Netlify CDN buffers SSE.** The gateway-stream Netlify function proxies the stream — for direct browser streaming use the worker URL directly with the secret. For IDE chat panels, `/v1/chat` is simpler.
+
+```js
+async function streamAnswer(messages, onChunk) {
+  const res = await fetch(`${BASE}/v1/stream`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${SECRET}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider: 'openai', model: 'gpt-4o-mini', messages })
+  });
+
+  const reader  = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (raw === '[DONE]') return;
+
+      try {
+        const chunk = JSON.parse(raw);
+        const text = chunk.choices?.[0]?.delta?.content || '';
+        if (text) onChunk(text);
+      } catch {}
+    }
+  }
+}
+```
+
+---
+
+## 10. Embeddings — `/v1/embed`
+
+Text-to-vector. No system prompt. Send texts array, get float arrays back.
+
+```js
+const res = await fetch(`${BASE}/v1/embed`, {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${SECRET}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    provider: 'gemini',
+    model:    'text-embedding-004',
+    texts:    [
+      'First document.',
+      'Second document.',
+      'Third document.'
+    ],
+    // Attribution
+    user_id:      'uuid-of-ide-user',
+    workspace_id: 'uuid-of-workspace',
+    app_id:       'kaixu-superide'
+  })
+});
+const data = await res.json();
+// data.embeddings → [[0.023, -0.041, ...], [0.11, 0.02, ...], ...]
+// Each inner array is a flat float[] vector (768 dims)
+```
+
+---
+
+## 11. Migration From Old Gate (kaixu67)
+
+Old URL → New URL:
+```
+https://kaixu67.skyesoverlondon.workers.dev  →  https://kaixusi.skyesoverlondon.workers.dev
+```
+
+Old routes → new routes:
+| Old | New |
+|-----|-----|
+| `GET /v1/health` | `GET /health` |
+| `POST /v1/generate` | `POST /v1/chat` |
+| `POST /v1/stream` | `POST /v1/stream` (same path) |
+| `POST /v1/embeddings` | `POST /v1/embed` |
+
+Old auth env var → new:
+```
+KAIXU_VIRTUAL_KEY / KAIXU_GATE_TOKEN  →  KAIXUSI_SECRET
+KAIXU_GATE_BASE                        →  KAIXUSI_WORKER_URL
+```
+
+Old response field → new:
+```
+data.text  →  data.output_text
+```
+
+Old request body shape → new:
+```js
+// OLD
+{ input: { type: 'text', content: 'Hello' } }
+
+// NEW
+{ provider: 'openai', model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'Hello' }] }
+```
+
+---
+
+## 12. Worker Secrets (Cloudflare)
+
+Set once after deploy — each command prompts for the value:
+
+```bash
+cd /workspaces/Kaixu-SuperIDE/worker
+
+CLOUDFLARE_API_TOKEN="..." npx wrangler secret put KAIXUSI_SECRET
+# shared bearer token — same value goes into Netlify env vars
+
+CLOUDFLARE_API_TOKEN="..." npx wrangler secret put OPENAI_KEY
+
+CLOUDFLARE_API_TOKEN="..." npx wrangler secret put ANTHROPIC_KEY
+
+CLOUDFLARE_API_TOKEN="..." npx wrangler secret put GEMINI_KEY
+
+CLOUDFLARE_API_TOKEN="..." npx wrangler secret put DATABASE_URL
+```
+
+List what's set:
+```bash
+CLOUDFLARE_API_TOKEN="..." npx wrangler secret list
+```
+
+---
+
+## 13. Netlify Environment Variables
+
+Set in Netlify → Site → Environment variables:
+
+| Key | Value |
+|-----|-------|
+| `KAIXUSI_WORKER_URL` | `https://kaixusi.skyesoverlondon.workers.dev` |
+| `KAIXUSI_SECRET` | same value as the worker's `KAIXUSI_SECRET` secret |
+
+After setting, trigger a redeploy (Deploys → Trigger deploy → Deploy site).
+
+Never commit secrets. Never expose `KAIXUSI_SECRET` to the browser.
+
+---
+
+## 14. Error Reference
+
+| HTTP | When |
+|------|------|
+| 200 | Success |
+| 401 | Missing or wrong `KAIXUSI_SECRET` |
+| 400 | Bad request body / missing required fields |
+| 404 | Unknown route |
+| 500 | Worker misconfigured — check secrets are set |
+| 502 | Upstream AI provider unreachable |
+
+```js
+const res = await fetch(`${BASE}/v1/chat`, { ... });
+const data = await res.json();
+if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+return data.output_text;
+```
+
+---
+
+## 15. Full Request Body Reference
+
+### `/v1/chat` and `/v1/stream`
+```js
+{
+  "provider": "openai",           // required: 'openai' | 'anthropic' | 'gemini'
+  "model":    "gpt-4o-mini",      // required: model name for the chosen provider
+
+  "messages": [                   // required
+    { "role": "system",    "content": "You are helpful." },
+    { "role": "user",      "content": "Hello" },
+    { "role": "assistant", "content": "Hi there!" },
+    { "role": "user",      "content": "What is 2+2?" }
+  ],
+
+  // Attribution (optional)
+  "user_id":      "uuid",
+  "workspace_id": "uuid",
+  "org_id":       "uuid",
+  "app_id":       "kaixu-superide"
+}
+```
+
+### `/v1/embed`
+```js
+{
+  "provider": "gemini",             // required
+  "model":    "text-embedding-004", // required
+  "texts":    ["string", "..."],     // required — array of strings to embed
+
+  // Attribution (optional)
+  "user_id":      "uuid",
+  "workspace_id": "uuid",
+  "app_id":       "kaixu-superide"
+}
+```
+
+---
+
+## 16. Usage Logging
+
+KaixuSI logs every AI call to `ai_usage_log` in Neon PostgreSQL.
+
+Each row contains:
+- `user_id`, `workspace_id`, `org_id`, `app_id` — who made the call
+- `provider`, `model` — what was called
+- `prompt_tokens`, `completion_tokens` — token counts
+- `latency_ms` — response time
+- `success` — whether the call succeeded
+- `ts` — timestamp
+
+This is logged via `env.ctx.waitUntil()` — fire-and-forget, never delays the response.
+
+Requires `DATABASE_URL` worker secret to be set (Neon PostgreSQL connection string).
+
+---
+
+## 17. Deployment Checklist
+
+- [x] Worker deployed: `https://kaixusi.skyesoverlondon.workers.dev`
+- [x] `account_id` set in `wrangler.toml`: `994dcbdf4404db05122940396a622102`
+- [x] Worker secrets set: `KAIXUSI_SECRET`, `OPENAI_KEY`, `ANTHROPIC_KEY`, `GEMINI_KEY`, `DATABASE_URL`
+- [ ] Netlify env vars set: `KAIXUSI_WORKER_URL`, `KAIXUSI_SECRET`
+- [ ] Netlify redeployed after env vars added
+- [ ] Health check passes: `curl https://kaixusi.skyesoverlondon.workers.dev/health`
+- [ ] Test chat call via gateway-chat Netlify function returns `output_text`
+
+**Redeploy worker command:**
+```bash
+cd /workspaces/Kaixu-SuperIDE/worker
+CLOUDFLARE_API_TOKEN="..." npx wrangler deploy
+```
+
+---
+
+*KaixuSI — Skyes Over London LC — 2026*

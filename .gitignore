@@ -26,4 +26,5 @@ worker/.dev.vars.*
 # Build artifacts
 dist/
 build/
+artifacts/
 

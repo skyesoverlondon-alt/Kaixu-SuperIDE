@@ -138,6 +138,43 @@ Tests cover: auth flows, billing quota enforcement, RBAC, tenant isolation, AI e
 
 CI runs automatically on every push and pull request via GitHub Actions (`.github/workflows/ci.yml`).
 
+## Smoke evidence verification
+
+Validate `/smoke` route + download controls (`Download Latest` and `Download All`) and record a dated evidence artifact:
+
+```bash
+npm run smoke:downloads
+npm run smoke:gate
+```
+
+Output location:
+
+- `artifacts/evidence-bundles/<timestamp>/smoke-download-verification.json`
+- `artifacts/evidence-bundles/SMOKE-LEDGER.json` (public run index)
+- `artifacts/evidence-bundles/latest-smoke.json` (latest run pointer)
+
+Investor no-signup smoke URLs:
+
+- `/investor-smoke`
+- `/investor-trust`
+- `/smoke?public=1`
+- `/api/smoke-public?limit=200` (public smoke history feed, no signup)
+- `/api/smoke-status` (public trust/status JSON)
+- `/api/smoke-status?format=svg` (public smoke badge)
+
+Smoke evidence integrity (server side):
+
+- `verifyHash` — deterministic SHA-256 hash of canonical run payload
+- `chainHash` — hash-chained to prior run in scope (tamper-evident sequence)
+- `signature` — HMAC-SHA256 of `chainHash` when `SMOKE_SIGNING_KEY` is set
+- legacy runs are verification-backfilled on read (`verification.evidence.backfilled = true`)
+
+Scheduled smoke automation:
+
+- Netlify scheduled function: `/.netlify/functions/smoke-scheduled` (every 6 hours)
+- Persists `source: "scheduler"` and scheduler metadata in evidence details
+- Optional manual trigger guard: set `SMOKE_SCHEDULE_KEY` and call with header `x-smoke-schedule-key`
+
 ---
 
 ## Plan tiers
@@ -218,12 +255,21 @@ Enterprise evidence bundle:
 - `docs/enterprise/THIRD-PARTY-RISK.md`
 - `docs/enterprise/COMPLIANCE-ROADMAP.md`
 - `docs/enterprise/REPO-GOVERNANCE-CHECKLIST.md`
+- `docs/enterprise/dossier/EXECUTIVE-READINESS-BRIEF.md`
+- `docs/enterprise/dossier/TRUST-SECURITY-POSTURE.md`
+- `docs/enterprise/dossier/STANDARD-SECURITY-QUESTIONNAIRE.md`
 - `SECURITY.md`
 
 Repository governance artifacts:
 
 - `.github/CODEOWNERS`
 - `.github/pull_request_template.md`
+
+Automated evidence bundle generation:
+
+```bash
+npm run evidence:bundle
+```
 
 ---
 

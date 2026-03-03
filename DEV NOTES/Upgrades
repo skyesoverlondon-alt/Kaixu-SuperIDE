@@ -1,0 +1,218 @@
+# Kaixu SuperIDE — Fortune 500 Upgrade List
+
+Everything below is required to go from "production-capable startup IDE" to "Fortune 500 / enterprise-ready."
+Roughly 2–3 weeks of build work total.
+
+---
+
+## 1. Tests + CI Pipeline
+
+**Why:** No test files exist. Procurement and enterprise buyers require evidence of automated testing.
+
+Build:
+- Unit tests for every Netlify function (auth, billing, quota, RBAC, invites)
+- Integration tests: full signup → invite → workspace → AI call flow
+- Tenant isolation tests: prove org A cannot read org B data
+- Permission test suite: verify every role (owner/admin/editor/viewer) is enforced
+- GitHub Actions workflow: lint → test → deploy on push to main
+- Tools: Jest (unit), Supertest (HTTP integration), Playwright (E2E optional)
+
+Files to create:
+- tests/auth.test.js
+- tests/billing.test.js
+- tests/rbac.test.js
+- tests/tenant-isolation.test.js
+- tests/quota.test.js
+- .github/workflows/ci.yml
+
+---
+
+## 2. Real SSO (SAML + OIDC)
+
+**Why:** SSO schema columns exist but nothing actually authenticates via Okta, Azure AD, Google Workspace.
+Enterprise buyers require this on day 1.
+
+Build:
+- SAML 2.0 IdP-initiated + SP-initiated flow
+- OIDC / OAuth 2.0 flow (Google, Microsoft, GitHub Enterprise)
+- netlify/functions/sso-saml.js — parse SAML assertions, issue JWT
+- netlify/functions/sso-oidc.js — OIDC callback, token exchange, issue JWT
+- IDE settings panel: SSO config UI (domain, metadata URL, client ID/secret)
+- JIT provisioning: auto-create user on first SSO login
+- SSO-enforced orgs: block password login when SSO is on
+
+Tools: node-saml, openid-client (or implement raw since we're serverless)
+
+---
+
+## 3. SendGrid (Email) — Wire It Up
+
+**What SendGrid is:** Twilio's transactional email API. You call their REST API and they
+deliver emails reliably, handle spam rules, track bounces. Free up to 100/day.
+
+**Why it's broken now:** SENDGRID_API_KEY is not set in Netlify env vars.
+Password reset, email verification, invite emails, and org notifications all silently fail.
+
+Build:
+- Set SENDGRID_API_KEY in Netlify dashboard → Site settings → Environment variables
+- Set SMTP_FROM_EMAIL (e.g. hello@kaixu.app)
+- Set APP_URL (e.g. https://kaixu.netlify.app)
+- Test: POST /auth-reset-request → should receive email
+- Test: POST /auth-signup → should receive verification email
+- Test: POST /invite-create → invitee should receive invite email
+- Add email templates (HTML) to _lib/notify.js for nicer formatting
+
+---
+
+## 4. Rate Limits on All Endpoints
+
+**Why:** Right now only auth endpoints are rate-limited. Every other API is wide open to abuse.
+
+Build:
+- Apply _lib/ratelimit.js to: ai-edit, embeddings, ws-save, org-create, invite-create, comments, tasks
+- Per-endpoint limits (AI is stricter, read ops are generous):
+  - ai-edit: 20 req/min per user
+  - ws-save: 60 req/min per user
+  - embeddings: 10 req/min per org
+  - org-create: 5 req/hour per user
+  - invite-create: 20 req/hour per org
+- Add 429 responses with Retry-After header
+- Log rate limit hits to audit log
+
+---
+
+## 5. Real Observability Stack
+
+**Why:** DB-only error storage means you only find out something broke when a user complains.
+
+Build:
+- Sentry integration: add @sentry/node to all Netlify functions, catch + report unhandled errors
+- Set SENTRY_DSN env var in Netlify
+- Add Sentry to frontend (ide.html) for JS errors + source maps
+- Uptime monitoring: add Netlify site to Better Uptime or UptimeRobot (free)
+- Alert routing: Sentry → Slack channel on new error
+- Log drains: Netlify Log Drains → Papertrail or Logtail (structured log search)
+
+Files to modify:
+- netlify/functions/_lib/logger.js — add Sentry.captureException() calls
+- ide.html — add Sentry browser SDK script tag
+
+---
+
+## 6. PDF for Client Bundle Export
+
+**Why:** Must Haves said "zip + PDF change report" — current implementation outputs .txt not PDF.
+
+Build:
+- Use jsPDF (already have jszip.min.js, add jspdf.min.js) client-side
+- exportClientBundle() in app.js: generate real PDF with:
+  - Project name, date, exported by
+  - File change table (filename, lines added, lines removed, last modified)
+  - AI chat summary (last 10 messages)
+  - Commit log (last 10 commits)
+- Bundle: client-bundle-{date}.zip containing all files + CHANGE_REPORT.pdf
+
+---
+
+## 7. Stripe + Env Vars — Configure in Netlify
+
+**Why:** Billing is fully built but env vars aren't set so nothing works in production.
+
+Steps:
+- Netlify dashboard → Site settings → Environment variables → Add:
+  - STRIPE_SECRET_KEY (from Stripe dashboard → Developers → API keys)
+  - STRIPE_WEBHOOK_SECRET (from Stripe dashboard → Webhooks → signing secret)
+  - KAIXU_GATE_TOKEN (for the Cloudflare Workers AI gateway — covers all AI calls including RAG embeddings)
+  - KAIXU_GATE_BASE (optional override, defaults to kaixu67.skyesoverlondon.workers.dev)
+  - KAIXU_DEFAULT_MODEL (optional override, defaults to gemini-2.5-flash)
+- Stripe dashboard → Webhooks → Add endpoint:
+  - URL: https://YOUR-SITE.netlify.app/.netlify/functions/stripe-webhook
+  - Events: customer.subscription.created, customer.subscription.updated,
+            customer.subscription.deleted, invoice.payment_succeeded, invoice.payment_failed
+- Stripe dashboard → Products → Create Free/Pro/Team/Enterprise plans
+  - Copy price IDs → update plans table in Neon via SQL
+
+---
+
+## 8. Neon pgvector Extension
+
+**Why:** RAG embeddings (embeddings.js) uses vector(1536) type — won't work until extension is enabled.
+Also: embeddings.js currently calls OpenAI directly — needs to be rerouted through your Kaixu gateway.
+
+Steps:
+- Neon console → your database → SQL editor → run:
+  CREATE EXTENSION IF NOT EXISTS vector;
+- Then run scripts/migrate.js to apply schema.sql if not already done
+- Update embeddings.js: replace api.openai.com call with your Kaixu gateway endpoint
+  (gateway should expose a /embeddings route that calls Gemini's text-embedding model)
+- Vector dimension may need to change from 1536 (OpenAI) to match Gemini embedding output size
+  (Gemini text-embedding-004 = 768 dimensions — update schema.sql: vector(768))
+
+---
+
+## 9. Netlify Function Timeout Limits
+
+**Why:** Default Netlify function timeout is 10s. AI operations (embeddings, ai-edit) regularly exceed this.
+
+Build:
+- netlify.toml: set [functions] timeout to 26 (max on paid plan)
+- Move heavy AI ops to background functions (netlify/functions/background/) — these get 15 min
+- ai-edit.js: convert to background function with polling:
+  - POST /ai-edit → returns { jobId }
+  - GET /ai-edit-status?jobId=... → returns { status, result }
+  - Frontend polls every 2s until done
+- embeddings.js: same pattern
+
+---
+
+## 10. Legal + Security Documents
+
+**Why:** Fortune 500 legal/procurement requires these before signing any contract.
+
+Create (as pages or downloadable docs on your marketing site):
+- Privacy Policy (GDPR-compliant, covers data storage in Neon/US, AI processing)
+- Terms of Service
+- Data Processing Agreement (DPA) — required for EU customers
+- Security Policy (encryption at rest/in transit, access controls, incident response)
+- Subprocessors list (Netlify, Neon, Stripe, Google Gemini via Kaixu gateway, SendGrid)
+- SLA document (uptime commitment, support response times)
+
+---
+
+## 11. Penetration Test / Security Audit
+
+**Why:** Enterprise procurement will ask "have you had a pentest?" — answer must be yes.
+
+Options (cheapest to most thorough):
+- Run OWASP ZAP (free, automated) against your staging URL — generates a report
+- Burp Suite Community Edition — manual testing of auth flows
+- Pay for a real pentest from a firm (~$3k-15k) for a report you can share with customers
+- At minimum: run `npm audit` on all dependencies, fix criticals
+
+---
+
+## 12. Multi-Region / Disaster Recovery
+
+**Why:** Single-region = single point of failure. Enterprise SLAs require < 1hr RTO.
+
+Build:
+- Neon: enable read replicas (already available on Neon paid plans)
+- Document RTO/RPO targets in your DRP runbook
+- Runbook.md: step-by-step what to do if Netlify is down / Neon is down / Stripe is down
+- Incident response plan: who gets paged, what's the escalation path
+
+---
+
+## Priority Order (build in this sequence)
+
+1. Env vars (SendGrid, Stripe, KAIXU_GATE_TOKEN) — unblocks everything
+2. Neon pgvector extension — unblocks RAG
+3. Rate limits on all endpoints — security baseline
+4. Tests + CI — required for enterprise sales
+5. Real SSO (SAML/OIDC) — required for enterprise deals
+6. Sentry observability — required to operate at scale
+7. PDF client bundle — polish
+8. Netlify timeout fix (background functions) — scalability
+9. Legal docs — required for enterprise contracts
+10. Pentest — required for enterprise security reviews
+11. Multi-region / DRP — required for Fortune 500 SLAs

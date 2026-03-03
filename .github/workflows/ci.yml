@@ -45,6 +45,9 @@ jobs:
       - name: Run tests
         run: npm test -- --coverage --forceExit
 
+      - name: Run smoke gate
+        run: npm run smoke:gate
+
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:

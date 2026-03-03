@@ -94,21 +94,30 @@ function _ghRenderConnected(status) {
   const repoLabel   = document.getElementById('gh-repo-label');
   const branchLabel = document.getElementById('gh-branch-label');
   const repoLink    = document.getElementById('gh-repo-link');
+  const usingFallbackBranch = !!status?.fallbackFromBranch && status?.fallbackFromBranch !== status?.branch;
+  const fallbackNote = usingFallbackBranch
+    ? ` Using default branch ${status.branch} (configured ${status.fallbackFromBranch} was not found).`
+    : '';
 
   if (repoLabel)   repoLabel.textContent   = `${status.owner}/${status.repo}`;
-  if (branchLabel) branchLabel.textContent = `⎇ ${status.branch}`;
+  if (branchLabel) {
+    branchLabel.textContent = `⎇ ${status.branch}`;
+    branchLabel.title = usingFallbackBranch
+      ? `Using ${status.branch}; configured branch ${status.fallbackFromBranch} is unavailable`
+      : `Active branch ${status.branch}`;
+  }
   if (repoLink)    repoLink.href = status.repoUrl || `https://github.com/${status.owner}/${status.repo}`;
 
   if (status.upToDate) {
-    _ghSetStatus('Up to date ✓', 'ok');
+    _ghSetStatus(`Up to date ✓${fallbackNote}`, 'ok');
     _ghShowBadge(false);
   } else if (status.behindBy != null && status.behindBy > 0) {
-    _ghSetStatus(`Behind by ${status.behindBy} commit${status.behindBy !== 1 ? 's' : ''} — Pull to update`, 'behind');
+    _ghSetStatus(`Behind by ${status.behindBy} commit${status.behindBy !== 1 ? 's' : ''} — Pull to update.${fallbackNote}`, 'behind');
     _ghShowBadge(true);
   } else if (status.error) {
     _ghSetStatus(status.error, 'err');
   } else {
-    _ghSetStatus(`Local changes not yet pushed`, 'behind');
+    _ghSetStatus(`Local changes not yet pushed.${fallbackNote}`, 'behind');
   }
 }
 
@@ -241,6 +250,7 @@ async function ghPush() {
     }
 
     _ghStatus = { ..._ghStatus, upToDate: true, lastSha: data.commitSha };
+    await ghRefreshStatus();
 
   } catch (err) {
     _ghSetProgress(null);
@@ -298,6 +308,7 @@ async function ghPull() {
       `Pulled ${data.filesUpdated} updated + ${data.filesDeleted} deleted ← ${data.totalFiles} total files`,
       'success'
     );
+    await ghRefreshStatus();
 
   } catch (err) {
     _ghSetProgress(null);

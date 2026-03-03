@@ -1785,6 +1785,17 @@ function bindEvents() {
   // Netlify deploy
   $('#deploy-btn')?.addEventListener('click', () => triggerNetlifyDeploy());
 
+  // Live smoke page (investor-facing verifiable runs)
+  $('#smoke-page-btn')?.addEventListener('click', () => {
+    if (currentWorkspaceId) localStorage.setItem('KAIXU_LAST_WORKSPACE_ID', currentWorkspaceId);
+    const qs = currentWorkspaceId ? `?workspaceId=${encodeURIComponent(currentWorkspaceId)}` : '';
+    window.location.href = `smoke-live.html${qs}`;
+  });
+
+  $('#investor-smoke-btn')?.addEventListener('click', () => {
+    window.location.href = '/investor-smoke';
+  });
+
   // Secrets banner dismiss
   $('#secrets-banner-close')?.addEventListener('click', () => {
     document.getElementById('secrets-banner')?.classList.add('hidden');
