@@ -2790,7 +2790,7 @@ function initPanelResize() {
   function applySavedWidths() {
     const total = getTotalWidth();
     const currentSide = side.getBoundingClientRect().width || 260;
-    const currentPreview = preview.getBoundingClientRect().width || Math.round(total * 0.3);
+    const currentPreview = preview.getBoundingClientRect().width || Math.round(total * 0.4);
 
     const savedSide = parseFloat(localStorage.getItem(KEY_SIDE));
     const savedPrev = parseFloat(localStorage.getItem(KEY_PREV));
@@ -2891,7 +2891,7 @@ function initPanelResize() {
   });
 
   prevHandle.addEventListener('dblclick', () => {
-    preview.style.width = '30%';
+    preview.style.width = '40%';
     preview.style.flex = 'none';
     localStorage.removeItem(KEY_PREV);
     applySavedWidths();
@@ -2900,6 +2900,45 @@ function initPanelResize() {
   window.__syncPanelLayout = applySavedWidths;
   window.addEventListener('resize', applySavedWidths);
   applySavedWidths();
+}
+
+const RELEASE_NOTES_VERSION = '2026-03-smoke-trust-v1';
+const RELEASE_NOTES_ACK_KEY = 'KAIXU_RELEASE_NOTES_ACK';
+
+function openReleaseNotesModal() {
+  const modal = document.getElementById('release-notes-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+}
+
+function closeReleaseNotesModal({ remember = true } = {}) {
+  const modal = document.getElementById('release-notes-modal');
+  if (!modal) return;
+  if (remember) {
+    const dontShow = document.getElementById('release-notes-hide-next');
+    if (!dontShow || dontShow.checked) {
+      localStorage.setItem(RELEASE_NOTES_ACK_KEY, RELEASE_NOTES_VERSION);
+    }
+  }
+  modal.classList.add('hidden');
+}
+
+function initReleaseNotesModal() {
+  const closeBtn = document.getElementById('release-notes-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => closeReleaseNotesModal({ remember: true }));
+  }
+  const modal = document.getElementById('release-notes-modal');
+  if (modal) {
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) closeReleaseNotesModal({ remember: true });
+    });
+  }
+
+  const acked = localStorage.getItem(RELEASE_NOTES_ACK_KEY);
+  if (acked !== RELEASE_NOTES_VERSION) {
+    setTimeout(() => openReleaseNotesModal(), 350);
+  }
 }
 
 async function init() {
@@ -2971,6 +3010,8 @@ async function init() {
     localStorage.setItem('KAIXU_TUTORIAL_SEEN', '1');
     openTutorial();
   }
+
+  initReleaseNotesModal();
 }
 
 init().catch((e) => {

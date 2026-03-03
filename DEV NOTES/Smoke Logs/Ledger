@@ -1,3 +1,28 @@
+2026-03-03 — Preview width + release-notes popup smoke record
+
+Scope
+- Preview layout fix: default preview column width 30% → 40%
+- Added in-app "What’s New" release-notes popup (versioned localStorage acknowledgement)
+- Kept preview full-column flex behavior fix in place
+
+Interaction smoke
+- Command: node scripts/interaction-smoke.mjs
+- Result: INTERACTION_SMOKE_DONE failed=0 total=12 warnings=0
+- All checks PASS (paste modal, shortcuts, command palette, apply-patch preview/apply/write, auto-save gate, no page errors)
+
+Smoke API test gate
+- Command: npm run smoke:gate
+- Result: PASS
+- Test Suites: 5 passed, 5 total
+- Tests: 15 passed, 15 total
+
+Notes
+- Jest still reports generic force-exit/open-handle advisory after smoke gate, but all suites and tests passed.
+
+Verdict: PASS
+
+---
+
 2026-03-02 — Post-upgrade smoke (code upgrades session complete)
 
 Changes since last smoke
